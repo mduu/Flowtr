@@ -6,11 +6,11 @@ Ausgearbeitete Stories liegen in [`stories/`](stories/) (Vorlage: [`_template.md
 
 ## Als Nächstes
 
-### 2FA und externe Logins entfernen
+### Identity-Seiten auf MudBlazor umstellen
 
-> Detail-Story: [#001](stories/001-2fa-und-externe-logins-entfernen.md)
+> Detail-Story: [#002](stories/002-identity-auf-mudblazor.md)
 
-- Das Identity-Template bringt TOTP-2FA, Recovery-Codes und externe Logins mit. Flowtr kennt nur Passkey und Passwort ([Sicherheit](security.md#authentifizierung)).
+- Die Konto-Seiten erwarten Bootstrap und erscheinen ungestaltet. Umstellung auf MudBlazor (SSR-tauglich), deutsche Texte, Konto-Menü mit Abmelden in der AppBar.
 
 ## Später
 
