@@ -20,6 +20,16 @@ These rules are the short, always-on version. Details live in the specs — read
 | Stories | `specs/stories/` (template `_template.md`) |
 | Backlog — do not pick up unless explicitly asked | `specs/backlog.md` |
 
+## Repository Layout
+
+| Folder | Content |
+|---|---|
+| `src/` | Source code including tests |
+| `deploy/` | Infrastructure as Code (Bicep) and deployment scripts |
+| `docs/` | Operating and user documentation (how to run and use it) |
+| `specs/` | Specifications (what is built and why) |
+| `assets/` | Logo and images |
+
 ## Key Principles
 
 - **Vertical slices + CQS**: one use case = one file in `Commands/` or `Queries/` (record + handler, method `Handle`, returns `Result` or `Result<T>`).

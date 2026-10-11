@@ -12,6 +12,18 @@ Flowtr ist eine Web-App, welche das Erfassen von Ein- und Ausgaben für Einzelfi
 - **Keine Daten verlieren:** Redundante Backups inkl. Offsite/On-Prem, Alerts bei Ausfall.
 - **Security als Basis**, nicht als Zusatz.
 
+## Repository-Struktur
+
+```
+├── src/      Quellcode inkl. Tests (Solution, Server, Client, Aspire AppHost)
+├── deploy/   Infrastructure as Code (Bicep) und Deployment-Skripte
+├── docs/     Betriebs- und Benutzerdokumentation (z.B. Synology-Backup einrichten, Restore-Checkliste)
+├── specs/    Spezifikationen: Konzept, Architektur, ADRs, Stories, Backlog
+└── assets/   Logo und Bildmaterial
+```
+
+**`specs/` oder `docs/`?** `specs/` beschreibt, *was* gebaut wird und *warum*. `docs/` beschreibt, wie man das Gebaute betreibt und benutzt.
+
 ## Spezifikationen
 | Dokument | Inhalt |
 | :-- | :-- |
