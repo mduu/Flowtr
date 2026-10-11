@@ -20,14 +20,29 @@ Flowtr ist eine Web-App, welche das Erfassen von Ein- und Ausgaben für Einzelfi
 ## Repository-Struktur
 
 ```
-├── src/      Quellcode inkl. Tests (Solution, Server, Client, Aspire AppHost)
-├── deploy/   Infrastructure as Code (Bicep) und Deployment-Skripte
-├── docs/     Betriebs- und Benutzerdokumentation (z.B. Synology-Backup einrichten, Restore-Checkliste)
-├── specs/    Spezifikationen: Konzept, Architektur, ADRs, Stories, Backlog
-└── assets/   Logo und Bildmaterial
+├── src/                        Quellcode inkl. Tests – Solution Flowtr.slnx
+│   ├── Flowtr.AppHost/         Aspire: startet SQL Server, Azurite und den Server
+│   ├── Flowtr.ServiceDefaults/ Aspire Service Defaults: Telemetrie, Health Checks
+│   ├── Flowtr.Server/          ASP.NET Core Host: API, Identity, EF Core, Features/
+│   ├── Flowtr.Client/          Blazor WebAssembly UI mit MudBlazor
+│   ├── Flowtr.Shared/          Gemeinsame Typen für Server und Client (Result, DTOs)
+│   └── Flowtr.Tests/           Tests (xUnit, Shouldly)
+├── deploy/                     Infrastructure as Code (Bicep) und Deployment-Skripte
+├── docs/                       Betriebs- und Benutzerdokumentation (z.B. Synology-Backup einrichten, Restore-Checkliste)
+├── specs/                      Spezifikationen: Konzept, Architektur, ADRs, Stories, Backlog
+└── assets/                     Logo und Bildmaterial
 ```
 
 **`specs/` oder `docs/`?** `specs/` beschreibt, *was* gebaut wird und *warum*. `docs/` beschreibt, wie man das Gebaute betreibt und benutzt.
+
+## Entwicklung
+
+Voraussetzungen: .NET 10 SDK, Docker.
+
+```bash
+dotnet run --project src/Flowtr.AppHost   # startet SQL Server, Azurite und die App via Aspire
+dotnet test src/Flowtr.slnx
+```
 
 ## Spezifikationen
 | Dokument | Inhalt |

@@ -58,3 +58,6 @@ nunit-*.xml
 
 # Obsidian
 .obsidian/
+
+# JetBrains Rider
+.idea/

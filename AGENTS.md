@@ -24,11 +24,23 @@ These rules are the short, always-on version. Details live in the specs — read
 
 | Folder | Content |
 |---|---|
-| `src/` | Source code including tests |
+| `src/` | Source code including tests — solution `src/Flowtr.slnx`, package versions only in `src/Directory.Packages.props` |
+| `src/Flowtr.AppHost/` | Aspire AppHost: SQL Server and Azurite containers, server |
+| `src/Flowtr.ServiceDefaults/` | Aspire service defaults: telemetry, health checks, resilience |
+| `src/Flowtr.Server/` | ASP.NET Core host: API, Identity, EF Core, feature slices in `Features/`, CQS base in `CrossCutting/Cqs/` |
+| `src/Flowtr.Client/` | Blazor WebAssembly UI with MudBlazor |
+| `src/Flowtr.Shared/` | Types shared by server and client (`Result`, DTOs) |
+| `src/Flowtr.Tests/` | Tests (xUnit + Shouldly) |
 | `deploy/` | Infrastructure as Code (Bicep) and deployment scripts |
 | `docs/` | Operating and user documentation (how to run and use it) |
 | `specs/` | Specifications (what is built and why) |
 | `assets/` | Logo and images |
+
+## Running
+
+`dotnet run --project src/Flowtr.AppHost` (Docker required) → starts SQL Server and Azurite containers (persistent volumes) and the server; the Aspire dashboard URL is printed on start. The server alone has no database connection — always start via the AppHost. In Development, EF migrations are applied on startup.
+
+Build and test: `dotnet build src/Flowtr.slnx`, `dotnet test src/Flowtr.slnx`.
 
 ## Key Principles
 

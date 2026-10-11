@@ -22,6 +22,10 @@
 - ASP.NET Identity mit Blazor Pages (.NET Default)
 - Web-Interface in Blazor WebAssembly
 
+## Projektstruktur
+
+Projekte und Ordner: siehe [Repository-Struktur im README](../README.md#repository-struktur). Paketversionen zentral in `src/Directory.Packages.props`, gemeinsame Build-Einstellungen in `src/Directory.Build.props`.
+
 ## Rollen
 - User werden Rollen zugeordnet (RBAC), ein User kann mehrere Rollen haben.
 - Rollen: Admin, Contributor
