@@ -17,6 +17,8 @@ These rules are the short, always-on version. Details live in the specs — read
 | UX, colours | `specs/ux.md` |
 | Domain terms | `specs/glossary.md` |
 | Decisions | `specs/adrs/` |
+| Stories | `specs/stories/` (template `_template.md`) |
+| Backlog — do not pick up unless explicitly asked | `specs/backlog.md` |
 
 ## Key Principles
 

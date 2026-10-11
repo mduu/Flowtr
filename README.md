@@ -24,6 +24,8 @@ Flowtr ist eine Web-App, welche das Erfassen von Ein- und Ausgaben für Einzelfi
 | [`specs/ux.md`](specs/ux.md) | UX & Design |
 | [`specs/glossary.md`](specs/glossary.md) | Fachbegriffe und ihre Bedeutung |
 | [`specs/adrs/`](specs/adrs/) | Architekturentscheide (ADR) |
+| [`specs/backlog.md`](specs/backlog.md) | Ideen für künftige Stories |
+| [`specs/stories/`](specs/stories/) | Ausgearbeitete Stories |
 
 ## Agents
 Die agent-agnostische Konfiguration für KI-Coding-Agents liegt in [`AGENTS.md`](AGENTS.md). [`CLAUDE.md`](CLAUDE.md) verweist nur darauf.
