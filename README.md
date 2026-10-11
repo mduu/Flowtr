@@ -1,4 +1,6 @@
 # Flowtr
+<img src="assets/logo/flowtr_logo.svg" alt="Flowtr Logo" width="260">
+
 Einfache Buchhaltung für Ausgaben und Einnahmen als Nebenerwerb. Tracken von Buchungen mit passenden Belegen.
 
 ## Vision
