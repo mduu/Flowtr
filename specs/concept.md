@@ -16,6 +16,7 @@ Das Erfassen der Buchungen (Einnahmen, Ausgaben) sollte möglichst effizient geh
 - Belege für Ein- und Ausgaben werden separat gespeichert.
 - Belege sind als Dateien 1:1 abgelegt.
 - Der Dateiname lässt eine Zuordnung zum Journal zu (= Umbenennen des Beleges beim Einlesen).
+- Speicherort, Container und Namensschema: [ADR-001](adrs/001-belegablage-in-blob-storage.md).
 
 ## Eingangskanäle
 - Interaktives Hochladen in der Web-App

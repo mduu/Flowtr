@@ -14,7 +14,7 @@ Die Lösung muss sicher sein, da sie mit Buchhaltungsdaten umgeht. Security ist 
 
 ## Unveränderbarkeit
 - Belege liegen im Blob Storage mit Versionierung und Soft-Delete.
-- Belege abgeschlossener Jahre sind per Immutability-Policy geschützt.
+- Belege abgeschlossener Jahre sind per Immutability-Policy geschützt (10 Jahre, OR 958f), siehe [ADR-001](adrs/001-belegablage-in-blob-storage.md).
 
 ## Web-Sicherheit
 - Security-Header: strikte Content-Security-Policy, HSTS u.a.
