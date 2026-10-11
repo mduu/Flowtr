@@ -10,7 +10,7 @@
 - Local Dev Stack:
 	- Aspire
 	- Azurite (via Aspire)
-	- SQL Server (via Aspire (TBD))
+	- SQL Server als Container via Aspire, mit persistentem Volume (bewusst kein SQLite, damit Migrationen früh auffallen)
 
 ## Prinzipien
 - Vertical Slices / Feature Slices (VSA)

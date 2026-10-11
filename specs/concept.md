@@ -6,8 +6,9 @@ Das Erfassen der Buchungen (Einnahmen, Ausgaben) sollte möglichst effizient geh
 ## Ablauf
 1. User reicht einen Beleg ein (siehe [Eingangskanäle](#eingangskanäle)).
 2. *Flowtr* analysiert den Beleg u.a. mithilfe von KI (z.B. *Anthropic* API, Claude) und extrahiert die notwendigen Daten für die Buchung.
-3. Die App zeigt die gefundenen Angaben an, sodass der User sie bestätigen oder korrigieren kann.
-4. Beim finalen Speichern:
+3. Die KI schlägt zusätzlich Kategorie und Gegenpartei vor – anhand des Belegs und früherer Buchungen derselben Gegenpartei (z.B. Azure → Software/Abos).
+4. Die App zeigt die gefundenen Angaben an, sodass der User sie bestätigen oder korrigieren kann.
+5. Beim finalen Speichern:
    - legt *Flowtr* den Beleg sauber nummeriert ab,
    - erstellt die Buchung (Zeile) im [Journal](journal.md) mit Referenz auf den nummerierten Beleg.
 
@@ -18,5 +19,5 @@ Das Erfassen der Buchungen (Einnahmen, Ausgaben) sollte möglichst effizient geh
 
 ## Eingangskanäle
 - Interaktives Hochladen in der Web-App
-- Als Email an eine bestimmte Mailbox weiterleiten. Diese Mailbox kann von *Flowtr* abgefragt und als Input verwendet werden.
+- Als Email an eine bestimmte Mailbox weiterleiten. *Flowtr* fragt diese Mailbox per **IMAP** ab (beliebiger Provider) und verwendet die Anhänge als Input. Die erkannten Buchungen muss der User wie beim Upload bestätigen.
 - Denkbar in Zukunft: native App als "Senden an"- bzw. "Teilen"-Ziel.

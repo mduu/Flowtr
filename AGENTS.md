@@ -23,7 +23,8 @@ These rules are the short, always-on version. Details live in the specs — read
 - **Vertical slices + CQS**: one use case = one file in `Commands/` or `Queries/` (record + handler, method `Handle`, returns `Result` or `Result<T>`).
 - **Single tenant** per installation — no multi-tenancy code.
 - **RBAC**: users have one or more roles (Admin, Contributor).
-- **Never lose data**: journal and receipts are critical; closed periods are read-only.
+- **Never lose data**: journal and receipts are critical; a closed calendar year is read-only, including its receipts.
+- **Audit everything**: every create/update/delete of bookings and receipts is written to the audit log.
 - **Security is part of the foundation**, not an add-on — this is accounting data.
 
 ## Coding
