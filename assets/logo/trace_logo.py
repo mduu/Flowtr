@@ -81,6 +81,8 @@ full, sym = bbox(lightm | darkm | text), bbox(lightm | darkm)
 (OUT / "flowtr_logo.svg").write_text(svg(full, symbol + layers["text"], 4 * UP))
 (OUT / "flowtr_logo_white.svg").write_text(
     svg(full, white_symbol + layers["text"].replace(f'fill="{navy_hex}"', 'fill="#FFFFFF"'), 4 * UP))
+(OUT / "flowtr_logo_dark.svg").write_text(
+    svg(full, symbol + layers["text"].replace(f'fill="{navy_hex}"', 'fill="#E8EAF6"'), 4 * UP))
 (OUT / "flowtr_icon.svg").write_text(svg(sym, symbol, 2 * UP))
 (OUT / "favicon.svg").write_text(svg(sym, symbol, 2 * UP, square=True))
 (OUT / "app-icon.svg").write_text(svg(sym, symbol, 28 * UP, square=True, bg="#FFFFFF"))
