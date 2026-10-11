@@ -15,7 +15,8 @@ public static class FlowtrTheme
         PaletteLight = new PaletteLight
         {
             Primary = Colors.Indigo.Default,
-            AppbarBackground = Colors.Indigo.Default,
+            AppbarBackground = Colors.Shades.White,
+            AppbarText = "#171731",
         },
         PaletteDark = new PaletteDark
         {
