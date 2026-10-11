@@ -6,7 +6,11 @@ Ausgearbeitete Stories liegen in [`stories/`](stories/) (Vorlage: [`_template.md
 
 ## Als Nächstes
 
-(noch leer)
+### 2FA und externe Logins entfernen
+
+> Detail-Story: [#001](stories/001-2fa-und-externe-logins-entfernen.md)
+
+- Das Identity-Template bringt TOTP-2FA, Recovery-Codes und externe Logins mit. Flowtr kennt nur Passkey und Passwort ([Sicherheit](security.md#authentifizierung)).
 
 ## Später
 
