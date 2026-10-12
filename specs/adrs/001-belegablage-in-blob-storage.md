@@ -8,17 +8,17 @@
 
 Belege (PDFs, Bilder, Email-Anhänge) sind neben dem Journal die wichtigsten Daten von *Flowtr*. Für ihre Ablage gelten diese Anforderungen:
 
-- Belege werden 1:1 als Dateien abgelegt, nummeriert und so umbenannt, dass sie dem Journal zugeordnet werden können ([Konzept](../concept.md#ablage-der-belege)).
+- *Flowtr* legt Belege 1:1 als Dateien ab, nummeriert sie und benennt sie um. So lassen sie sich dem Journal zuordnen ([Konzept](../concept.md#ablage-der-belege)).
 - Belege abgeschlossener Jahre müssen unveränderbar sein ([Sicherheit](../security.md#unveränderbarkeit)).
 - Geschäftsbücher und Belege sind 10 Jahre aufzubewahren (OR 958f).
-- Belege dürfen auf keinen Fall verloren gehen. Ein on-prem Synology NAS holt sie als Offsite-Backup ab ([Backup](../backup.md)).
-- Lokal wird mit Aspire und Azurite entwickelt.
+- Belege dürfen nie verloren gehen. Ein on-prem Synology NAS holt sie als Offsite-Backup ab ([Backup](../backup.md)).
+- Die lokale Entwicklung läuft mit Aspire und Azurite.
 
 ## Entscheidung
 
 Wir legen Belege als **Blobs in einem Azure Storage Account** ab.
 
-Blob Storage erfüllt als einzige Option die Anforderung an die Unveränderbarkeit (Immutability-Policies pro Blob) und wird lokal von Azurite emuliert.
+Blob Storage ist die einzige Option, die die Anforderung an die Unveränderbarkeit erfüllt (Immutability-Policies pro Blob). Lokal emuliert Azurite den Blob Storage.
 
 ### Container
 
@@ -38,12 +38,12 @@ backups/   Datenbank-Dumps für das Offsite-Backup.
 ### Zugriff
 
 - Die App greift über das Azure SDK mit einer Managed Identity zu. Es gibt keine Account Keys im Code oder in der Konfiguration.
-- Downloads (z.B. Treuhänder-Dossier) laufen über kurzlebige SAS-Links oder werden über die API gestreamt.
-- Belege älterer Jahre wechseln per Lifecycle-Regel in den Cool- bzw. Cold-Tier.
+- Downloads (z.B. Treuhänder-Dossier) laufen über kurzlebige SAS-Links oder als Stream über die API.
+- Eine Lifecycle-Regel verschiebt Belege älterer Jahre in den Cool- oder Cold-Tier.
 
 ## Optionen
 
-### Option A: Azure Blob Storage — gewählt
+### Option A: Azure Blob Storage (gewählt)
 
 **Vorteile:**
 - Immutability-Policies (WORM) pro Blob, Versionierung und Soft-Delete
@@ -53,7 +53,7 @@ backups/   Datenbank-Dumps für das Offsite-Backup.
 - Zugriff per Managed Identity und SAS
 
 **Nachteile:**
-- Kein Durchblättern als Netzlaufwerk im Finder; dafür dienen die Web-App, der Azure Storage Explorer oder die Kopie auf dem NAS
+- Kein Durchblättern als Netzlaufwerk im Finder. Dafür gibt es die Web-App, den Azure Storage Explorer oder die Kopie auf dem NAS
 
 ### Option B: Azure Files
 
@@ -65,7 +65,7 @@ backups/   Datenbank-Dumps für das Offsite-Backup.
 **Nachteile:**
 - Keine Immutability-Policies, nur Snapshots und Soft-Delete
 - Nicht von Azurite emuliert
-- SMB braucht Port 445, der von vielen Providern gesperrt wird
+- SMB braucht Port 445. Viele Provider sperren diesen Port
 - Teurer als Blob Storage
 
 ### Option C: Belege in der Datenbank (varbinary)
@@ -82,20 +82,20 @@ backups/   Datenbank-Dumps für das Offsite-Backup.
 
 ### Positive Auswirkungen
 
-- Die Unveränderbarkeit abgeschlossener Jahre wird von der Plattform durchgesetzt, nicht nur von der App.
+- Die Plattform setzt die Unveränderbarkeit abgeschlossener Jahre durch, nicht nur die App.
 - Das Offsite-Backup lässt sich mit Bordmitteln der Synology umsetzen.
 
 ### Negative Auswirkungen / Risiken
 
-- Journal (SQL) und Belege (Blob) lassen sich nicht transaktional gemeinsam speichern. Ein Beleg wird zuerst nach `belege/` geschrieben und erst danach die Buchung. Verwaiste Blobs ohne Buchung müssen erkannt werden.
+- Journal (SQL) und Belege (Blob) lassen sich nicht transaktional gemeinsam speichern. *Flowtr* schreibt zuerst den Beleg nach `belege/` und erst danach die Buchung. *Flowtr* muss verwaiste Blobs ohne Buchung erkennen.
 - Eine gesperrte Policy ist endgültig. Fehlerhafte Belege abgeschlossener Jahre lassen sich nur noch durch Korrekturbuchungen mit neuem Beleg berichtigen.
 
 ### Aufwand
 
-- Gering: Storage Account mit Versionierung, Soft-Delete und Immutability auf Versionsebene via IaC; Abschluss-Job setzt die Policies.
+- Gering: Storage Account mit Versionierung, Soft-Delete und Immutability auf Versionsebene via IaC. Ein Abschluss-Job setzt die Policies.
 
 ## Referenzen
 
 - [Immutable storage for Azure Blob Storage](https://learn.microsoft.com/azure/storage/blobs/immutable-storage-overview)
 - [Blob versioning](https://learn.microsoft.com/azure/storage/blobs/versioning-overview)
-- OR 958f – Aufbewahrungspflicht
+- OR 958f: Aufbewahrungspflicht
