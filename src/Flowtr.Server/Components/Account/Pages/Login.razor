@@ -7,7 +7,6 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
-@inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Anmelden</PageTitle>
@@ -36,12 +35,8 @@
                            StartIcon="@Icons.Material.Outlined.Fingerprint">Mit Passkey anmelden</PasskeySubmit>
         </div>
         <MudText Typo="Typo.caption" Align="Align.Center" Class="mud-text-secondary" Style="order:-1">oder mit Passwort</MudText>
-
         <MudDivider />
-        <MudStack Spacing="1">
-            <MudLink Href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))" Typo="Typo.body2">Neues Konto erstellen</MudLink>
-            <MudLink Href="Account/ResendEmailConfirmation" Typo="Typo.body2">Bestätigungs-E-Mail erneut senden</MudLink>
-        </MudStack>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch kein Konto? Ein Admin von Flowtr lädt dich ein.</MudText>
     </MudStack>
 </EditForm>
 

@@ -1,0 +1,230 @@
+@page "/benutzer"
+@attribute [Authorize(Roles = Roles.Admin)]
+
+@using System.ComponentModel.DataAnnotations
+@using System.Globalization
+
+@inject IUserAdministration Users
+@inject ISnackbar Snackbar
+@inject IDialogService Dialogs
+@inject IJSRuntime JS
+
+<PageTitle>Benutzer – Flowtr</PageTitle>
+
+<MudText Typo="Typo.h5" Class="mb-4">Benutzer</MudText>
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" GutterBottom="true">Benutzer einladen</MudText>
+    <EditForm Model="invite" OnValidSubmit="Invite">
+        <DataAnnotationsValidator />
+        <MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center" Spacing="3">
+            <MudTextField @bind-Value="invite.Email" For="() => invite.Email" Label="E-Mail" Variant="Variant.Outlined"
+                          InputType="InputType.Email" Margin="Margin.Dense" Style="min-width: 260px" />
+            <MudRadioGroup @bind-Value="invite.Role">
+                @foreach (var role in Roles.All)
+                {
+                    <MudRadio Value="role" Color="Color.Primary">@role</MudRadio>
+                }
+            </MudRadioGroup>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy"
+                       StartIcon="@Icons.Material.Outlined.PersonAdd">Einladen</MudButton>
+        </MudStack>
+    </EditForm>
+</MudPaper>
+
+@if (invitation is not null)
+{
+    <MudAlert Severity="Severity.Success" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="() => invitation = null">
+        <MudText Typo="Typo.body1">
+            Einladung für <strong>@invitation.Email</strong> erstellt. Flowtr versendet noch keine E-Mails:
+            kopiere den Link und schicke ihn selbst. Er ist 7 Tage gültig.
+        </MudText>
+        <MudText Typo="Typo.body2" Class="my-2" Style="word-break: break-all"><code>@invitation.Link</code></MudText>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Outlined.ContentCopy"
+                   OnClick="CopyLink">Link kopieren</MudButton>
+    </MudAlert>
+}
+
+@if (users is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudTable Items="users" Outlined="true" Elevation="0" Breakpoint="Breakpoint.Sm" Dense="true" Hover="true">
+        <HeaderContent>
+            <MudTh>E-Mail</MudTh>
+            <MudTh>Status</MudTh>
+            @foreach (var role in Roles.All)
+            {
+                <MudTh Style="text-align: center">@role</MudTh>
+            }
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="E-Mail">@context.Email</MudTd>
+            <MudTd DataLabel="Status">
+                @if (context.InvitationOpen)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
+                        Eingeladen am @context.InvitedAt.ToLocalTime().ToString("dd.MM.yyyy", CultureInfo.InvariantCulture)
+                    </MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">Aktiv</MudChip>
+                }
+            </MudTd>
+            @foreach (var role in Roles.All)
+            {
+                <MudTd DataLabel="@role" Style="text-align: center">
+                    <MudCheckBox T="bool" Value="context.Roles.Contains(role)" ValueChanged="hasRole => ChangeRole(context, role, hasRole)"
+                                 Color="Color.Primary" Disabled="busy" aria-label="@($"Rolle {role} für {context.Email}")" />
+                </MudTd>
+            }
+            <MudTd Style="text-align: right; white-space: nowrap">
+                @if (context.InvitationOpen)
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Disabled="busy"
+                               StartIcon="@Icons.Material.Outlined.Link" OnClick="() => Renew(context)">Neuer Link</MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Disabled="busy"
+                               StartIcon="@Icons.Material.Outlined.Cancel" OnClick="() => Revoke(context)">Widerrufen</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private InviteModel invite = new();
+    private IReadOnlyList<UserSummary>? users;
+    private Invitation? invitation;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        var result = await Users.GetUsers();
+        if (result.IsSuccess)
+        {
+            users = result.Value;
+        }
+        else
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+    }
+
+    private async Task Invite()
+    {
+        await Run(async () =>
+        {
+            var result = await Users.Invite(new InviteUserRequest(invite.Email, invite.Role));
+            if (Show(result))
+            {
+                invitation = result.Value;
+                invite = new InviteModel { Role = invite.Role };
+            }
+        });
+    }
+
+    private async Task Renew(UserSummary user)
+    {
+        await Run(async () =>
+        {
+            var result = await Users.RenewInvitation(user.Id);
+            if (Show(result))
+            {
+                invitation = result.Value;
+            }
+        });
+    }
+
+    private async Task Revoke(UserSummary user)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            "Einladung widerrufen?",
+            $"Der Link für {user.Email} funktioniert danach nicht mehr.",
+            yesText: "Widerrufen",
+            cancelText: "Abbrechen");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        await Run(async () =>
+        {
+            if (Show(await Users.RevokeInvitation(user.Id)))
+            {
+                Snackbar.Add($"Einladung für {user.Email} widerrufen.", Severity.Success);
+            }
+        });
+    }
+
+    private async Task ChangeRole(UserSummary user, string role, bool hasRole)
+    {
+        var roles = hasRole ? user.Roles.Append(role).ToList() : user.Roles.Where(r => r != role).ToList();
+
+        await Run(async () =>
+        {
+            if (Show(await Users.ChangeRoles(user.Id, roles)))
+            {
+                Snackbar.Add($"Rollen von {user.Email} gespeichert.", Severity.Success);
+            }
+        });
+    }
+
+    private async Task CopyLink()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", invitation!.Link);
+            Snackbar.Add("Link kopiert.", Severity.Success);
+        }
+        catch (JSException)
+        {
+            Snackbar.Add("Der Browser erlaubt das Kopieren nicht. Bitte markiere den Link und kopiere ihn selbst.", Severity.Warning);
+        }
+    }
+
+    /// <summary>
+    /// Runs a change and then loads the list again. The buttons are disabled meanwhile.
+    /// </summary>
+    private async Task Run(Func<Task> change)
+    {
+        busy = true;
+        try
+        {
+            await change();
+            await Load();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private bool Show(Result result)
+    {
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+
+        return result.IsSuccess;
+    }
+
+    private sealed class InviteModel
+    {
+        [Required(ErrorMessage = "Bitte E-Mail angeben.")]
+        [EmailAddress(ErrorMessage = "Bitte eine gültige E-Mail-Adresse angeben.")]
+        public string Email { get; set; } = "";
+
+        public string Role { get; set; } = Roles.Contributor;
+    }
+}

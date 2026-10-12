@@ -88,6 +88,7 @@ Use as little GitHub storage as possible. The repo keeps artifacts and logs for 
   - Permitted: `MudStatic*` inputs (MudBlazor.StaticInput), `MudPaper`, `MudText`, `MudAlert`, `MudLink`, `MudButton` with `Href` or `ButtonType.Submit`.
   - Not permitted: `MudMenu`, `MudDialog`, `MudSelect` and other interactive components.
 - The UI is responsive (iPhone to desktop) and feels like a desktop app. Use MudBlazor with the primary colour Indigo.
+- The UI has a dark mode (ADR-005). In your own CSS, use the MudBlazor variables (`--mud-palette-*`). Do not use fixed colours.
 - Long operations show progress, or at minimum a spinner. Uploads show progress.
 
 ## Language

@@ -17,7 +17,10 @@ public static class FlowtrTheme
         },
         PaletteDark = new PaletteDark
         {
-            Primary = Colors.Indigo.Lighten1,
+            Primary = Colors.Indigo.Lighten2,
+            AppbarText = "rgba(255,255,255, 0.87)",
+            TextPrimary = "rgba(255,255,255, 0.87)",
+            TextSecondary = "rgba(255,255,255, 0.60)",
         },
         Typography = new Typography
         {

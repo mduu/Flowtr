@@ -10,7 +10,12 @@ Das Identity-Template bringt eine öffentliche Registrierung mit: Jeder kann ein
 
 ## Entscheidung
 
-Flowtr hat **keine öffentliche Registrierung**. Ein Admin lädt neue User ein, indem er ihre E-Mail-Adresse und Rolle erfasst. Der Eingeladene schliesst die Registrierung über einen Einladungslink ab (Passwort und/oder Passkey). Flowtr löscht nicht angenommene Einladungen nach 30 Tagen. Umsetzung: [Story #004](../stories/004-einladung-durch-admin.md).
+Flowtr hat **keine öffentliche Registrierung**. Ein Admin lädt neue User ein, indem er ihre E-Mail-Adresse und Rolle erfasst. Der Eingeladene schliesst die Registrierung über einen Einladungslink ab (Passwort und/oder Passkey). Flowtr löscht nicht angenommene Einladungen nach 30 Tagen. Umsetzung: [Story #004](../stories/done/004-einladung-durch-admin.md).
+
+Details aus der Umsetzung:
+
+- Beim Annehmen ist ein Passwort nötig, ein Passkey folgt danach ([ADR-002](002-passkeys-und-passwort.md) schliesst Konten nur mit Passkey aus).
+- Erster Admin und Wiederherstellung: Die Adressen in der Konfiguration `Admins` erhalten immer die Rolle Admin, sobald die Adresse bestätigt ist. Ohne Konto erstellt Flowtr beim Start eine Einladung und schreibt den Link ins Log. Flowtr entzieht die Rolle nie automatisch.
 
 ## Optionen
 

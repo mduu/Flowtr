@@ -1,14 +1,32 @@
 @inherits LayoutComponentBase
 
-<MudThemeProvider Theme="FlowtrTheme.Theme" />
+@* The theme comes from the cookie (see ColourScheme): no JavaScript, thus also correct on the static account pages. *@
+<MudThemeProvider Theme="FlowtrTheme.Theme" IsDarkMode="Scheme == ColourScheme.Dark" ObserveSystemDarkModeChange="false" />
+@if (Scheme == ColourScheme.Auto)
+{
+    <SystemDarkPalette Theme="FlowtrTheme.Theme" />
+}
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
     <MudAppBar Elevation="0" Style="border-bottom: 1px solid var(--mud-palette-lines-default)">
-        <a href="" aria-label="Flowtr Startseite"><img src="logo.svg" alt="Flowtr" height="32" style="display:block" /></a>
+        <a href="" aria-label="Flowtr Startseite">
+            @if (Scheme == ColourScheme.Auto)
+            {
+                <picture>
+                    <source srcset="logo-dark.svg" media="(prefers-color-scheme: dark)" />
+                    <img src="logo.svg" alt="Flowtr" height="32" style="display:block" />
+                </picture>
+            }
+            else
+            {
+                <img src="@(Scheme == ColourScheme.Dark ? "logo-dark.svg" : "logo.svg")" alt="Flowtr" height="32" style="display:block" />
+            }
+        </a>
         <MudSpacer />
+        <ColourSchemeSwitch />
         <AccountMenu />
     </MudAppBar>
     <MudMainContent>
@@ -23,3 +41,8 @@
     <a href="." class="reload">Neu laden</a>
     <span class="dismiss" title="Schliessen">🗙</span>
 </div>
+
+@code {
+    [CascadingParameter]
+    private ColourScheme Scheme { get; set; }
+}

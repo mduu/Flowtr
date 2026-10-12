@@ -1,3 +1,5 @@
+@using Flowtr.Client.Layout
+@using Flowtr.Server.Features.Appearance
 <!DOCTYPE html>
 <html lang="de-CH">
 
@@ -18,7 +20,7 @@
 </head>
 
 <body>
-    <Routes @rendermode="PageRenderMode" />
+    <Routes @rendermode="PageRenderMode" ColourScheme="ColourScheme" />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
@@ -29,6 +31,8 @@
 @code {
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
+
+    private ColourScheme ColourScheme => ColourSchemeCookie.Read(HttpContext);
 
     private IComponentRenderMode? PageRenderMode =>
         HttpContext.AcceptsInteractiveRouting() ? InteractiveWebAssembly : null;

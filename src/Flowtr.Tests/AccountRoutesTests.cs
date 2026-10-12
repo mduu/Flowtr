@@ -40,6 +40,38 @@ public class AccountRoutesTests
         accountPages.ShouldAllBe(page => page.IsDefined(typeof(ExcludeFromInteractiveRoutingAttribute), true));
     }
 
+    [Theory]
+    [InlineData("/Account/Register")]
+    [InlineData("/Account/RegisterConfirmation")]
+    [InlineData("/Account/ResendEmailConfirmation")]
+    public void No_public_registration(string route)
+    {
+        // Assert (ADR-004)
+        routes.ShouldNotContain(route);
+    }
+
+    [Fact]
+    public void Invitation_page_exists()
+    {
+        // Assert
+        routes.ShouldContain("/Account/AcceptInvitation");
+    }
+
+    [Fact]
+    public void App_pages_need_a_role()
+    {
+        // Arrange
+        var appPages = typeof(Flowtr.Client._Imports).Assembly.GetTypes()
+            .Where(type => type.IsDefined(typeof(RouteAttribute), false) && type.Name != "NotFound")
+            .ToList();
+
+        // Assert (ADR-004: without a role, a user gets no data)
+        appPages.ShouldNotBeEmpty();
+        appPages.ShouldAllBe(page => page.GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), true)
+            .Cast<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>()
+            .Any(authorize => authorize.Roles != null));
+    }
+
     [Fact]
     public void Passkey_management_page_exists()
     {

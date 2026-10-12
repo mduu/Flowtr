@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
@@ -5,6 +7,9 @@ using Flowtr.Server.Components;
 using Flowtr.Server.Components.Account;
 using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.Data;
+using Flowtr.Server.Features.Appearance;
+using Flowtr.Server.Features.Users;
+using Flowtr.Shared.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,21 +24,19 @@ builder.Services.AddScoped<IdentityRedirectManager>();
 
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddIdentityCookies();
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    // The API answers with a status code, not with a redirect to the login page.
+    options.Events.OnRedirectToLogin = context => RespondOrRedirect(context, StatusCodes.Status401Unauthorized);
+    options.Events.OnRedirectToAccessDenied = context => RespondOrRedirect(context, StatusCodes.Status403Forbidden);
+});
 builder.Services.AddAuthorization();
 
 builder.AddSqlServerDbContext<ApplicationDbContext>("flowtr");
 builder.AddAzureBlobServiceClient("blobs");
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddIdentityCore<ApplicationUser>(options =>
-    {
-        options.SignIn.RequireConfirmedAccount = true;
-        options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
-    })
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddErrorDescriber<GermanIdentityErrorDescriber>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders();
+builder.Services.AddUsers();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
@@ -67,6 +70,28 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(Flowtr.Client._Imports).Assembly);
 
 app.MapAdditionalIdentityEndpoints();
+app.MapAppearanceEndpoints();
+
+// Without a role, a user gets no data (ADR-004).
+var api = app.MapGroup("/api").RequireAuthorization(policy => policy.RequireRole(Roles.All));
+api.MapUsersEndpoints();
+
 app.MapDefaultEndpoints();
 
+app.SetUpConfiguredAdminsOnStart();
+
 app.Run();
+
+static Task RespondOrRedirect(RedirectContext<CookieAuthenticationOptions> context, int statusCode)
+{
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        context.Response.StatusCode = statusCode;
+    }
+    else
+    {
+        context.Response.Redirect(context.RedirectUri);
+    }
+
+    return Task.CompletedTask;
+}

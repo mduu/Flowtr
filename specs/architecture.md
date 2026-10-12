@@ -29,3 +29,4 @@ Projekte und Ordner: siehe [Repository-Struktur im README](../README.md#reposito
 ## Rollen
 - Jeder User hat Rollen (RBAC). Ein User kann mehrere Rollen haben.
 - Rollen: Admin, Contributor
+- Ohne Rolle erhält ein User keine Daten. Admins verwalten die Rollen unter «Benutzer» ([ADR-004](adrs/004-zugang-nur-auf-einladung.md)).
