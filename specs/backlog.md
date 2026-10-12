@@ -6,13 +6,7 @@ Ausgearbeitete Stories liegen in [`stories/`](stories/) (Vorlage: [`_template.md
 
 ## Als Nächstes
 
-Reihenfolge: Das Audit-Log steht vor der ersten Buchung. Jede Story baut auf der vorherigen auf.
-
-### Audit-Log
-
-> Detail-Story: [#006](stories/006-audit-log.md)
-
-- Jede Änderung an Buchungen, Belegen, Benutzern und Rollen protokollieren: wer, wann, was, vorher und nachher. Admins sehen das Protokoll.
+Reihenfolge: Jede Story baut auf der vorherigen auf.
 
 ### Journal: Buchungen manuell erfassen
 

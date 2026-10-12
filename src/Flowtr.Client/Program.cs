@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Flowtr.Client.Features.Audit;
 using Flowtr.Client.Features.Users;
 using MudBlazor.Services;
 
@@ -10,5 +11,6 @@ builder.Services.AddAuthenticationStateDeserialization();
 builder.Services.AddMudServices();
 builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddScoped<IUserAdministration, HttpUserAdministration>();
+builder.Services.AddScoped<IAuditLogReader, HttpAuditLogReader>();
 
 await builder.Build().RunAsync();

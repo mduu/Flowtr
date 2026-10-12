@@ -3,11 +3,14 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
+using Flowtr.Client.Features.Audit;
 using Flowtr.Server.Components;
 using Flowtr.Server.Components.Account;
+using Flowtr.Server.CrossCutting.Audit;
 using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.Data;
 using Flowtr.Server.Features.Appearance;
+using Flowtr.Server.Features.Audit;
 using Flowtr.Server.Features.Users;
 using Flowtr.Shared.Users;
 
@@ -32,11 +35,16 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 builder.Services.AddAuthorization();
 
-builder.AddSqlServerDbContext<ApplicationDbContext>("flowtr");
+builder.Services.AddAudit();
+builder.Services.AddDbContext<ApplicationDbContext>((services, options) => options
+    .UseSqlServer(builder.Configuration.GetConnectionString("flowtr"))
+    .AddInterceptors(services.GetRequiredService<AuditInterceptor>()));
+builder.EnrichSqlServerDbContext<ApplicationDbContext>();
 builder.AddAzureBlobServiceClient("blobs");
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddUsers();
+builder.Services.AddScoped<IAuditLogReader, ServerAuditLogReader>();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
@@ -75,6 +83,7 @@ app.MapAppearanceEndpoints();
 // Without a role, a user gets no data (ADR-004).
 var api = app.MapGroup("/api").RequireAuthorization(policy => policy.RequireRole(Roles.All));
 api.MapUsersEndpoints();
+api.MapAuditEndpoints();
 
 app.MapDefaultEndpoints();
 

@@ -4,8 +4,8 @@
         <MudText Typo="Typo.body2" Class="d-none d-sm-flex mr-2">@context.User.Identity?.Name</MudText>
         @if (context.User.IsInRole(Roles.Admin))
         {
-            <MudIconButton Href="benutzer" Icon="@Icons.Material.Outlined.Group" Color="Color.Inherit"
-                           aria-label="Benutzer verwalten" title="Benutzer verwalten" />
+            <MudIconButton Href="benutzer" Icon="@Icons.Material.Outlined.AdminPanelSettings" Color="Color.Inherit"
+                           aria-label="Verwaltung" title="Verwaltung" />
         }
         <MudIconButton Href="Account/Manage" Icon="@Icons.Material.Outlined.AccountCircle" Color="Color.Inherit"
                        aria-label="Konto verwalten" title="Konto verwalten" />

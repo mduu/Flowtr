@@ -1,0 +1,125 @@
+@page "/protokoll"
+@attribute [Authorize(Roles = Roles.Admin)]
+
+@using System.Globalization
+@using Flowtr.Shared.Audit
+
+@inject IAuditLogReader AuditLog
+@inject ISnackbar Snackbar
+
+<PageTitle>Protokoll – Flowtr</PageTitle>
+
+<AdminNav />
+
+<MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">
+    Jede Änderung an Benutzern, Rollen und Passkeys, später auch an Buchungen und Belegen. Niemand kann Einträge ändern oder löschen.
+</MudText>
+
+<MudStack Row="true" Wrap="Wrap.Wrap" Spacing="3" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudDatePicker Label="Von" Date="from" DateChanged="FromChanged" DateFormat="dd.MM.yyyy" Culture="swiss"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Style="width: 170px; flex: none" />
+    <MudDatePicker Label="Bis" Date="to" DateChanged="ToChanged" DateFormat="dd.MM.yyyy" Culture="swiss"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Style="width: 170px; flex: none" />
+    <MudTextField T="string" Label="Wer" Value="user" ValueChanged="UserChanged" DebounceInterval="400"
+                  Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Style="width: 220px; flex: none" />
+    <MudSelect T="string" Label="Bereich" Value="area" ValueChanged="AreaChanged" Variant="Variant.Outlined" Margin="Margin.Dense"
+               Clearable="true" Style="width: 180px; flex: none">
+        @foreach (var (key, label) in AuditAreas.Labels)
+        {
+            <MudSelectItem T="string" Value="key">@label</MudSelectItem>
+        }
+    </MudSelect>
+</MudStack>
+
+<MudTable @ref="table" T="AuditEntryView" ServerData="Load" Outlined="true" Elevation="0" Breakpoint="Breakpoint.Sm" Dense="true"
+          RowsPerPage="50" LoadingProgressColor="Color.Primary">
+    <HeaderContent>
+        <MudTh>Zeit</MudTh>
+        <MudTh>Wer</MudTh>
+        <MudTh>Aktion</MudTh>
+        <MudTh>Betrifft</MudTh>
+        <MudTh>Änderungen</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Zeit" Style="white-space: nowrap">@context.At.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss", CultureInfo.InvariantCulture)</MudTd>
+        <MudTd DataLabel="Wer">@context.UserName</MudTd>
+        <MudTd DataLabel="Aktion">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@ActionColor(context.Action)">@context.Action</MudChip>
+        </MudTd>
+        <MudTd DataLabel="Betrifft">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Area</MudText>
+            <MudText Typo="Typo.body2">@context.Subject</MudText>
+        </MudTd>
+        <MudTd DataLabel="Änderungen">
+            <div>
+                @foreach (var change in context.Changes)
+                {
+                    <div class="mud-typography mud-typography-body2">
+                        <span class="mud-text-secondary">@(change.Property):</span>
+                        @(context.Action == "Geändert" ? $"{change.Old ?? "–"} → {change.New ?? "–"}" : change.New ?? change.Old ?? "–")
+                    </div>
+                }
+            </div>
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2">Keine Einträge für diesen Filter.</MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager HideRowsPerPage="true" InfoFormat="{first_item}–{last_item} von {all_items}" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private static readonly CultureInfo swiss = CultureInfo.GetCultureInfo("de-CH");
+
+    private MudTable<AuditEntryView>? table;
+    private DateTime? from;
+    private DateTime? to;
+    private string? user;
+    private string? area;
+
+    private async Task<TableData<AuditEntryView>> Load(TableState state, CancellationToken cancellationToken)
+    {
+        var filter = new AuditFilter(
+            from is { } start ? new DateTimeOffset(start.Date, TimeZoneInfo.Local.GetUtcOffset(start.Date)) : null,
+            to is { } end ? new DateTimeOffset(end.Date.AddDays(1).AddTicks(-1), TimeZoneInfo.Local.GetUtcOffset(end.Date)) : null,
+            user,
+            area,
+            state.Page * state.PageSize,
+            state.PageSize);
+
+        var result = await AuditLog.Read(filter, cancellationToken);
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+            return new TableData<AuditEntryView> { Items = [], TotalItems = 0 };
+        }
+
+        return new TableData<AuditEntryView> { Items = result.Value!.Entries, TotalItems = result.Value.Total };
+    }
+
+    private Task FromChanged(DateTime? value) => Reload(() => from = value);
+
+    private Task ToChanged(DateTime? value) => Reload(() => to = value);
+
+    private Task UserChanged(string? value) => Reload(() => user = value);
+
+    private Task AreaChanged(string? value) => Reload(() => area = value);
+
+    private async Task Reload(Action change)
+    {
+        change();
+        if (table is not null)
+        {
+            await table.ReloadServerData();
+        }
+    }
+
+    private static Color ActionColor(string action) => action switch
+    {
+        "Erstellt" => Color.Success,
+        "Gelöscht" => Color.Error,
+        _ => Color.Info,
+    };
+}

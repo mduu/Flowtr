@@ -9,7 +9,7 @@ Der User lädt nur den Beleg hoch. Flowtr liest ihn mit KI (Claude über die Ant
 ## Hintergrund
 
 - Ablauf: [Konzept](../concept.md#ablauf). Upload → Analyse → Vorschlag → Bestätigen → nummerierte Ablage und Buchung.
-- Voraussetzungen: Journal ([#007](007-journal-manuell-erfassen.md)), Upload und Ablage ([#008](008-beleg-upload-und-ablage.md)), Audit-Log ([#006](006-audit-log.md)).
+- Voraussetzungen: Journal ([#007](007-journal-manuell-erfassen.md)), Upload und Ablage ([#008](008-beleg-upload-und-ablage.md)), Audit-Log ([#006](done/006-audit-log.md)).
 - **Eingang:** Der Upload landet zuerst in `eingang/` ([ADR-001](../adrs/001-belegablage-in-blob-storage.md)). Erst beim Bestätigen kommt er nummeriert nach `belege/`. Nicht bestätigte Belege löscht eine Lifecycle-Regel nach 30 Tagen.
 - **KI:** Claude über die Anthropic API, aktuelles Modell. PDF und Bild direkt als Dokument senden. Strukturierte Antwort (JSON-Schema bzw. Tool-Use), damit Flowtr die Felder sicher übernimmt.
 - **Vorschlag für Kategorie und Gegenpartei:** aus dem Beleg und aus früheren Buchungen derselben Gegenpartei (z.B. Azure → Software/Abos). Die Liste bestehender Kategorien und Gegenparteien geht als Kontext mit.

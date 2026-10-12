@@ -18,7 +18,7 @@ Flowtr verarbeitet Buchhaltungsdaten. Darum ist Security ein Key-Feature und Tei
 - Rollenänderungen wirken spätestens nach einer Minute auch in bestehenden Sitzungen.
 
 ## Nachvollziehbarkeit
-- **Audit-Log:** Wer hat wann welche Buchung oder welchen Beleg erstellt, geändert oder gelöscht.
+- **Audit-Log:** Wer hat wann welche Buchung oder welchen Beleg erstellt, geändert oder gelöscht. Auch Benutzer, Rollen und Passkeys. Gleiche Transaktion wie die Änderung, ohne Geheimnisse, nur Admins sehen es. Ein Datenbank-Trigger verhindert Änderungen und Löschungen ([ADR-006](adrs/006-audit-log-per-ef-interceptor.md)).
 
 ## Unveränderbarkeit
 - Belege liegen im Blob Storage mit Versionierung und Soft-Delete.

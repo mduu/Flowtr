@@ -27,18 +27,13 @@ public sealed class AcceptInvitationHandler(
 
         var user = found.Value!;
 
-        // Changes the security stamp, thus the link becomes invalid.
+        // One save for password and confirmation, thus one audit entry. It changes the security stamp: the link becomes invalid.
+        user.EmailConfirmed = true;
         var passwordAdded = await users.AddPasswordAsync(user, command.Password);
         if (!passwordAdded.Succeeded)
         {
+            user.EmailConfirmed = false;
             return Result.Failure(passwordAdded.ErrorText());
-        }
-
-        user.EmailConfirmed = true;
-        var updated = await users.UpdateAsync(user);
-        if (!updated.Succeeded)
-        {
-            return Result.Failure(updated.ErrorText());
         }
 
         logger.LogInformation("User {UserId} accepted the invitation", user.Id);

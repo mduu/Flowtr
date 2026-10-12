@@ -1,3 +1,4 @@
+using Flowtr.Server.CrossCutting.Audit;
 using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.Data;
 using Flowtr.Server.Features.Users;
@@ -34,7 +35,12 @@ internal sealed class UsersFixture : IDisposable
         services.AddSingleton<IConfiguration>(configuration);
         services.AddSingleton<TimeProvider>(Clock);
         services.AddDataProtection().UseEphemeralDataProtectionProvider();
-        services.AddDbContext<ApplicationDbContext>(options => options.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddSingleton<IAuditActor>(Actor);
+        services.AddAudit();
+        var database = Guid.NewGuid().ToString();
+        services.AddDbContext<ApplicationDbContext>((provider, options) => options
+            .UseInMemoryDatabase(database)
+            .AddInterceptors(provider.GetRequiredService<AuditInterceptor>()));
         services.AddUsers();
         services.AddHandlers(typeof(Program).Assembly);
         configure?.Invoke(services);
@@ -45,6 +51,15 @@ internal sealed class UsersFixture : IDisposable
     }
 
     public TestClock Clock { get; } = new();
+
+    public TestActor Actor { get; } = new();
+
+    public ApplicationDbContext Db => Get<ApplicationDbContext>();
+
+    /// <summary>
+    /// A new scope with its own DbContext on the same database.
+    /// </summary>
+    public IServiceScope NewScope() => provider.CreateScope();
 
     public UserManager<ApplicationUser> UserManager => Get<UserManager<ApplicationUser>>();
 
@@ -81,4 +96,9 @@ internal sealed class TestClock : TimeProvider
     public DateTimeOffset Now { get; set; } = new(2026, 10, 12, 8, 0, 0, TimeSpan.Zero);
 
     public override DateTimeOffset GetUtcNow() => Now;
+}
+
+internal sealed class TestActor : IAuditActor
+{
+    public (string? UserId, string Name) Current { get; set; } = ("admin-id", "admin@example.ch");
 }

@@ -15,7 +15,7 @@ Der User erfasst, bearbeitet und löscht Buchungen (Einnahmen und Ausgaben) von 
 - **Gegenparteien und Zahlungsarten:** eigene Listen, beim Erfassen neue Werte direkt anlegen (Autocomplete).
 - **Belegnummer:** Die Nummer vergibt erst [#008](008-beleg-upload-und-ablage.md). Hier bleibt sie leer.
 - **Abschluss:** Read-only nach dem Jahresabschluss ([Journal](../journal.md#bearbeitung--abschluss)). Der Abschluss selbst ist nicht Teil dieser Story. Das Modell soll ihn aber vorsehen (z.B. Tabelle der abgeschlossenen Jahre), damit Commands die Sperre von Anfang an prüfen.
-- **Audit:** Jede Änderung geht ins Audit-Log ([#006](006-audit-log.md), vorher umsetzen).
+- **Audit:** Jede Änderung geht ins Audit-Log ([#006](done/006-audit-log.md), vorher umsetzen).
 - Rollen: Admin und Contributor dürfen erfassen. Wer Kategorien verwaltet: Admin.
 
 ## Akzeptanzkriterien

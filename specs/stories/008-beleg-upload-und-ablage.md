@@ -16,7 +16,7 @@ Der User lädt zu einer Buchung einen Beleg hoch (PDF oder Bild). Flowtr nummeri
 - **Download:** als Stream über die API, nur mit Rolle. Keine öffentlichen Blob-URLs.
 - **Abschluss:** Belege abgeschlossener Jahre sind read-only. Die Immutability-Policy setzt erst der Jahresabschluss (eigene Story).
 - Dieser Upload ist die Basis für die KI-Extraktion ([#009](009-ki-extraktion.md)): dort entsteht die Buchung aus dem Beleg. Hier gehört der Beleg zu einer manuell erfassten Buchung ([#007](007-journal-manuell-erfassen.md)).
-- Audit: Hochladen, Ersetzen und Entfernen eines Belegs gehen ins Audit-Log ([#006](006-audit-log.md)).
+- Audit: Hochladen, Ersetzen und Entfernen eines Belegs gehen ins Audit-Log ([#006](done/006-audit-log.md)).
 
 ## Akzeptanzkriterien
 

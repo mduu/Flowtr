@@ -65,7 +65,9 @@ Use as little GitHub storage as possible. The repo keeps artifacts and logs for 
 - **Single tenant** per installation. Do not write multi-tenancy code.
 - **RBAC**: each user has one or more roles (Admin, Contributor).
 - **Never lose data**: the journal and the receipts are critical. A closed calendar year is read-only. This includes its receipts.
-- **Audit everything**: each create, update and delete of a booking or a receipt goes into the audit log.
+- **Audit everything**: each create, update and delete of a booking or a receipt goes into the audit log (ADR-006).
+  - A new audited entity needs a rule in `CrossCutting/Audit/AuditRules.cs`, a key that it gets before the save (for example a GUID), and a test.
+  - Do not use `ExecuteUpdate`, `ExecuteDelete` or raw SQL on audited entities: the audit log does not see them.
 - **Security is part of the foundation**. It is not an add-on. Flowtr keeps accounting data.
 
 ## Coding
