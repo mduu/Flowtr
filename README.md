@@ -4,23 +4,23 @@
   <img src="assets/logo/flowtr_logo.svg" alt="Flowtr Logo" width="260">
 </picture>
 
-Einfache Buchhaltung für Ausgaben und Einnahmen als Nebenerwerb. Tracken von Buchungen mit passenden Belegen.
+Einfache Buchhaltung für Einnahmen und Ausgaben eines Nebenerwerbs. Jede Buchung hat ihren Beleg.
 
 ## Vision
-Flowtr ist eine Web-App, welche das Erfassen von Ein- und Ausgaben für Einzelfirmen bzw. Nebenerwerb möglichst einfach macht. Das Ziel ist, dass einmal im Jahr auf Knopfdruck alle Unterlagen für den Treuhänder bzw. die Schweizer Steuerabrechnung exportiert werden können.
+Flowtr ist eine Web-App. Mit ihr erfassen Einzelfirmen und Nebenerwerbstätige ihre Einnahmen und Ausgaben einfach. Einmal im Jahr exportiert der User auf Knopfdruck alle Unterlagen für den Treuhänder oder die Schweizer Steuererklärung.
 
 ## Schlüsselkonzepte
-- **Beleg rein, Buchung raus:** Beleg hochladen oder per Email weiterleiten – KI extrahiert die Buchungsdaten, der User bestätigt oder korrigiert.
-- **Saubere Ablage:** Belege werden nummeriert, umbenannt und 1:1 abgelegt; jede Buchung im Journal referenziert ihren Beleg.
-- **Journal (Milchbüchlein):** Enthält alles für die Schweizer Steuererklärung; nach Abgabe read-only.
+- **Beleg rein, Buchung raus:** Der User lädt den Beleg hoch oder leitet ihn per Email weiter. Die KI extrahiert die Buchungsdaten. Der User bestätigt oder korrigiert sie.
+- **Saubere Ablage:** Flowtr nummeriert die Belege, benennt sie um und legt sie 1:1 ab. Jede Buchung im Journal referenziert ihren Beleg.
+- **Journal (Milchbüchlein):** Enthält alles für die Schweizer Steuererklärung. Nach der Abgabe ist es read-only.
 - **Export auf Knopfdruck:** Journal + Belege als Excel/PDF oder als gesichertes *Dossier* für den Treuhänder.
-- **Keine Daten verlieren:** Redundante Backups inkl. Offsite/On-Prem, Alerts bei Ausfall.
+- **Keine Daten verlieren:** Redundante Backups, auch offsite/on-prem. Alerts bei Ausfall.
 - **Security als Basis**, nicht als Zusatz.
 
 ## Repository-Struktur
 
 ```
-├── src/                        Quellcode inkl. Tests – Solution Flowtr.slnx
+├── src/                        Quellcode und Tests, Solution Flowtr.slnx
 │   ├── Flowtr.AppHost/         Aspire: startet SQL Server, Azurite und den Server
 │   ├── Flowtr.ServiceDefaults/ Aspire Service Defaults: Telemetrie, Health Checks
 │   ├── Flowtr.Server/          ASP.NET Core Host: API, Identity, EF Core, Features/
@@ -33,7 +33,7 @@ Flowtr ist eine Web-App, welche das Erfassen von Ein- und Ausgaben für Einzelfi
 └── assets/                     Logo und Bildmaterial
 ```
 
-**`specs/` oder `docs/`?** `specs/` beschreibt, *was* gebaut wird und *warum*. `docs/` beschreibt, wie man das Gebaute betreibt und benutzt.
+**`specs/` oder `docs/`?** `specs/` beschreibt, *was* wir bauen und *warum*. `docs/` beschreibt, wie man Flowtr betreibt und benutzt.
 
 ## Entwicklung
 
