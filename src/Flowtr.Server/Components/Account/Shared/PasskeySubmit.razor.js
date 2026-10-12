@@ -97,13 +97,12 @@ customElements.define('passkey-submit', class extends HTMLElement {
             formData.append(`${this.attrs.name}.CredentialJson`, credentialJson);
         } catch (error) {
             if (error.name === 'AbortError') {
-                // The user explicitly canceled the operation - return without error.
+                // The user cancelled. This is not an error.
                 return;
             }
             console.error(error);
             if (useConditionalMediation) {
-                // An error occurred during conditional mediation, which is not user-initiated.
-                // We log the error in the console but do not relay it to the user.
+                // Conditional mediation starts without a user action. Log the error, but do not show it to the user.
                 return;
             }
             const errorMessage = error.name === 'NotAllowedError'

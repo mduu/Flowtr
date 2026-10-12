@@ -128,7 +128,7 @@ else
             return;
         }
 
-        // Immediately prompt the user to enter a name for the credential
+        // Ask the user for a passkey name now.
         var credentialIdBase64Url = Base64Url.EncodeToString(attestationResult.Passkey.CredentialId);
         RedirectManager.RedirectTo($"Account/Manage/RenamePasskey/{credentialIdBase64Url}");
     }
