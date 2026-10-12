@@ -35,6 +35,7 @@ This file gives the short rules that always apply. The specs give the details. B
 | `docs/` | Operating and user documentation (how to run and use Flowtr) |
 | `specs/` | Specifications (what we build and why) |
 | `assets/` | Logo and images |
+| `.github/workflows/` | CI (`ci.yml`): build and test on each push to `main` and each pull request |
 | `.claude/skills/` | Claude Code skills |
 
 ## Running
@@ -51,6 +52,8 @@ Build: `dotnet build src/Flowtr.slnx`. Test: `dotnet test src/Flowtr.slnx`.
 ## GitHub Actions
 
 Use as little GitHub storage as possible. The repo keeps artifacts and logs for 1 day.
+
+- CI must stay green. Tests run without Docker and without external services.
 
 - Upload an artifact only when a later job or a person needs it. Always set `retention-days: 1`.
 - Deploy to Azure directly from the build job. Do not keep the build output as an artifact.

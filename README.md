@@ -1,4 +1,7 @@
 # Flowtr
+
+[![CI](https://github.com/mduu/Flowtr/actions/workflows/ci.yml/badge.svg)](https://github.com/mduu/Flowtr/actions/workflows/ci.yml)
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/logo/flowtr_logo_dark.svg">
   <img src="assets/logo/flowtr_logo.svg" alt="Flowtr Logo" width="260">
@@ -30,7 +33,8 @@ Flowtr ist eine Web-App. Mit ihr erfassen Einzelfirmen und Nebenerwerbstätige i
 ├── deploy/                     Infrastructure as Code (Bicep) und Deployment-Skripte
 ├── docs/                       Betriebs- und Benutzerdokumentation (z.B. Synology-Backup einrichten, Restore-Checkliste)
 ├── specs/                      Spezifikationen: Konzept, Architektur, ADRs, Stories, Backlog
-└── assets/                     Logo und Bildmaterial
+├── assets/                     Logo und Bildmaterial
+└── .github/workflows/          CI: Build und Tests bei jedem Push auf main und jedem Pull Request
 ```
 
 **`specs/` oder `docs/`?** `specs/` beschreibt, *was* wir bauen und *warum*. `docs/` beschreibt, wie man Flowtr betreibt und benutzt.
