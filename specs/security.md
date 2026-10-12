@@ -9,6 +9,9 @@ Die Lösung muss sicher sein, da sie mit Buchhaltungsdaten umgeht. Security ist 
 ## Authentifizierung
 - **Passkeys + Passwort** (ASP.NET Core Identity): Passkey als bevorzugter Login, Passwort bleibt als Fallback. Keine TOTP-2FA, keine externen Logins ([ADR-002](adrs/002-passkeys-und-passwort.md)).
 
+## Zugang
+- Keine öffentliche Registrierung: Neue User werden von einem Admin eingeladen ([ADR-004](adrs/004-zugang-nur-auf-einladung.md)).
+
 ## Nachvollziehbarkeit
 - **Audit-Log:** Wer hat wann welche Buchung bzw. welchen Beleg erstellt, geändert oder gelöscht.
 

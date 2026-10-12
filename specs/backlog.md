@@ -6,11 +6,17 @@ Ausgearbeitete Stories liegen in [`stories/`](stories/) (Vorlage: [`_template.md
 
 ## Als Nächstes
 
-### Identity-Seiten auf MudBlazor umstellen
+### Darkmode mit Auto/Hell/Dunkel
 
-> Detail-Story: [#002](stories/002-identity-auf-mudblazor.md)
+> Detail-Story: [#003](stories/003-darkmode.md)
 
-- Die Konto-Seiten erwarten Bootstrap und erscheinen ungestaltet. Umstellung auf MudBlazor (SSR-tauglich), deutsche Texte, Konto-Menü mit Abmelden in der AppBar.
+- Umschalter in der AppBar wie in Bau-Ticker (Automatisch/Hell/Dunkel), Wahl im Cookie, funktioniert auf SSR- und WebAssembly-Seiten.
+
+### Zugang nur auf Einladung durch Admin
+
+> Detail-Story: [#004](stories/004-einladung-durch-admin.md)
+
+- Keine öffentliche Registrierung: Admin lädt User per E-Mail ein, der User schliesst über den Link ab. Nicht angenommene Einladungen werden nach 30 Tagen gelöscht ([ADR-004](adrs/004-zugang-nur-auf-einladung.md)).
 
 ## Später
 
