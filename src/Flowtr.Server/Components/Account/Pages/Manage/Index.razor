@@ -8,29 +8,22 @@
 @inject SignInManager<ApplicationUser> SignInManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Profile</PageTitle>
+<PageTitle>Profil</PageTitle>
 
-<h3>Profile</h3>
+<MudText Typo="Typo.h6" GutterBottom="true">Profil</MudText>
 <StatusMessage />
 
-<div class="row">
-    <div class="col-xl-6">
-        <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <input type="text" value="@username" id="username" class="form-control" placeholder="Choose your username." disabled />
-                <label for="username" class="form-label">Username</label>
-            </div>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="Enter your phone number" />
-                <label for="Input.PhoneNumber" class="form-label">Phone number</label>
-                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
-        </EditForm>
-    </div>
-</div>
+<EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
+    <DataAnnotationsValidator />
+    <MudStack Spacing="3">
+        <MudTextField T="string" Value="@username" Label="Benutzername" Variant="Variant.Outlined" Disabled="true" />
+        <MudStaticTextField @bind-Value="Input.PhoneNumber" For="() => Input.PhoneNumber" Label="Telefonnummer" Variant="Variant.Outlined"
+                            InputType="InputType.Telephone" autocomplete="tel" />
+        <div>
+            <MudStaticButton FormAction="FormAction.Submit" Variant="Variant.Filled" Color="Color.Primary">Speichern</MudStaticButton>
+        </div>
+    </MudStack>
+</EditForm>
 
 @code {
     private ApplicationUser? user;
@@ -73,19 +66,18 @@
             var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
             if (!setPhoneResult.Succeeded)
             {
-                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
+                RedirectManager.RedirectToCurrentPageWithStatus("Fehler: Die Telefonnummer konnte nicht gespeichert werden.", HttpContext);
                 return;
             }
         }
 
         await SignInManager.RefreshSignInAsync(user);
-        RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
+        RedirectManager.RedirectToCurrentPageWithStatus("Profil gespeichert.", HttpContext);
     }
 
     private sealed class InputModel
     {
-        [Phone]
-        [Display(Name = "Phone number")]
+        [Phone(ErrorMessage = "Bitte eine gültige Telefonnummer angeben.")]
         public string? PhoneNumber { get; set; }
     }
 }

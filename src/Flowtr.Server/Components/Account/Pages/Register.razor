@@ -15,37 +15,30 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Register</PageTitle>
+<PageTitle>Registrieren</PageTitle>
 
-<h1>Register</h1>
+<MudText Typo="Typo.h5" GutterBottom="true">Konto erstellen</MudText>
 
-<div class="row">
-    <div class="col-lg-6">
-        <StatusMessage Message="@Message" />
-        <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
-            <DataAnnotationsValidator />
-            <h2>Create a new account.</h2>
-            <hr />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.Password">Password</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.ConfirmPassword">Confirm Password</label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </EditForm>
-    </div>
-</div>
+<StatusMessage Message="@Message" />
+<EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
+    <DataAnnotationsValidator />
+    <MudStack Spacing="3">
+        <MudStaticTextField @bind-Value="Input.Email" For="() => Input.Email" Label="E-Mail" Variant="Variant.Outlined"
+                            InputType="InputType.Email" autocomplete="username" />
+        <MudStaticTextField @bind-Value="Input.Password" For="() => Input.Password" Label="Passwort" Variant="Variant.Outlined"
+                            InputType="InputType.Password" autocomplete="new-password" />
+        <MudStaticTextField @bind-Value="Input.ConfirmPassword" For="() => Input.ConfirmPassword" Label="Passwort bestätigen" Variant="Variant.Outlined"
+                            InputType="InputType.Password" autocomplete="new-password" />
+        <MudStaticButton FormAction="FormAction.Submit" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large">
+            Registrieren
+        </MudStaticButton>
+        <MudText Typo="Typo.body2">
+            Nach der Anmeldung kannst du unter «Konto verwalten» einen Passkey einrichten.
+        </MudText>
+        <MudDivider />
+        <MudLink Href="Account/Login" Typo="Typo.body2">Ich habe bereits ein Konto</MudLink>
+    </MudStack>
+</EditForm>
 
 @code {
     private IEnumerable<IdentityError>? identityErrors;
@@ -56,7 +49,7 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
-    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
+    private string? Message => identityErrors is null ? null : $"Fehler: {string.Join(" ", identityErrors.Select(error => error.Description))}";
 
     protected override void OnInitialized()
     {
@@ -126,20 +119,17 @@
 
     private sealed class InputModel
     {
-        [Required]
-        [EmailAddress]
-        [Display(Name = "Email")]
+        [Required(ErrorMessage = "Bitte E-Mail angeben.")]
+        [EmailAddress(ErrorMessage = "Bitte eine gültige E-Mail-Adresse angeben.")]
         public string Email { get; set; } = "";
 
-        [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [Required(ErrorMessage = "Bitte Passwort angeben.")]
+        [StringLength(100, ErrorMessage = "Das Passwort muss zwischen {2} und {1} Zeichen lang sein.", MinimumLength = 6)]
         [DataType(DataType.Password)]
-        [Display(Name = "Password")]
         public string Password { get; set; } = "";
 
         [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        [Compare("Password", ErrorMessage = "Die Passwörter stimmen nicht überein.")]
         public string ConfirmPassword { get; set; } = "";
     }
 }

@@ -26,6 +26,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.11" />
     <!-- UI -->
     <PackageVersion Include="MudBlazor" Version="9.7.0" />
+    <PackageVersion Include="Extensions.MudBlazor.StaticInput" Version="4.1.0" />
     <!-- Tests -->
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />

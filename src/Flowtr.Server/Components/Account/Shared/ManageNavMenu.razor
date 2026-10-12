@@ -1,17 +1,7 @@
-<ul class="nav nav-pills flex-column">
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage" Match="NavLinkMatch.All">Profile</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/Email">Email</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/ChangePassword">Password</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/Passkeys">Passkeys</NavLink>
-    </li>
-    <li class="nav-item">
-        <NavLink class="nav-link" href="Account/Manage/PersonalData">Personal data</NavLink>
-    </li>
-</ul>
+<MudNavMenu>
+    <MudNavLink Href="Account/Manage" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.PersonOutline">Profil</MudNavLink>
+    <MudNavLink Href="Account/Manage/Email" Icon="@Icons.Material.Outlined.Email">E-Mail</MudNavLink>
+    <MudNavLink Href="Account/Manage/ChangePassword" Icon="@Icons.Material.Outlined.Password">Passwort</MudNavLink>
+    <MudNavLink Href="Account/Manage/Passkeys" Icon="@Icons.Material.Outlined.Fingerprint">Passkeys</MudNavLink>
+    <MudNavLink Href="Account/Manage/PersonalData" Icon="@Icons.Material.Outlined.Shield">Persönliche Daten</MudNavLink>
+</MudNavMenu>

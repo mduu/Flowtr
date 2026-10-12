@@ -58,6 +58,8 @@ Build and test: `dotnet build src/Flowtr.slnx`, `dotnet test src/Flowtr.slnx`.
 
 ## UX
 
+- **Account pages (`/Account/*`) are static SSR** (Identity needs `HttpContext`). On them — and in anything they render, like `MainLayout` — use only MudBlazor components that work without interactivity: `MudStatic*` inputs (MudBlazor.StaticInput), `MudPaper`, `MudText`, `MudAlert`, `MudLink`, `MudButton` with `Href` or `ButtonType.Submit`. No `MudMenu`, `MudDialog`, `MudSelect` etc. See ADR-003.
+
 - Responsive (iPhone to desktop), should feel like a desktop app; MudBlazor with primary colour Indigo.
 - Long-running operations show progress or at least a spinner; uploads show progress.
 

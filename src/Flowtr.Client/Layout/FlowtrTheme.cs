@@ -22,5 +22,9 @@ public static class FlowtrTheme
         {
             Primary = Colors.Indigo.Lighten1,
         },
+        Typography = new Typography
+        {
+            Button = new ButtonTypography { TextTransform = "none" },
+        },
     };
 }

@@ -32,6 +32,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
         options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddErrorDescriber<GermanIdentityErrorDescriber>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
 

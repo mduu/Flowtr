@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 namespace Flowtr.Tests;
 
 /// <summary>
-/// Flowtr only supports passkey and password login (story #001, ADR-002).
+/// Account pages: passkey and password login only (ADR-002), static SSR (ADR-003).
 /// </summary>
 public class AccountRoutesTests
 {
@@ -23,6 +23,21 @@ public class AccountRoutesTests
     {
         // Assert
         routes.ShouldNotContain(route => route.Contains(fragment, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Account_pages_stay_static_server_rendered()
+    {
+        // Arrange
+        var accountPages = typeof(Program).Assembly.GetTypes()
+            .Where(type => type.GetCustomAttributes(typeof(RouteAttribute), inherit: false)
+                .Cast<RouteAttribute>()
+                .Any(route => route.Template.StartsWith("/Account", StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        // Assert (Identity needs HttpContext for cookies, ADR-003)
+        accountPages.ShouldNotBeEmpty();
+        accountPages.ShouldAllBe(page => page.IsDefined(typeof(ExcludeFromInteractiveRoutingAttribute), true));
     }
 
     [Fact]

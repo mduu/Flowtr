@@ -10,22 +10,22 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Register confirmation</PageTitle>
+<PageTitle>Registrierung bestätigen</PageTitle>
 
-<h1>Register confirmation</h1>
+<MudText Typo="Typo.h5" GutterBottom="true">Fast geschafft</MudText>
 
 <StatusMessage Message="@statusMessage" />
 
 @if (emailConfirmationLink is not null)
 {
-    <p>
-        This app does not currently have a real email sender registered, see <a href="https://aka.ms/aspaccountconf">these docs</a> for how to configure a real email sender.
-        Normally this would be emailed: <a href="@emailConfirmationLink">Click here to confirm your account</a>
-    </p>
+    <MudAlert Severity="Severity.Info" Class="mb-4">
+        Es ist noch kein E-Mail-Versand eingerichtet. Normalerweise käme dieser Link per E-Mail.
+    </MudAlert>
+    <MudButton Href="@emailConfirmationLink" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true">Konto bestätigen</MudButton>
 }
 else
 {
-    <p role="alert">Please check your email to confirm your account.</p>
+    <MudText Typo="Typo.body1" role="alert">Wir haben dir eine E-Mail geschickt. Bitte bestätige dein Konto über den Link darin.</MudText>
 }
 
 @code {
@@ -53,7 +53,7 @@ else
         if (user is null)
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = "Error finding user for unspecified email";
+            statusMessage = "Fehler: Zu dieser E-Mail-Adresse wurde kein Konto gefunden.";
         }
         else if (EmailSender is IdentityNoOpEmailSender)
         {

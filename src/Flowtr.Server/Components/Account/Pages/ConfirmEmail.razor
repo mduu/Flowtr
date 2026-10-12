@@ -8,10 +8,11 @@
 @inject UserManager<ApplicationUser> UserManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Confirm email</PageTitle>
+<PageTitle>E-Mail bestätigen</PageTitle>
 
-<h1>Confirm email</h1>
+<MudText Typo="Typo.h5" GutterBottom="true">E-Mail bestätigen</MudText>
 <StatusMessage Message="@statusMessage" />
+<MudLink Href="Account/Login" Typo="Typo.body2">Zur Anmeldung</MudLink>
 
 @code {
     private string? statusMessage;
@@ -37,13 +38,13 @@
         if (user is null)
         {
             HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-            statusMessage = $"Error loading user with ID {UserId}";
+            statusMessage = "Fehler: Das Konto wurde nicht gefunden.";
         }
         else
         {
             var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
             var result = await UserManager.ConfirmEmailAsync(user, code);
-            statusMessage = result.Succeeded ? "Thank you for confirming your email." : "Error confirming your email.";
+            statusMessage = result.Succeeded ? "Danke, deine E-Mail-Adresse ist bestätigt." : "Fehler: Die E-Mail-Adresse konnte nicht bestätigt werden.";
         }
     }
 }

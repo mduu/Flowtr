@@ -1,0 +1,9 @@
+@inherits LayoutComponentBase
+@layout Flowtr.Client.Layout.MainLayout
+
+@* Account pages are static SSR: only use MudBlazor components that render without interactivity. *@
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="px-0 mt-sm-8">
+    <MudPaper Outlined="true" Class="pa-6 pa-sm-8">
+        @Body
+    </MudPaper>
+</MudContainer>

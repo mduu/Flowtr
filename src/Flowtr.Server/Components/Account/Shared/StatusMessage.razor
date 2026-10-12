@@ -1,12 +1,17 @@
-﻿@if (!string.IsNullOrEmpty(DisplayMessage))
+@if (!string.IsNullOrEmpty(DisplayMessage))
 {
-    var statusMessageClass = DisplayMessage.StartsWith("Error") ? "danger" : "success";
-    <div class="alert alert-@statusMessageClass" role="alert">
-        @DisplayMessage
-    </div>
+    var isError = DisplayMessage.StartsWith(ErrorPrefix);
+    <MudAlert Severity="@(isError ? Severity.Error : Severity.Success)" Class="mb-4" role="alert">
+        @(isError ? DisplayMessage[ErrorPrefix.Length..].TrimStart() : DisplayMessage)
+    </MudAlert>
 }
 
 @code {
+    /// <summary>
+    /// Messages starting with this prefix are shown as error.
+    /// </summary>
+    public const string ErrorPrefix = "Fehler:";
+
     private string? messageFromCookie;
 
     [Parameter]

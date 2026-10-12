@@ -1,0 +1,17 @@
+@* Rendered both statically (account pages) and interactively: links and a plain form only, no MudMenu. *@
+<AuthorizeView>
+    <Authorized>
+        <MudText Typo="Typo.body2" Class="d-none d-sm-flex mr-2">@context.User.Identity?.Name</MudText>
+        <MudIconButton Href="Account/Manage" Icon="@Icons.Material.Outlined.AccountCircle" Color="Color.Inherit"
+                       aria-label="Konto verwalten" title="Konto verwalten" />
+        <form action="Account/Logout" method="post">
+            <AntiforgeryToken />
+            <input type="hidden" name="ReturnUrl" value="Account/Login" />
+            <MudIconButton ButtonType="ButtonType.Submit" Icon="@Icons.Material.Outlined.Logout" Color="Color.Inherit"
+                           aria-label="Abmelden" title="Abmelden" />
+        </form>
+    </Authorized>
+    <NotAuthorized>
+        <MudButton Href="Account/Login" Variant="Variant.Text" Color="Color.Primary">Anmelden</MudButton>
+    </NotAuthorized>
+</AuthorizeView>

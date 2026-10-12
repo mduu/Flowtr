@@ -1,17 +1,17 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @layout Flowtr.Client.Layout.MainLayout
 
-<h1>Manage your account</h1>
-
-<div>
-    <h2>Change your account settings</h2>
-    <hr />
-    <div class="row">
-        <div class="col-lg-3">
+@* Account pages are static SSR: only use MudBlazor components that render without interactivity. *@
+<MudText Typo="Typo.h5" Class="mb-4">Konto verwalten</MudText>
+<MudGrid Spacing="4">
+    <MudItem xs="12" md="3">
+        <MudPaper Outlined="true" Class="py-2">
             <ManageNavMenu />
-        </div>
-        <div class="col-lg-9">
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="9">
+        <MudPaper Outlined="true" Class="pa-6">
             @Body
-        </div>
-    </div>
-</div>
+        </MudPaper>
+    </MudItem>
+</MudGrid>

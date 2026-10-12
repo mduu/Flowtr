@@ -7,7 +7,9 @@
 
 <MudLayout>
     <MudAppBar Elevation="0" Style="border-bottom: 1px solid var(--mud-palette-lines-default)">
-        <img src="logo.svg" alt="Flowtr" height="32" />
+        <a href="" aria-label="Flowtr Startseite"><img src="logo.svg" alt="Flowtr" height="32" style="display:block" /></a>
+        <MudSpacer />
+        <AccountMenu />
     </MudAppBar>
     <MudMainContent>
         <MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
@@ -17,7 +19,7 @@
 </MudLayout>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    Ein unerwarteter Fehler ist aufgetreten.
+    <a href="." class="reload">Neu laden</a>
+    <span class="dismiss" title="Schliessen">🗙</span>
 </div>
