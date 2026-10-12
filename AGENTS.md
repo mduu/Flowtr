@@ -48,6 +48,14 @@ Run `dotnet run --project src/Flowtr.AppHost`. Docker must run.
 
 Build: `dotnet build src/Flowtr.slnx`. Test: `dotnet test src/Flowtr.slnx`.
 
+## GitHub Actions
+
+Use as little GitHub storage as possible. The repo keeps artifacts and logs for 1 day.
+
+- Upload an artifact only when a later job or a person needs it. Always set `retention-days: 1`.
+- Deploy to Azure directly from the build job. Do not keep the build output as an artifact.
+- Cache NuGet packages only with a key from `src/Directory.Packages.props`. This stops old caches from collecting.
+
 ## Key Principles
 
 - **Vertical slices and CQS**: one use case is one file in `Commands/` or `Queries/`. The file has a record and a handler with the method `Handle`. `Handle` returns `Result` or `Result<T>`.
