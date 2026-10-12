@@ -4,7 +4,9 @@ using Flowtr.Server.Data;
 
 namespace Flowtr.Server.Components.Account;
 
-// Placeholder. When you replace it, remove the IdentityNoOpEmailSender block in RegisterConfirmation.razor.
+/// <summary>
+/// Placeholder. When you replace it, remove the IdentityNoOpEmailSender block in RegisterConfirmation.razor.
+/// </summary>
 internal sealed class IdentityNoOpEmailSender : IEmailSender<ApplicationUser>
 {
     private readonly IEmailSender emailSender = new NoOpEmailSender();

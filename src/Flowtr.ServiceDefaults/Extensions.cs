@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -10,7 +11,9 @@ using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
 
-// Aspire service defaults: service discovery, resilience, health checks and OpenTelemetry.
+/// <summary>
+/// Aspire service defaults: service discovery, resilience, health checks and OpenTelemetry.
+/// </summary>
 public static class Extensions
 {
     private const string HealthEndpointPath = "/health";
@@ -52,11 +55,7 @@ public static class Extensions
             {
                 tracing.AddSource(builder.Environment.ApplicationName)
                     .AddAspNetCoreInstrumentation(tracing =>
-                        // Do not trace health check requests.
-                        tracing.Filter = context =>
-                            !context.Request.Path.StartsWithSegments(HealthEndpointPath)
-                            && !context.Request.Path.StartsWithSegments(AlivenessEndpointPath)
-                    )
+                        tracing.Filter = context => !IsHealthCheckRequest(context))
                     .AddHttpClientInstrumentation();
             });
 
@@ -64,6 +63,10 @@ public static class Extensions
 
         return builder;
     }
+
+    private static bool IsHealthCheckRequest(HttpContext context) =>
+        context.Request.Path.StartsWithSegments(HealthEndpointPath)
+        || context.Request.Path.StartsWithSegments(AlivenessEndpointPath);
 
     private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
@@ -90,10 +93,8 @@ public static class Extensions
         // Health endpoints are a security risk outside Development. See https://aka.ms/aspire/healthchecks.
         if (app.Environment.IsDevelopment())
         {
-            // Ready: all checks pass.
             app.MapHealthChecks(HealthEndpointPath);
 
-            // Alive: only checks with the "live" tag must pass.
             app.MapHealthChecks(AlivenessEndpointPath, new HealthCheckOptions
             {
                 Predicate = r => r.Tags.Contains("live")

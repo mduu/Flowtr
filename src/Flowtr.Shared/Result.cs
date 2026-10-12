@@ -11,34 +11,19 @@ public class Result
         Error = error;
     }
 
-    /// <summary>
-    /// True if the operation succeeded.
-    /// </summary>
     public bool IsSuccess { get; }
 
     /// <summary>
-    /// Error message if the operation failed, otherwise null.
+    /// Null if the operation succeeded.
     /// </summary>
     public string? Error { get; }
 
-    /// <summary>
-    /// Creates a successful result.
-    /// </summary>
     public static Result Success() => new(true, null);
 
-    /// <summary>
-    /// Creates a failed result with the given error message.
-    /// </summary>
     public static Result Failure(string error) => new(false, error);
 
-    /// <summary>
-    /// Creates a successful result carrying a value.
-    /// </summary>
     public static Result<T> Success<T>(T value) => new(value, true, null);
 
-    /// <summary>
-    /// Creates a failed result for an operation that would return a value.
-    /// </summary>
     public static Result<T> Failure<T>(string error) => new(default, false, error);
 }
 
@@ -53,7 +38,7 @@ public sealed class Result<T> : Result
     }
 
     /// <summary>
-    /// The value if the operation succeeded, otherwise default.
+    /// Default if the operation failed.
     /// </summary>
     public T? Value { get; }
 }

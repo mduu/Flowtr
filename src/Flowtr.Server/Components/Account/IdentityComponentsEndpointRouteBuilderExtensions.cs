@@ -10,7 +10,9 @@ namespace Microsoft.AspNetCore.Routing;
 
 internal static class IdentityComponentsEndpointRouteBuilderExtensions
 {
-    // Endpoints for the Identity pages in Components/Account/Pages.
+    /// <summary>
+    /// Maps the endpoints that the Identity pages in Components/Account/Pages use.
+    /// </summary>
     public static IEndpointConventionBuilder MapAdditionalIdentityEndpoints(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
@@ -84,7 +86,6 @@ internal static class IdentityComponentsEndpointRouteBuilderExtensions
             var userId = await userManager.GetUserIdAsync(user);
             downloadLogger.LogInformation("User with ID '{UserId}' asked for their personal data.", userId);
 
-            // Download only the properties marked as personal data.
             var personalData = new Dictionary<string, string>();
             var personalDataProps = typeof(ApplicationUser).GetProperties().Where(
                 prop => Attribute.IsDefined(prop, typeof(PersonalDataAttribute)));
