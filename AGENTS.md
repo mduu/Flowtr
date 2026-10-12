@@ -61,7 +61,12 @@ Build: `dotnet build src/Flowtr.slnx`. Test: `dotnet test src/Flowtr.slnx`.
 
 - Do not use a `_` prefix on fields.
 - Do not use an `Async` suffix on method names.
-- Keep comments short. Write a comment only when the code cannot show the reason. Do not repeat the code in a comment.
+- Comments (details in `specs/coding-guidelines.md`):
+  - First make the code clearer, for example with Extract Method. Give the method a name that tells what it does.
+  - Write a comment only when the code cannot show the information and the comment adds real value.
+  - Keep each comment as short as possible.
+  - Write comments on members as XML documentation.
+  - Usually, do not comment private members.
 
 ## Writing
 
