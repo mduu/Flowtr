@@ -4,7 +4,9 @@ using Flowtr.Server.Data;
 
 namespace Flowtr.Server.Components.Account;
 
-// Remove the "else if (EmailSender is IdentityNoOpEmailSender)" block from RegisterConfirmation.razor after updating with a real implementation.
+/// <summary>
+/// Placeholder. When you replace it, remove the IdentityNoOpEmailSender block in RegisterConfirmation.razor.
+/// </summary>
 internal sealed class IdentityNoOpEmailSender : IEmailSender<ApplicationUser>
 {
     private readonly IEmailSender emailSender = new NoOpEmailSender();

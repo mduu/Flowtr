@@ -8,7 +8,7 @@
 
 Die Konto-Seiten von ASP.NET Core Identity (Login, Registrierung, Konto verwalten …) laufen als **statisches SSR**: Sie setzen und löschen das Login-Cookie über `HttpContext` und sind deshalb mit `[ExcludeFromInteractiveRouting]` von der interaktiven WebAssembly-App ausgenommen. Das muss so bleiben.
 
-Die App selbst nutzt MudBlazor ([UX](../ux.md)). Die meisten MudBlazor-Eingabekomponenten (`MudTextField`, `MudCheckBox` …) brauchen jedoch Interaktivität: Ohne sie werden Werte nicht an das Formular gebunden. Die Template-Seiten erwarten zudem Bootstrap, das im Projekt fehlt ([Story #002](../stories/done/002-identity-auf-mudblazor.md)).
+Die App selbst nutzt MudBlazor ([UX](../ux.md)). Die meisten MudBlazor-Eingabekomponenten (`MudTextField`, `MudCheckBox` …) brauchen jedoch Interaktivität. Ohne Interaktivität binden sie keine Werte an das Formular. Die Template-Seiten erwarten zudem Bootstrap, das im Projekt fehlt ([Story #002](../stories/done/002-identity-auf-mudblazor.md)).
 
 ## Entscheidung
 
@@ -22,15 +22,15 @@ Regeln für Konto-Seiten und für Komponenten, die auch auf ihnen gerendert werd
 
 ## Optionen
 
-### Option A: MudBlazor.StaticInput — gewählt
+### Option A: MudBlazor.StaticInput (gewählt)
 
 **Vorteile:**
 - Echte MudBlazor-Komponenten mit identischem Aussehen und Theme
 - Validierung über `For="() => …"` wie gewohnt
-- Für genau diesen Fall gebaut (Identity-Seiten), aktiv gepflegt, unterstützt .NET 10 und MudBlazor 9
+- Für genau diesen Fall gebaut (Identity-Seiten). Aktiv gepflegt. Unterstützt .NET 10 und MudBlazor 9
 
 **Nachteile:**
-- Zusätzliche Abhängigkeit eines Drittanbieters; bei MudBlazor-Upgrades muss die Kompatibilität geprüft werden
+- Zusätzliche Abhängigkeit eines Drittanbieters. Bei MudBlazor-Upgrades müssen wir die Kompatibilität prüfen
 
 ### Option B: Native Eingaben mit MudBlazor-CSS-Klassen
 
@@ -40,23 +40,23 @@ Regeln für Konto-Seiten und für Komponenten, die auch auf ihnen gerendert werd
 - Keine zusätzliche Abhängigkeit
 
 **Nachteile:**
-- Markup der MudBlazor-Komponenten muss nachgebaut und bei Upgrades nachgeführt werden
-- Label-Animation, Fehlerzustand und Adornments müssen selbst umgesetzt werden
+- Wir müssen das Markup der MudBlazor-Komponenten nachbauen und bei Upgrades nachführen
+- Wir müssen Label-Animation, Fehlerzustand und Adornments selbst umsetzen
 
 ### Option C: Konto-Seiten interaktiv machen
 
 **Nachteile:**
-- Identity braucht `HttpContext` für Cookies – mit interaktivem Rendering nicht möglich, ohne die Anmeldung über eigene API-Endpunkte neu zu bauen
+- Identity braucht `HttpContext` für Cookies. Mit interaktivem Rendering geht das nur, wenn wir die Anmeldung über eigene API-Endpunkte neu bauen
 
 ## Konsequenzen
 
 ### Positive Auswirkungen
 
-- Einheitlicher Look in der ganzen App, Konto-Seiten bleiben sicher als statisches SSR
+- Einheitlicher Look in der ganzen App. Konto-Seiten bleiben sicher als statisches SSR
 
 ### Negative Auswirkungen / Risiken
 
-- Bei einem MudBlazor-Major-Upgrade muss StaticInput mitziehen; sonst bleibt nur Option B.
+- Bei einem MudBlazor-Major-Upgrade muss StaticInput mitziehen. Sonst bleibt nur Option B.
 - Die Einschränkung auf statische Komponenten gilt auch für alles, was im `MainLayout` steht.
 
 ### Aufwand
@@ -66,4 +66,4 @@ Regeln für Konto-Seiten und für Komponenten, die auch auf ihnen gerendert werd
 ## Referenzen
 
 - [MudBlazor.StaticInput](https://github.com/0phois/MudBlazor.StaticInput)
-- [Blazor render modes – static SSR](https://learn.microsoft.com/aspnet/core/blazor/components/render-modes)
+- [Blazor render modes: static SSR](https://learn.microsoft.com/aspnet/core/blazor/components/render-modes)

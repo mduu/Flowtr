@@ -10,7 +10,7 @@ public static class HandlerRegistration
     private static readonly Type[] handlerInterfaces = [typeof(ICommandHandler<,>), typeof(IQueryHandler<,>)];
 
     /// <summary>
-    /// Registers every non-abstract class implementing a handler interface as scoped service.
+    /// Registers each non-abstract class that implements a handler interface as a scoped service.
     /// </summary>
     public static IServiceCollection AddHandlers(this IServiceCollection services, Assembly assembly)
     {

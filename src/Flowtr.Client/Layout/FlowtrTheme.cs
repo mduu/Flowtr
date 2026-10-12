@@ -7,9 +7,6 @@ namespace Flowtr.Client.Layout;
 /// </summary>
 public static class FlowtrTheme
 {
-    /// <summary>
-    /// The application theme.
-    /// </summary>
     public static readonly MudTheme Theme = new()
     {
         PaletteLight = new PaletteLight

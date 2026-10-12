@@ -1,69 +1,90 @@
 # Agent Instructions
 
-**Flowtr** is a simple bookkeeping web app for income and expenses of a side business (Swiss sole proprietorship). Receipts are uploaded or forwarded by email, AI extracts the booking data, the user confirms, and Flowtr files the numbered receipt and writes the journal entry. Once a year, journal and receipts are exported for the tax return or the fiduciary.
+**Flowtr** is a simple bookkeeping web app for the income and expenses of a side business (Swiss sole proprietorship). The user uploads a receipt or forwards it by email. AI extracts the booking data and the user confirms it. Flowtr then files the numbered receipt and writes the journal entry. Once a year, the user exports the journal and the receipts for the tax return or the fiduciary.
 
-.NET (latest), Blazor Interactive WebAssembly, ASP.NET Core WebAPI, MudBlazor, EF Core on SQL Server (Azure SQL in production), Aspire for local dev.
+Stack: .NET (latest), Blazor Interactive WebAssembly, ASP.NET Core WebAPI, MudBlazor, EF Core on SQL Server (Azure SQL in production), Aspire for local development.
 
-These rules are the short, always-on version. Details live in the specs — read the relevant one before changing that area:
+This file gives the short rules that always apply. The specs give the details. Before you change an area, read its spec:
 
 | Area | Spec |
 |---|---|
 | Receipt capture, AI extraction, input channels | `specs/concept.md` |
 | Journal, closing, export, fiduciary dossier | `specs/journal.md` |
 | Security requirements | `specs/security.md` |
-| Backup & restore | `specs/backup.md` |
+| Backup and restore | `specs/backup.md` |
 | Stack, principles, components, roles | `specs/architecture.md` |
 | Coding rules | `specs/coding-guidelines.md` |
 | UX, colours | `specs/ux.md` |
 | Domain terms | `specs/glossary.md` |
 | Decisions | `specs/adrs/` |
 | Stories | `specs/stories/` (template `_template.md`) |
-| Backlog — do not pick up unless explicitly asked | `specs/backlog.md` |
+| Backlog (do not start work on it unless the user asks) | `specs/backlog.md` |
 
 ## Repository Layout
 
 | Folder | Content |
 |---|---|
-| `src/` | Source code including tests — solution `src/Flowtr.slnx`, package versions only in `src/Directory.Packages.props` |
+| `src/` | Source code and tests. Solution: `src/Flowtr.slnx`. Package versions: only in `src/Directory.Packages.props`. |
 | `src/Flowtr.AppHost/` | Aspire AppHost: SQL Server and Azurite containers, server |
 | `src/Flowtr.ServiceDefaults/` | Aspire service defaults: telemetry, health checks, resilience |
 | `src/Flowtr.Server/` | ASP.NET Core host: API, Identity, EF Core, feature slices in `Features/`, CQS base in `CrossCutting/Cqs/` |
 | `src/Flowtr.Client/` | Blazor WebAssembly UI with MudBlazor |
-| `src/Flowtr.Shared/` | Types shared by server and client (`Result`, DTOs) |
-| `src/Flowtr.Tests/` | Tests (xUnit + Shouldly) |
+| `src/Flowtr.Shared/` | Types that the server and the client share (`Result`, DTOs) |
+| `src/Flowtr.Tests/` | Tests (xUnit and Shouldly) |
 | `deploy/` | Infrastructure as Code (Bicep) and deployment scripts |
-| `docs/` | Operating and user documentation (how to run and use it) |
-| `specs/` | Specifications (what is built and why) |
+| `docs/` | Operating and user documentation (how to run and use Flowtr) |
+| `specs/` | Specifications (what we build and why) |
 | `assets/` | Logo and images |
+| `.claude/skills/` | Claude Code skills |
 
 ## Running
 
-`dotnet run --project src/Flowtr.AppHost` (Docker required) → starts SQL Server and Azurite containers (persistent volumes) and the server; the Aspire dashboard URL is printed on start. The server alone has no database connection — always start via the AppHost. In Development, EF migrations are applied on startup.
+Run `dotnet run --project src/Flowtr.AppHost`. Docker must run.
 
-Build and test: `dotnet build src/Flowtr.slnx`, `dotnet test src/Flowtr.slnx`.
+- The AppHost starts the SQL Server and Azurite containers (persistent volumes) and the server.
+- The AppHost shows the URL of the Aspire dashboard on start.
+- The server alone has no database connection. Always start Flowtr with the AppHost.
+- In Development, the server applies the EF migrations on start.
+
+Build: `dotnet build src/Flowtr.slnx`. Test: `dotnet test src/Flowtr.slnx`.
 
 ## Key Principles
 
-- **Vertical slices + CQS**: one use case = one file in `Commands/` or `Queries/` (record + handler, method `Handle`, returns `Result` or `Result<T>`).
-- **Single tenant** per installation — no multi-tenancy code.
-- **RBAC**: users have one or more roles (Admin, Contributor).
-- **Never lose data**: journal and receipts are critical; a closed calendar year is read-only, including its receipts.
-- **Audit everything**: every create/update/delete of bookings and receipts is written to the audit log.
-- **Security is part of the foundation**, not an add-on — this is accounting data.
+- **Vertical slices and CQS**: one use case is one file in `Commands/` or `Queries/`. The file has a record and a handler with the method `Handle`. `Handle` returns `Result` or `Result<T>`.
+- **Single tenant** per installation. Do not write multi-tenancy code.
+- **RBAC**: each user has one or more roles (Admin, Contributor).
+- **Never lose data**: the journal and the receipts are critical. A closed calendar year is read-only. This includes its receipts.
+- **Audit everything**: each create, update and delete of a booking or a receipt goes into the audit log.
+- **Security is part of the foundation**. It is not an add-on. Flowtr keeps accounting data.
 
 ## Coding
 
-- No `_` prefix on fields.
-- No `Async` suffix on method names.
+- Do not use a `_` prefix on fields.
+- Do not use an `Async` suffix on method names.
+- Comments (details in `specs/coding-guidelines.md`):
+  - First make the code clearer, for example with Extract Method. Give the method a name that tells what it does.
+  - Write a comment only when the code cannot show the information and the comment adds real value.
+  - Keep each comment as short as possible.
+  - Write comments on members as XML documentation.
+  - Usually, do not comment private members.
+
+## Writing
+
+- Write English text (comments, commits, this file) in ASD-STE100 Simplified Technical English. Use the skill in `.claude/skills/asd-ste100/`.
+- Write German text (UI, docs, specs) with the same principles: short sentences, one statement in each sentence, active voice, no filler words.
 
 ## UX
 
-- **Account pages (`/Account/*`) are static SSR** (Identity needs `HttpContext`). On them — and in anything they render, like `MainLayout` — use only MudBlazor components that work without interactivity: `MudStatic*` inputs (MudBlazor.StaticInput), `MudPaper`, `MudText`, `MudAlert`, `MudLink`, `MudButton` with `Href` or `ButtonType.Submit`. No `MudMenu`, `MudDialog`, `MudSelect` etc. See ADR-003.
-
-- Responsive (iPhone to desktop), should feel like a desktop app; MudBlazor with primary colour Indigo.
-- Long-running operations show progress or at least a spinner; uploads show progress.
+- **Account pages (`/Account/*`) are static SSR**, because Identity needs `HttpContext`. See ADR-003.
+  - On these pages, and in all components that they render (for example `MainLayout`), use only MudBlazor components that work without interactivity.
+  - Permitted: `MudStatic*` inputs (MudBlazor.StaticInput), `MudPaper`, `MudText`, `MudAlert`, `MudLink`, `MudButton` with `Href` or `ButtonType.Submit`.
+  - Not permitted: `MudMenu`, `MudDialog`, `MudSelect` and other interactive components.
+- The UI is responsive (iPhone to desktop) and feels like a desktop app. Use MudBlazor with the primary colour Indigo.
+- Long operations show progress, or at minimum a spinner. Uploads show progress.
 
 ## Language
 
-- UI in German; code, data structures, comments and commits in English; docs and specs in German.
-- Swiss formats (dd.MM.yyyy, CHF).
+- UI: German.
+- Code, data structures, comments and commits: English.
+- Docs and specs: German.
+- Formats: Swiss (dd.MM.yyyy, CHF).

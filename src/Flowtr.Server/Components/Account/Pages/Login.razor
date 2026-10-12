@@ -17,7 +17,7 @@
 <StatusMessage Message="@errorMessage" />
 <EditForm EditContext="editContext" method="post" OnSubmit="LoginUser" FormName="login">
     <DataAnnotationsValidator />
-    @* The password button comes first in the DOM so Enter submits the password login; CSS order shows the passkey button on top. *@
+    @* The password button is first in the DOM, so Enter submits the password login. CSS order shows the passkey button on top. *@
     <MudStack Spacing="3">
         <MudStaticTextField @bind-Value="Input.Email" For="() => Input.Email" Label="E-Mail" Variant="Variant.Outlined"
                             InputType="InputType.Email" autocomplete="username webauthn" />
@@ -76,19 +76,16 @@
         SignInResult result;
         if (!string.IsNullOrEmpty(Input.Passkey?.CredentialJson))
         {
-            // When performing passkey sign-in, don't perform form validation.
             result = await SignInManager.PasskeySignInAsync(Input.Passkey.CredentialJson);
         }
         else
         {
-            // If doing a password sign-in, validate the form.
             if (!editContext.Validate())
             {
                 return;
             }
 
-            // This doesn't count login failures towards account lockout
-            // To enable password failures to trigger account lockout, set lockoutOnFailure: true
+            // Failed logins do not lock the account. Set lockoutOnFailure: true to change this.
             result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
         }
 
