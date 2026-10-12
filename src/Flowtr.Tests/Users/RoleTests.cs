@@ -139,4 +139,40 @@ public class RoleTests
         user.EmailConfirmed.ShouldBeFalse();
         (await fixture.UserManager.GetRolesAsync(user)).ShouldBe([Roles.Admin]);
     }
+
+    [Fact]
+    public async Task Restart_keeps_earlier_admin_invitation_link_valid()
+    {
+        // Arrange
+        using var fixture = new UsersFixture(configuredAdmins: ["anna@example.ch"]);
+        var invitedAt = fixture.Clock.Now;
+        await fixture.Command<SetUpConfiguredAdmins, Result>(new SetUpConfiguredAdmins(UsersFixture.BaseUri));
+        var user = (await fixture.UserManager.FindByEmailAsync("anna@example.ch"))!;
+        var earlierLink = await fixture.Get<Invitations>().CreateLink(user, UsersFixture.BaseUri);
+        fixture.Clock.Now = fixture.Clock.Now.AddDays(3);
+
+        // Act
+        await fixture.Command<SetUpConfiguredAdmins, Result>(new SetUpConfiguredAdmins(UsersFixture.BaseUri));
+
+        // Assert
+        var check = await fixture.Query<CheckInvitation, string>(new CheckInvitation(earlierLink.UserId, UsersFixture.Code(earlierLink)));
+        check.IsSuccess.ShouldBeTrue(check.Error);
+        (await fixture.UserManager.FindByEmailAsync("anna@example.ch"))!.InvitedAt.ShouldBe(invitedAt);
+    }
+
+    [Fact]
+    public async Task Restart_grants_admin_role_to_confirmed_configured_admin()
+    {
+        // Arrange
+        using var fixture = new UsersFixture(configuredAdmins: ["anna@example.ch"]);
+        var invitation = await fixture.Invite("anna@example.ch", Roles.Contributor);
+        await fixture.Accept(invitation);
+
+        // Act
+        await fixture.Command<SetUpConfiguredAdmins, Result>(new SetUpConfiguredAdmins(UsersFixture.BaseUri));
+
+        // Assert
+        var roles = await fixture.UserManager.GetRolesAsync((await fixture.UserManager.FindByIdAsync(invitation.UserId))!);
+        roles.ShouldBe([Roles.Admin, Roles.Contributor], ignoreOrder: true);
+    }
 }

@@ -8,7 +8,7 @@ namespace Flowtr.Server.Features.Users.Commands;
 
 /// <summary>
 /// Gives the Admin role to the configured admins (<see cref="ConfiguredAdmins"/>).
-/// For an address without an account, it makes an admin invitation and writes the link to the log.
+/// For an address without an accepted account, it writes an invitation link to the log.
 /// </summary>
 public sealed record SetUpConfiguredAdmins(Uri BaseUri);
 
@@ -16,7 +16,7 @@ public sealed class SetUpConfiguredAdminsHandler(
     UserManager<ApplicationUser> users,
     ConfiguredAdmins admins,
     ICommandHandler<InviteUser, Result<Invitation>> invite,
-    ICommandHandler<RenewInvitation, Result<Invitation>> renew,
+    Invitations invitations,
     ILogger<SetUpConfiguredAdminsHandler> logger)
     : ICommandHandler<SetUpConfiguredAdmins, Result>
 {
@@ -32,9 +32,10 @@ public sealed class SetUpConfiguredAdminsHandler(
                 continue;
             }
 
+            // An open invitation gets one more link. The links in the log of earlier starts stay valid.
             var invitation = user is null
                 ? await invite.Handle(new InviteUser(address, Roles.Admin, command.BaseUri), cancellationToken)
-                : await renew.Handle(new RenewInvitation(user.Id, command.BaseUri), cancellationToken);
+                : Result.Success(await invitations.CreateLink(user, command.BaseUri));
 
             if (invitation.IsSuccess)
             {

@@ -48,7 +48,7 @@ dotnet run --project src/Flowtr.AppHost   # startet SQL Server, Azurite und die 
 dotnet test src/Flowtr.slnx
 ```
 
-**Erster Admin:** Flowtr hat keine öffentliche Registrierung ([ADR-004](specs/adrs/004-zugang-nur-auf-einladung.md)). Die Adressen in der Konfiguration `Admins` erhalten immer die Rolle Admin (lokal in `src/Flowtr.Server/appsettings.Development.json`, im Betrieb als App-Einstellung `Admins__0`, `Admins__1` …). Hat eine Adresse noch kein Konto, erstellt Flowtr beim Start eine Einladung und schreibt den Link ins Log. Flowtr entzieht die Rolle nie automatisch: Admins verwalten die Rollen unter «Benutzer». Für Links in Einladungen nimmt Flowtr die Adresse des Requests. `PublicUrl` überschreibt sie (z.B. hinter einem Proxy).
+**Erster Admin:** Flowtr hat keine öffentliche Registrierung ([ADR-004](specs/adrs/004-zugang-nur-auf-einladung.md)). Die Adressen in der Konfiguration `Admins` erhalten immer die Rolle Admin (lokal in `src/Flowtr.Server/appsettings.Development.json`, im Betrieb als App-Einstellung `Admins__0`, `Admins__1` …). Hat eine Adresse noch kein angenommenes Konto, schreibt Flowtr beim Start einen Einladungslink ins Log. Links aus früheren Starts bleiben gültig (7 Tage). Flowtr entzieht die Rolle nie automatisch: Admins verwalten die Rollen unter «Benutzer». Für Links in Einladungen nimmt Flowtr die Adresse des Requests. `PublicUrl` überschreibt sie (z.B. hinter einem Proxy).
 
 ## Spezifikationen
 | Dokument | Inhalt |

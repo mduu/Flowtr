@@ -26,7 +26,7 @@ Es gibt keine öffentliche Registrierung. Ein Admin lädt neue User ein, indem e
 
 - **Passwort ist Pflicht** beim Annehmen. Danach landet der User auf «Passkeys» mit einem Hinweis. Grund: [ADR-002](../../adrs/002-passkeys-und-passwort.md) schliesst Konten nur mit Passkey aus.
 - **Erneut senden** heisst «Neuer Link»: Flowtr versendet noch keine E-Mails. Der neue Link macht den alten ungültig (Security-Stamp), und die 30 Tage beginnen neu. Der Admin kopiert den Link.
-- **Erster Admin:** Konfiguration `Admins` (wie in Bau-Ticker). Bei Start und bei jeder Anmeldung (Claims-Factory) erhalten bestätigte Adressen die Rolle Admin. Ohne Konto: Einladung beim Start, Link im Log (Warning). Flowtr **entzieht die Rolle nie automatisch** (Wunsch des Users).
+- **Erster Admin:** Konfiguration `Admins` (wie in Bau-Ticker). Bei Start und bei jeder Anmeldung (Claims-Factory) erhalten bestätigte Adressen die Rolle Admin. Ohne angenommenes Konto: Link im Log bei jedem Start (Warning). Ein Neustart macht frühere Links nicht ungültig und startet die 30 Tage nicht neu. Flowtr **entzieht die Rolle nie automatisch** (Wunsch des Users).
 - **Rollen verwalten** in der Benutzerliste (Checkboxen pro Rolle). Flowtr behält mindestens einen Admin. Rollenänderungen wirken nach höchstens einer Minute (`SecurityStampValidator`).
 - **Migration:** Rollen mit festen IDs als Seed. Bestehende User erhalten `InvitedAt` und die Rolle Contributor.
 - **Kein Zugriff:** Server-Requests auf Seiten ohne passende Rolle führen zu «Zugriff verweigert», Navigation in der App zeigt «Kein Zugriff». `/api` verlangt eine Rolle, `/api/users` die Rolle Admin. Die API antwortet mit 401/403 statt mit Redirect.
