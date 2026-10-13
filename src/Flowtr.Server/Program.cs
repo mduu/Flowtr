@@ -11,6 +11,7 @@ using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.Data;
 using Flowtr.Server.Features.Appearance;
 using Flowtr.Server.Features.Audit;
+using Flowtr.Server.Features.Journal;
 using Flowtr.Server.Features.Users;
 using Flowtr.Shared.Users;
 
@@ -45,6 +46,7 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddUsers();
 builder.Services.AddScoped<IAuditLogReader, ServerAuditLogReader>();
+builder.Services.AddJournal();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
@@ -84,6 +86,7 @@ app.MapAppearanceEndpoints();
 var api = app.MapGroup("/api").RequireAuthorization(policy => policy.RequireRole(Roles.All));
 api.MapUsersEndpoints();
 api.MapAuditEndpoints();
+api.MapJournalEndpoints();
 
 app.MapDefaultEndpoints();
 

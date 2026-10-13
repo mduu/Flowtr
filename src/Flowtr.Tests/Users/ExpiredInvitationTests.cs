@@ -14,7 +14,7 @@ public class ExpiredInvitationTests
     public async Task Deletes_open_invitation_after_exactly_30_days(int minutesLater, bool deleted)
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch");
         fixture.Clock.Now = fixture.Clock.Now.AddMinutes(minutesLater);
 
@@ -30,7 +30,7 @@ public class ExpiredInvitationTests
     public async Task Keeps_accepted_user()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch");
         await fixture.Accept(invitation);
         fixture.Clock.Now = fixture.Clock.Now.AddYears(1);

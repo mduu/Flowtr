@@ -2,9 +2,11 @@
 
 @* Heading and links of the admin area. The app bar has only one icon for it. Links, thus it also works during prerendering. *@
 <MudText Typo="Typo.h5" Class="mb-2">Verwaltung</MudText>
-<MudStack Row="true" Spacing="1" Class="mb-4">
+<MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mb-4">
     <MudButton Href="benutzer" Variant="@VariantFor("benutzer")" Color="Color.Primary" Size="Size.Small"
                StartIcon="@Icons.Material.Outlined.Group">Benutzer</MudButton>
+    <MudButton Href="kategorien" Variant="@VariantFor("kategorien")" Color="Color.Primary" Size="Size.Small"
+               StartIcon="@Icons.Material.Outlined.Category">Kategorien</MudButton>
     <MudButton Href="protokoll" Variant="@VariantFor("protokoll")" Color="Color.Primary" Size="Size.Small"
                StartIcon="@Icons.Material.Outlined.History">Protokoll</MudButton>
 </MudStack>

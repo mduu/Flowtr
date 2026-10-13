@@ -144,6 +144,290 @@ namespace Flowtr.Server.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("Flowtr.Server.Features.Journal.Model.Booking", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AmountChf")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CounterpartyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<decimal?>("OriginalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("OriginalCurrency")
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<Guid?>("PaymentMethodId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReceiptNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("VatAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("VatRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("CounterpartyId");
+
+                    b.HasIndex("Date");
+
+                    b.HasIndex("PaymentMethodId");
+
+                    b.ToTable("Bookings");
+                });
+
+            modelBuilder.Entity("Flowtr.Server.Features.Journal.Model.Category", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Kind", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Categories");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0001-7000-8000-000000000001"),
+                            IsActive = true,
+                            Kind = "Income",
+                            Name = "Umsatz und Honorare",
+                            SortOrder = 10
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0001-7000-8000-000000000002"),
+                            IsActive = true,
+                            Kind = "Income",
+                            Name = "Übrige Erträge",
+                            SortOrder = 20
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0002-7000-8000-000000000001"),
+                            IsActive = true,
+                            Kind = "Expense",
+                            Name = "Material und Waren",
+                            SortOrder = 10
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0002-7000-8000-000000000002"),
+                            IsActive = true,
+                            Kind = "Expense",
+                            Name = "Fremdleistungen",
+                            SortOrder = 20
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0002-7000-8000-000000000003"),
+                            IsActive = true,
+                            Kind = "Expense",
+                            Name = "Software und Abos",
+                            SortOrder = 30
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0002-7000-8000-000000000004"),
+                            IsActive = true,
+                            Kind = "Expense",
+                            Name = "Hardware und Geräte",
+                            SortOrder = 40
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0002-7000-8000-000000000005"),
+                            IsActive = true,
+                            Kind = "Expense",
+                            Name = "Raumkosten",
+                            SortOrder = 50
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0002-7000-8000-000000000006"),
+                            IsActive = true,
+                            Kind = "Expense",
+                            Name = "Fahrzeug und Reisen",
+                            SortOrder = 60
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0002-7000-8000-000000000007"),
+                            IsActive = true,
+                            Kind = "Expense",
+                            Name = "Telefon und Internet",
+                            SortOrder = 70
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0002-7000-8000-000000000008"),
+                            IsActive = true,
+                            Kind = "Expense",
+                            Name = "Werbung und Marketing",
+                            SortOrder = 80
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0002-7000-8000-000000000009"),
+                            IsActive = true,
+                            Kind = "Expense",
+                            Name = "Weiterbildung und Fachliteratur",
+                            SortOrder = 90
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0002-7000-8000-00000000000a"),
+                            IsActive = true,
+                            Kind = "Expense",
+                            Name = "Versicherungen und Gebühren",
+                            SortOrder = 100
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0002-7000-8000-00000000000b"),
+                            IsActive = true,
+                            Kind = "Expense",
+                            Name = "Bank- und Kreditkartenspesen",
+                            SortOrder = 110
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0002-7000-8000-00000000000c"),
+                            IsActive = true,
+                            Kind = "Expense",
+                            Name = "Übriger Aufwand",
+                            SortOrder = 120
+                        });
+                });
+
+            modelBuilder.Entity("Flowtr.Server.Features.Journal.Model.ClosedYear", b =>
+                {
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("ClosedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Year");
+
+                    b.ToTable("ClosedYears");
+                });
+
+            modelBuilder.Entity("Flowtr.Server.Features.Journal.Model.Counterparty", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Counterparties");
+                });
+
+            modelBuilder.Entity("Flowtr.Server.Features.Journal.Model.PaymentMethod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("PaymentMethods");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0003-7000-8000-000000000001"),
+                            Name = "Bankkonto"
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0003-7000-8000-000000000002"),
+                            Name = "Kreditkarte"
+                        },
+                        new
+                        {
+                            Id = new Guid("0199d6a0-0003-7000-8000-000000000003"),
+                            Name = "Bar"
+                        });
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -312,6 +596,31 @@ namespace Flowtr.Server.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("Flowtr.Server.Features.Journal.Model.Booking", b =>
+                {
+                    b.HasOne("Flowtr.Server.Features.Journal.Model.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Flowtr.Server.Features.Journal.Model.Counterparty", "Counterparty")
+                        .WithMany()
+                        .HasForeignKey("CounterpartyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Flowtr.Server.Features.Journal.Model.PaymentMethod", "PaymentMethod")
+                        .WithMany()
+                        .HasForeignKey("PaymentMethodId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Counterparty");
+
+                    b.Navigation("PaymentMethod");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

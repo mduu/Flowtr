@@ -11,8 +11,8 @@ Das Journal (aka Milchbüchlein) enthält alle Angaben für die Schweizer Steuer
 | :-- | :-- |
 | Datum | Belegdatum |
 | Art | Einnahme oder Ausgabe |
-| Betrag & Währung (Original) | wie auf dem Beleg, z.B. USD 20.00 |
-| Betrag CHF | Vorschlag per Tageskurs. Manuell korrigierbar (z.B. gemäss Kreditkartenabrechnung) |
+| Betrag & Währung (Original) | Optional, nur bei Fremdwährung: wie auf dem Beleg, z.B. USD 20.00. Reine Information, Flowtr rechnet nur mit dem Betrag CHF |
+| Betrag CHF | Immer positiv, die Art gibt die Richtung. Höchstens zwei Nachkommastellen. Vorschlag per Tageskurs folgt mit der KI-Extraktion. Manuell korrigierbar (z.B. gemäss Kreditkartenabrechnung) |
 | Beschreibung | |
 | Kategorie | siehe [Kategorien](#kategorien) |
 | Gegenpartei | Lieferant oder Kunde (z.B. Microsoft, Stripe) |
@@ -23,8 +23,12 @@ Das Journal (aka Milchbüchlein) enthält alle Angaben für die Schweizer Steuer
 **MWST:** Aktuell nicht nötig. Das Datenmodell muss MWST-Satz und -Betrag aber später ohne Umbau aufnehmen können.
 
 ## Kategorien
-- Vordefinierte Startliste, angelehnt an das Formular «Selbständige Erwerbstätigkeit» der Steuererklärung (z.B. Material, Software/Abos, Hardware, Raumkosten, Fahrzeug, Honorare).
-- Admins können Kategorien ergänzen.
+- Vordefinierte Startliste, angelehnt an das Formular «Selbständige Erwerbstätigkeit» der Steuererklärung:
+  - **Einnahmen:** Umsatz und Honorare, Übrige Erträge
+  - **Ausgaben:** Material und Waren, Fremdleistungen, Software und Abos, Hardware und Geräte, Raumkosten, Fahrzeug und Reisen, Telefon und Internet, Werbung und Marketing, Weiterbildung und Fachliteratur, Versicherungen und Gebühren, Bank- und Kreditkartenspesen, Übriger Aufwand
+- Jede Kategorie gehört zu Einnahmen oder Ausgaben. Eine Buchung kann nur eine passende Kategorie haben.
+- Admins können Kategorien ergänzen, umbenennen und deaktivieren («Verwaltung → Kategorien»). Eine Kategorie mit Buchungen lässt sich nicht löschen, nur deaktivieren. Bestehende Buchungen behalten sie.
+- Zahlungsarten starten mit Bankkonto, Kreditkarte, Bar. Neue Gegenparteien und Zahlungsarten entstehen beim Erfassen.
 
 ## Bearbeitung & Abschluss
 - Der Abschluss gilt pro **Kalenderjahr** (= Steuerperiode).

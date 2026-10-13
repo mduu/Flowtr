@@ -9,7 +9,7 @@ Flowtr protokolliert jede Änderung an Buchungen, Belegen, Benutzern und Rollen:
 ## Hintergrund
 
 - [AGENTS.md](../../../AGENTS.md): «Audit everything». [Sicherheit](../../security.md#nachvollziehbarkeit): wer hat wann welche Buchung oder welchen Beleg erstellt, geändert oder gelöscht.
-- Das Audit-Log muss vor der ersten Buchung stehen ([#007](../007-journal-manuell-erfassen.md)), damit von Anfang an alles protokolliert ist.
+- Das Audit-Log muss vor der ersten Buchung stehen ([#007](007-journal-manuell-erfassen.md)), damit von Anfang an alles protokolliert ist.
 - Die Benutzerverwaltung ([#004](004-einladung-durch-admin.md)) schreibt heute nur ins normale Log. Sie stellt auf das Audit-Log um: Einladen, neuer Link, Widerrufen, Annehmen, Rollen ändern, automatisches Löschen.
 - Ansatz zum Entscheiden (ADR):
   - **Explizit im Handler** (z.B. `IAuditLog.Write(...)` in jedem Command): klar und gezielt, aber man kann es vergessen.

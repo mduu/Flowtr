@@ -1,3 +1,4 @@
+using Flowtr.Server.CrossCutting.Api;
 using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.Features.Users.Commands;
 using Flowtr.Server.Features.Users.Queries;
@@ -16,7 +17,7 @@ public static class UsersEndpoints
         var users = api.MapGroup("/users").RequireAuthorization(policy => policy.RequireRole(Roles.Admin));
 
         users.MapGet("/", async (IQueryHandler<GetUsers, IReadOnlyList<UserSummary>> handler, CancellationToken cancellationToken) =>
-            ToHttp(await handler.Handle(new GetUsers(), cancellationToken)));
+            (await handler.Handle(new GetUsers(), cancellationToken)).ToHttp());
 
         users.MapPost("/invitations", async (
             InviteUserRequest request,
@@ -24,7 +25,7 @@ public static class UsersEndpoints
             IConfiguration configuration,
             ICommandHandler<InviteUser, Result<Invitation>> handler,
             CancellationToken cancellationToken) =>
-            ToHttp(await handler.Handle(new InviteUser(request.Email, request.Role, BaseUris.From(http, configuration)), cancellationToken)));
+            (await handler.Handle(new InviteUser(request.Email, request.Role, BaseUris.From(http, configuration)), cancellationToken)).ToHttp());
 
         users.MapPost("/{id}/invitation", async (
             string id,
@@ -32,24 +33,18 @@ public static class UsersEndpoints
             IConfiguration configuration,
             ICommandHandler<RenewInvitation, Result<Invitation>> handler,
             CancellationToken cancellationToken) =>
-            ToHttp(await handler.Handle(new RenewInvitation(id, BaseUris.From(http, configuration)), cancellationToken)));
+            (await handler.Handle(new RenewInvitation(id, BaseUris.From(http, configuration)), cancellationToken)).ToHttp());
 
         users.MapDelete("/{id}/invitation", async (string id, ICommandHandler<RevokeInvitation, Result> handler, CancellationToken cancellationToken) =>
-            ToHttp(await handler.Handle(new RevokeInvitation(id), cancellationToken)));
+            (await handler.Handle(new RevokeInvitation(id), cancellationToken)).ToHttp());
 
         users.MapPut("/{id}/roles", async (
             string id,
             ChangeRolesRequest request,
             ICommandHandler<ChangeRoles, Result> handler,
             CancellationToken cancellationToken) =>
-            ToHttp(await handler.Handle(new ChangeRoles(id, request.Roles), cancellationToken)));
+            (await handler.Handle(new ChangeRoles(id, request.Roles), cancellationToken)).ToHttp());
 
         return api;
     }
-
-    private static IResult ToHttp<T>(Result<T> result) =>
-        result.IsSuccess ? TypedResults.Ok(result.Value) : TypedResults.Problem(result.Error, statusCode: StatusCodes.Status400BadRequest);
-
-    private static IResult ToHttp(Result result) =>
-        result.IsSuccess ? TypedResults.NoContent() : TypedResults.Problem(result.Error, statusCode: StatusCodes.Status400BadRequest);
 }

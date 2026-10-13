@@ -1,0 +1,135 @@
+@page "/kategorien"
+@attribute [Authorize(Roles = Roles.Admin)]
+
+@inject IJournalApi Journal
+@inject ISnackbar Snackbar
+
+<PageTitle>Kategorien – Flowtr</PageTitle>
+
+<AdminNav />
+
+<MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">
+    Die Startliste lehnt sich an das Formular «Selbständige Erwerbstätigkeit» der Steuererklärung an.
+    Kategorien mit Buchungen lassen sich nicht löschen, nur deaktivieren: Sie erscheinen dann nicht mehr bei neuen Buchungen.
+</MudText>
+
+<MudPaper Outlined="true" Class="pa-4 mb-4">
+    <EditForm Model="newCategory" OnValidSubmit="Add">
+        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2" AlignItems="AlignItems.Center">
+            <MudTextField @bind-Value="newCategory.Name" Immediate="true" Label="Neue Kategorie" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 240px" />
+            <MudSelect T="BookingKind" @bind-Value="newCategory.Kind" Label="Art" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width: 150px; flex: none">
+                <MudSelectItem Value="BookingKind.Expense">Ausgabe</MudSelectItem>
+                <MudSelectItem Value="BookingKind.Income">Einnahme</MudSelectItem>
+            </MudSelect>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add"
+                       Disabled="busy || string.IsNullOrWhiteSpace(newCategory.Name)">Hinzufügen</MudButton>
+        </MudStack>
+    </EditForm>
+</MudPaper>
+
+@if (categories is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    @foreach (var (kind, title) in new[] { (BookingKind.Income, "Einnahmen"), (BookingKind.Expense, "Ausgaben") })
+    {
+        <MudText Typo="Typo.h6" Class="mt-2 mb-2">@title</MudText>
+        <MudTable Items="categories.Where(c => c.Kind == kind)" Outlined="true" Elevation="0" Dense="true" Breakpoint="Breakpoint.Sm" Class="mb-4">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Aktiv</MudTh>
+                <MudTh Style="text-align: right">Buchungen</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">
+                    <MudTextField T="string" Value="context.Name" ValueChanged="name => Rename(context, name)" Variant="Variant.Text"
+                                  Margin="Margin.Dense" Disabled="busy" aria-label="@($"Name von {context.Name}")" />
+                </MudTd>
+                <MudTd DataLabel="Aktiv">
+                    <MudSwitch T="bool" Value="context.IsActive" ValueChanged="active => SetActive(context, active)" Color="Color.Primary"
+                               Disabled="busy" aria-label="@($"{context.Name} aktiv")" />
+                </MudTd>
+                <MudTd DataLabel="Buchungen" Style="text-align: right">@context.Usage</MudTd>
+                <MudTd Style="text-align: right">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" Size="Size.Small" OnClick="() => Delete(context)"
+                                   Disabled="busy || context.Usage > 0" title="@(context.Usage > 0 ? "Hat Buchungen: nur deaktivieren" : "Löschen")"
+                                   aria-label="@($"{context.Name} löschen")" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    private readonly NewCategory newCategory = new();
+    private IReadOnlyList<CategoryView>? categories;
+    private bool busy;
+
+    protected override Task OnInitializedAsync() => Load();
+
+    private async Task Load()
+    {
+        var result = await Journal.GetCategories();
+        if (result.IsSuccess)
+        {
+            categories = result.Value;
+        }
+        else
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+    }
+
+    private Task Add() => Run(async () =>
+    {
+        var result = await Journal.CreateCategory(new CategoryInput(newCategory.Name, newCategory.Kind));
+        if (Show(result, $"Kategorie «{newCategory.Name.Trim()}» hinzugefügt."))
+        {
+            newCategory.Name = "";
+        }
+    });
+
+    private Task Rename(CategoryView category, string name) =>
+        name.Trim() == category.Name ? Task.CompletedTask : Run(async () =>
+            Show(await Journal.UpdateCategory(category.Id, new CategoryUpdate(name, category.IsActive)), "Name gespeichert."));
+
+    private Task SetActive(CategoryView category, bool active) => Run(async () =>
+        Show(await Journal.UpdateCategory(category.Id, new CategoryUpdate(category.Name, active)),
+            active ? $"«{category.Name}» ist wieder aktiv." : $"«{category.Name}» ist deaktiviert."));
+
+    private Task Delete(CategoryView category) => Run(async () =>
+        Show(await Journal.DeleteCategory(category.Id), $"«{category.Name}» gelöscht."));
+
+    /// <summary>
+    /// Runs a change and then loads the list again. The controls are disabled meanwhile.
+    /// </summary>
+    private async Task Run(Func<Task> change)
+    {
+        busy = true;
+        try
+        {
+            await change();
+            await Load();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private bool Show(Result result, string success)
+    {
+        Snackbar.Add(result.IsSuccess ? success : result.Error!, result.IsSuccess ? Severity.Success : Severity.Error);
+        return result.IsSuccess;
+    }
+
+    private sealed class NewCategory
+    {
+        public string Name { get; set; } = "";
+
+        public BookingKind Kind { get; set; } = BookingKind.Expense;
+    }
+}

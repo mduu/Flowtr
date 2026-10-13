@@ -5,6 +5,7 @@ using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.Data;
 using Flowtr.Shared;
 using Flowtr.Shared.Audit;
+using Flowtr.Shared.Journal;
 using Microsoft.EntityFrameworkCore;
 
 namespace Flowtr.Server.Features.Audit.Queries;
@@ -35,7 +36,27 @@ public sealed class GetAuditEntriesHandler(ApplicationDbContext db) : IQueryHand
         ["RoleId"] = "Rolle",
         ["UserId"] = "Benutzer",
         ["CredentialId"] = "Passkey-ID",
+        ["Date"] = "Datum",
+        ["Kind"] = "Art",
+        ["AmountChf"] = "Betrag CHF",
+        ["OriginalAmount"] = "Originalbetrag",
+        ["OriginalCurrency"] = "Währung",
+        ["Description"] = "Beschreibung",
+        ["CategoryId"] = "Kategorie",
+        ["CounterpartyId"] = "Gegenpartei",
+        ["PaymentMethodId"] = "Zahlungsart",
+        ["ReceiptNumber"] = "Belegnummer",
+        ["Note"] = "Notiz",
+        ["VatRate"] = "MWST-Satz",
+        ["VatAmount"] = "MWST-Betrag",
+        ["Name"] = "Name",
+        ["IsActive"] = "Aktiv",
+        ["SortOrder"] = "Reihenfolge",
+        ["Year"] = "Jahr",
+        ["ClosedAt"] = "Abgeschlossen am",
     };
+
+    private static readonly HashSet<string> amountProperties = ["AmountChf", "OriginalAmount", "VatAmount"];
 
     private static readonly Dictionary<AuditAction, string> actionLabels = new()
     {
@@ -79,7 +100,8 @@ public sealed class GetAuditEntriesHandler(ApplicationDbContext db) : IQueryHand
 
         var names = new Names(
             await UserEmails(page, cancellationToken),
-            await db.Roles.AsNoTracking().ToDictionaryAsync(role => role.Id, role => role.Name ?? role.Id, cancellationToken));
+            await db.Roles.AsNoTracking().ToDictionaryAsync(role => role.Id, role => role.Name ?? role.Id, cancellationToken),
+            await EntityNames(page, cancellationToken));
 
         return Result.Success(new AuditPage(page.Select(names.View).ToList(), total));
     }
@@ -91,39 +113,101 @@ public sealed class GetAuditEntriesHandler(ApplicationDbContext db) : IQueryHand
     {
         var emails = await db.Users.AsNoTracking().ToDictionaryAsync(user => user.Id, user => user.Email ?? user.Id, cancellationToken);
 
-        var deleted = page
-            .SelectMany(entry => entry.EntityType switch
-            {
-                "User" => [entry.EntityId],
-                "UserRole" => [entry.EntityId.Split('/')[0]],
-                _ => Array.Empty<string>(),
-            })
-            .Where(userId => !emails.ContainsKey(userId))
-            .Distinct()
-            .ToList();
+        var userIds = page.SelectMany(entry => entry.EntityType switch
+        {
+            "User" => [entry.EntityId],
+            "UserRole" => [entry.EntityId.Split('/')[0]],
+            _ => Array.Empty<string>(),
+        });
+
+        await AddFromHistory(emails, "User", userIds, changes => Value(changes, "Email"), cancellationToken);
+        return emails;
+    }
+
+    /// <summary>
+    /// Names of journal entities by ID (also for the IDs in the changes), from the database or, if deleted, from their audit entries.
+    /// </summary>
+    private async Task<Dictionary<string, string>> EntityNames(List<AuditEntry> page, CancellationToken cancellationToken)
+    {
+        var names = new Dictionary<string, string>();
+
+        foreach (var category in await db.Categories.AsNoTracking().ToListAsync(cancellationToken))
+        {
+            names[category.Id.ToString()] = category.Name;
+        }
+
+        foreach (var counterparty in await db.Counterparties.AsNoTracking().ToListAsync(cancellationToken))
+        {
+            names[counterparty.Id.ToString()] = counterparty.Name;
+        }
+
+        foreach (var method in await db.PaymentMethods.AsNoTracking().ToListAsync(cancellationToken))
+        {
+            names[method.Id.ToString()] = method.Name;
+        }
+
+        var bookingIds = page.Where(entry => entry.EntityType == "Booking").Select(entry => Guid.Parse(entry.EntityId)).Distinct().ToList();
+        foreach (var booking in await db.Bookings.AsNoTracking().Where(b => bookingIds.Contains(b.Id)).ToListAsync(cancellationToken))
+        {
+            names[booking.Id.ToString()] = $"{SwissFormat.Date(booking.Date)} · {booking.Description}";
+        }
+
+        await AddFromHistory(names, "Booking", bookingIds.Select(id => id.ToString()), BookingName, cancellationToken);
+        foreach (var area in new[] { "Category", "Counterparty", "PaymentMethod" })
+        {
+            await AddFromHistory(names, area, page.Where(entry => entry.EntityType == area).Select(entry => entry.EntityId),
+                changes => Value(changes, "Name"), cancellationToken);
+        }
+
+        return names;
+    }
+
+    private async Task AddFromHistory(
+        Dictionary<string, string> names,
+        string entityType,
+        IEnumerable<string> ids,
+        Func<Dictionary<string, AuditValue<JsonElement>>, string?> name,
+        CancellationToken cancellationToken)
+    {
+        var missing = ids.Where(id => !names.ContainsKey(id)).Distinct().ToList();
+        if (missing.Count == 0)
+        {
+            return;
+        }
 
         var history = await db.AuditEntries.AsNoTracking()
-            .Where(entry => entry.EntityType == "User" && deleted.Contains(entry.EntityId))
+            .Where(entry => entry.EntityType == entityType && missing.Contains(entry.EntityId))
+            .OrderByDescending(entry => entry.Id)
             .Select(entry => new { entry.EntityId, entry.Changes })
             .ToListAsync(cancellationToken);
 
         foreach (var entry in history)
         {
-            var changes = JsonSerializer.Deserialize<Dictionary<string, AuditValue<JsonElement>>>(entry.Changes) ?? [];
-            if (changes.TryGetValue("Email", out var email) && (Names.Text(email.New) ?? Names.Text(email.Old)) is { } address)
+            if (name(Parse(entry.Changes)) is { } value)
             {
-                emails.TryAdd(entry.EntityId, address);
+                names.TryAdd(entry.EntityId, value);
             }
         }
-
-        return emails;
     }
 
-    private sealed record Names(Dictionary<string, string> Users, Dictionary<string, string> Roles)
+    private static string? BookingName(Dictionary<string, AuditValue<JsonElement>> changes) =>
+        Value(changes, "Description") is { } description
+            ? Value(changes, "Date") is { } date && DateOnly.TryParse(date, CultureInfo.InvariantCulture, out var day)
+                ? $"{SwissFormat.Date(day)} · {description}"
+                : description
+            : null;
+
+    private static string? Value(Dictionary<string, AuditValue<JsonElement>> changes, string property) =>
+        changes.TryGetValue(property, out var value) ? Names.Text(value.New) ?? Names.Text(value.Old) : null;
+
+    private static Dictionary<string, AuditValue<JsonElement>> Parse(string changes) =>
+        JsonSerializer.Deserialize<Dictionary<string, AuditValue<JsonElement>>>(changes) ?? [];
+
+    private sealed record Names(Dictionary<string, string> Users, Dictionary<string, string> Roles, Dictionary<string, string> Entities)
     {
         public AuditEntryView View(AuditEntry entry)
         {
-            var changes = JsonSerializer.Deserialize<Dictionary<string, AuditValue<JsonElement>>>(entry.Changes) ?? [];
+            var changes = Parse(entry.Changes);
 
             return new AuditEntryView(
                 entry.Id,
@@ -147,7 +231,8 @@ public sealed class GetAuditEntriesHandler(ApplicationDbContext db) : IQueryHand
             "UserRole" when entry.EntityId.Split('/') is [var userId, var roleId] =>
                 $"{User(userId, [])}: {Roles.GetValueOrDefault(roleId, roleId)}",
             "Passkey" when changes.TryGetValue("UserId", out var user) => User(Text(user.Old) ?? Text(user.New) ?? "", []),
-            _ => entry.EntityId,
+            "ClosedYear" => entry.EntityId,
+            _ => Entities.GetValueOrDefault(entry.EntityId, entry.EntityId),
         };
 
         private string User(string userId, Dictionary<string, AuditValue<JsonElement>> changes) =>
@@ -160,9 +245,14 @@ public sealed class GetAuditEntriesHandler(ApplicationDbContext db) : IQueryHand
             JsonValueKind.Null or JsonValueKind.Undefined => null,
             JsonValueKind.True => "Ja",
             JsonValueKind.False => "Nein",
+            JsonValueKind.Number when amountProperties.Contains(property) => SwissFormat.Amount(value.GetDecimal()),
             JsonValueKind.String when value.GetString() == AuditRules.HiddenValue => "verborgen",
             JsonValueKind.String when property == "RoleId" => Roles.GetValueOrDefault(value.GetString()!, value.GetString()!),
             JsonValueKind.String when property == "UserId" => Users.GetValueOrDefault(value.GetString()!, value.GetString()!),
+            JsonValueKind.String when property.EndsWith("Id") => Entities.GetValueOrDefault(value.GetString()!, value.GetString()!),
+            JsonValueKind.String when property == "Kind" => value.GetString() == nameof(BookingKind.Income) ? "Einnahme" : "Ausgabe",
+            JsonValueKind.String when DateOnly.TryParseExact(value.GetString(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day) =>
+                SwissFormat.Date(day),
             JsonValueKind.String when value.TryGetDateTimeOffset(out var date) =>
                 TimeZoneInfo.ConvertTime(date, swissTime).ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture),
             _ => Text(value) ?? value.GetRawText(),

@@ -1,4 +1,5 @@
 using Flowtr.Server.CrossCutting.Audit;
+using Flowtr.Server.Features.Journal.Model;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
+    public DbSet<Booking> Bookings => Set<Booking>();
+
+    public DbSet<Category> Categories => Set<Category>();
+
+    public DbSet<Counterparty> Counterparties => Set<Counterparty>();
+
+    public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
+
+    public DbSet<ClosedYear> ClosedYears => Set<ClosedYear>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -36,6 +47,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entry.HasIndex(e => e.At);
             entry.HasIndex(e => new { e.EntityType, e.EntityId });
         });
+
+        builder.ConfigureJournal();
 
         builder.Entity<IdentityRole>().HasData(
             new IdentityRole { Id = RoleIds.Admin, Name = FlowtrRoles.Admin, NormalizedName = FlowtrRoles.Admin.ToUpperInvariant(), ConcurrencyStamp = RoleIds.Admin },

@@ -6,7 +6,6 @@ using Flowtr.Server.Features.Users.Commands;
 using Flowtr.Shared;
 using Flowtr.Shared.Audit;
 using Flowtr.Shared.Users;
-using Flowtr.Tests.Users;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +21,7 @@ public class AuditLogTests
     public async Task Invitation_writes_user_and_role_entries_with_the_actor()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
 
         // Act
         var invitation = await fixture.Invite("anna@example.ch", Roles.Admin);
@@ -39,7 +38,7 @@ public class AuditLogTests
     public async Task Password_shows_only_that_it_changed()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch");
 
         // Act
@@ -58,7 +57,7 @@ public class AuditLogTests
     public async Task Save_without_audited_change_writes_no_entry()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch");
         var before = await fixture.Db.AuditEntries.CountAsync();
 
@@ -73,7 +72,7 @@ public class AuditLogTests
     public async Task Failed_save_writes_no_entry()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch");
         var before = await fixture.Db.AuditEntries.CountAsync();
         using var scope = fixture.NewScope();
@@ -91,7 +90,7 @@ public class AuditLogTests
     public async Task Entries_cannot_be_changed_or_deleted()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         await fixture.Invite("anna@example.ch");
         var entry = await fixture.Db.AuditEntries.FirstAsync();
 
@@ -107,7 +106,7 @@ public class AuditLogTests
     public async Task Query_shows_newest_first_in_german()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch", Roles.Contributor);
         fixture.Clock.Now = fixture.Clock.Now.AddMinutes(5);
         fixture.Actor.Current = (null, AuditActor.Anonymous);
@@ -131,7 +130,7 @@ public class AuditLogTests
     public async Task Query_filters_by_area_user_and_time()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         await fixture.Invite("anna@example.ch");
         fixture.Clock.Now = fixture.Clock.Now.AddDays(1);
         fixture.Actor.Current = ("other", "ben@example.ch");
@@ -177,7 +176,7 @@ public class AuditLogTests
     public async Task Query_shows_email_of_deleted_user()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch", Roles.Contributor);
         await fixture.Command<RevokeInvitation, Result>(new RevokeInvitation(invitation.UserId));
 
@@ -189,6 +188,6 @@ public class AuditLogTests
         page.Entries.ShouldAllBe(entry => entry.Subject.StartsWith("anna@example.ch"));
     }
 
-    private static async Task<AuditPage> Read(UsersFixture fixture, AuditFilter filter) =>
+    private static async Task<AuditPage> Read(TestApp fixture, AuditFilter filter) =>
         (await fixture.Query<GetAuditEntries, AuditPage>(new GetAuditEntries(filter))).Value!;
 }

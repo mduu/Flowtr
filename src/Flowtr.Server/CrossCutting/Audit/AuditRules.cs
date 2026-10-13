@@ -1,4 +1,5 @@
 using Flowtr.Server.Data;
+using Flowtr.Server.Features.Journal.Model;
 using Microsoft.AspNetCore.Identity;
 
 namespace Flowtr.Server.CrossCutting.Audit;
@@ -28,6 +29,12 @@ public static class AuditRules
                 nameof(ApplicationUser.NormalizedUserName),
             }),
         [typeof(IdentityUserRole<string>)] = new AuditRule("UserRole", Hidden: new HashSet<string>(), Ignored: new HashSet<string>()),
+
+        [typeof(Booking)] = new AuditRule("Booking", Hidden: new HashSet<string>(), Ignored: new HashSet<string> { nameof(Booking.CreatedAt) }),
+        [typeof(Category)] = new AuditRule("Category", Hidden: new HashSet<string>(), Ignored: new HashSet<string>()),
+        [typeof(Counterparty)] = new AuditRule("Counterparty", Hidden: new HashSet<string>(), Ignored: new HashSet<string>()),
+        [typeof(PaymentMethod)] = new AuditRule("PaymentMethod", Hidden: new HashSet<string>(), Ignored: new HashSet<string>()),
+        [typeof(ClosedYear)] = new AuditRule("ClosedYear", Hidden: new HashSet<string>(), Ignored: new HashSet<string>()),
 
         // A passkey sign-in updates the passkey data (sign count). Only create and delete are relevant.
         [typeof(IdentityUserPasskey<string>)] = new AuditRule(

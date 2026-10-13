@@ -74,6 +74,7 @@ Use as little GitHub storage as possible. The repo keeps artifacts and logs for 
 
 - Do not use a `_` prefix on fields.
 - Do not use an `Async` suffix on method names.
+- A page loads its data one call after the other. Do not use `Task.WhenAll`: during prerendering, the server implementations use the same DbContext.
 - Comments (details in `specs/coding-guidelines.md`):
   - First make the code clearer, for example with Extract Method. Give the method a name that tells what it does.
   - Write a comment only when the code cannot show the information and the comment adds real value.

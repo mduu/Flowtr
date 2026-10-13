@@ -1,0 +1,240 @@
+@page "/"
+
+@using System.Globalization
+
+@inject IJournalApi Journal
+@inject IDialogService Dialogs
+@inject ISnackbar Snackbar
+@inject TimeProvider Time
+@inject IBrowserViewportService Viewport
+
+<PageTitle>Journal – Flowtr</PageTitle>
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+    <MudText Typo="Typo.h5">Journal</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add" OnClick="New"
+               Disabled="options is null || journal?.IsClosed == true">Neue Buchung</MudButton>
+</MudStack>
+
+<MudGrid Spacing="2" Class="mb-3">
+    <MudItem xs="4">
+        <MudPaper Outlined="true" Class="pa-3">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Einnahmen</MudText>
+            <MudText Typo="Typo.h6" Color="Color.Success">@SwissFormat.Amount(journal?.Income ?? 0)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="4">
+        <MudPaper Outlined="true" Class="pa-3">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Ausgaben</MudText>
+            <MudText Typo="Typo.h6" Color="Color.Error">@SwissFormat.Amount(journal?.Expense ?? 0)</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="4">
+        <MudPaper Outlined="true" Class="pa-3">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Ergebnis CHF</MudText>
+            <MudText Typo="Typo.h6">@SwissFormat.Amount(journal?.Result ?? 0)</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<div class="flowtr-filters mb-3">
+    <MudSelect T="int" Label="Jahr" Value="filter.Year" ValueChanged="year => Apply(filter with { Year = year })"
+               Variant="Variant.Outlined" Margin="Margin.Dense">
+        @foreach (var year in journal?.Years ?? [filter.Year])
+        {
+            <MudSelectItem Value="year">@year</MudSelectItem>
+        }
+    </MudSelect>
+    <MudSelect T="BookingKind?" Label="Art" Value="filter.Kind" ValueChanged="kind => Apply(filter with { Kind = kind })" Clearable="true"
+               Variant="Variant.Outlined" Margin="Margin.Dense">
+        <MudSelectItem T="BookingKind?" Value="BookingKind.Income">Einnahmen</MudSelectItem>
+        <MudSelectItem T="BookingKind?" Value="BookingKind.Expense">Ausgaben</MudSelectItem>
+    </MudSelect>
+    <MudSelect T="Guid?" Label="Kategorie" Class="flowtr-filter-wide" Value="filter.CategoryId" ValueChanged="id => Apply(filter with { CategoryId = id })" Clearable="true"
+               Variant="Variant.Outlined" Margin="Margin.Dense">
+        @foreach (var category in options?.Categories ?? [])
+        {
+            <MudSelectItem T="Guid?" Value="category.Id">@category.Name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudSelect T="string" Label="Gegenpartei" Value="filter.Counterparty" ValueChanged="name => Apply(filter with { Counterparty = name })"
+               Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+        @foreach (var name in options?.Counterparties ?? [])
+        {
+            <MudSelectItem T="string" Value="name">@name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudTextField T="string" Label="Suche" Value="filter.Search" ValueChanged="text => Apply(filter with { Search = text })" DebounceInterval="400"
+                  Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Search"
+                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+</div>
+
+@if (journal?.IsClosed == true)
+{
+    <MudAlert Severity="Severity.Info" Class="mb-3">Das Jahr @journal.Year ist abgeschlossen. Seine Buchungen lassen sich nicht mehr ändern.</MudAlert>
+}
+
+@if (journal is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    @* No card mode on a phone: the date, category and receipt columns hide, the description cell shows them as a second line. *@
+    <MudTable Items="journal.Bookings" T="BookingView" Outlined="true" Elevation="0" Breakpoint="Breakpoint.None" Dense="true" Hover="true"
+              OnRowClick="args => Edit(args.Item!)" RowStyle="cursor: pointer" Loading="loading" LoadingProgressColor="Color.Primary"
+              GroupBy="byMonth" GroupHeaderClass="journal-month" GroupFooterClass="journal-month-total" Class="journal">
+        <HeaderContent>
+            <MudTh Class="wide-only">Datum</MudTh>
+            <MudTh>Beschreibung</MudTh>
+            <MudTh Class="wide-only">Kategorie</MudTh>
+            <MudTh Style="text-align: right">Betrag CHF</MudTh>
+            <MudTh Class="wide-only">Beleg</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd Class="wide-only" Style="white-space: nowrap">@SwissFormat.Date(context.Date)</MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2">@context.Description</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary wide-only-block">@context.Counterparty</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary phone-only">
+                    @string.Join(" · ", new[] { SwissFormat.Date(context.Date), context.Category, context.Counterparty }.Where(part => part is not null))
+                </MudText>
+            </MudTd>
+            <MudTd Class="wide-only">@context.Category</MudTd>
+            <MudTd Style="text-align: right; white-space: nowrap">
+                <MudText Typo="Typo.body2" Color="@(context.Kind == BookingKind.Income ? Color.Success : Color.Error)">
+                    @(context.Kind == BookingKind.Income ? "+" : "−")@SwissFormat.Amount(context.AmountChf)
+                </MudText>
+                @if (context.OriginalCurrency is not null)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.OriginalCurrency @SwissFormat.Amount(context.OriginalAmount ?? 0)</MudText>
+                }
+            </MudTd>
+            <MudTd Class="wide-only">@(context.ReceiptNumber ?? "–")</MudTd>
+        </RowTemplate>
+        <GroupHeaderTemplate>
+            <MudTh colspan="5" Class="month-header">
+                <MudText Typo="Typo.subtitle2" Inline="true">@MonthName((DateOnly)context.Key!)</MudText>
+                <MudText Typo="Typo.caption" Inline="true" Class="mud-text-secondary ml-2">@Count(context.Items.Count())</MudText>
+            </MudTh>
+        </GroupHeaderTemplate>
+        <GroupFooterTemplate>
+            <MudTd colspan="5" Class="month-footer">
+                <div class="month-total">
+                    <span>Einnahmen <strong class="mud-success-text">@SwissFormat.Amount(Sum(context.Items, BookingKind.Income))</strong></span>
+                    <span>Ausgaben <strong class="mud-error-text">@SwissFormat.Amount(Sum(context.Items, BookingKind.Expense))</strong></span>
+                    <span>Saldo <strong>@SwissFormat.Amount(Sum(context.Items, BookingKind.Income) - Sum(context.Items, BookingKind.Expense))</strong></span>
+                </div>
+            </MudTd>
+        </GroupFooterTemplate>
+        <NoRecordsContent>
+            <MudText Typo="Typo.body2">Keine Buchungen für diesen Filter.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+}
+
+@code {
+    private static readonly CultureInfo swiss = CultureInfo.GetCultureInfo("de-CH");
+
+    /// <summary>
+    /// One group per month, newest first (the bookings come sorted). A click on the header collapses the month.
+    /// </summary>
+    private readonly TableGroupDefinition<BookingView> byMonth = new()
+    {
+        Selector = booking => new DateOnly(booking.Date.Year, booking.Date.Month, 1),
+        Expandable = true,
+        IsInitiallyExpanded = true,
+        Indentation = false,
+    };
+
+    private JournalFilter filter = default!;
+    private JournalView? journal;
+    private BookingOptions? options;
+    private bool loading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        filter = new JournalFilter(Time.GetLocalNow().Year);
+
+        // One after the other: during prerendering, both use the same DbContext.
+        await LoadOptions();
+        await Load();
+    }
+
+    private async Task Apply(JournalFilter changed)
+    {
+        filter = changed;
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        loading = true;
+        var result = await Journal.GetJournal(filter);
+        loading = false;
+
+        if (result.IsSuccess)
+        {
+            journal = result.Value;
+        }
+        else
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+    }
+
+    private async Task LoadOptions()
+    {
+        var result = await Journal.GetOptions();
+        if (result.IsSuccess)
+        {
+            options = result.Value;
+        }
+        else
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+    }
+
+    private static string MonthName(DateOnly month) => month.ToString("MMMM yyyy", swiss);
+
+    private static string Count(int bookings) => bookings == 1 ? "1 Buchung" : $"{bookings} Buchungen";
+
+    private static decimal Sum(IEnumerable<BookingView> bookings, BookingKind kind) =>
+        bookings.Where(b => b.Kind == kind).Sum(b => b.AmountChf);
+
+    private Task New() => Open(null, "Neue Buchung");
+
+    private Task Edit(BookingView booking) => Open(booking, booking.IsLocked ? "Buchung (abgeschlossen)" : "Buchung bearbeiten");
+
+    private async Task Open(BookingView? booking, string title)
+    {
+        var parameters = new DialogParameters<BookingDialog>
+        {
+            { dialog => dialog.Booking, booking },
+            { dialog => dialog.Options, options },
+            { dialog => dialog.DefaultDate, DefaultDate() },
+            { dialog => dialog.Title, title },
+        };
+
+        // On a phone the dialog uses the full screen, like an app.
+        var phone = await Viewport.GetCurrentBreakpointAsync() == Breakpoint.Xs;
+        var dialogOptions = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, FullScreen = phone, CloseButton = true };
+        var dialog = await Dialogs.ShowAsync<BookingDialog>(title, parameters, dialogOptions);
+        if (await dialog.Result is { Canceled: false, Data: DateOnly date })
+        {
+            filter = filter with { Year = date.Year };
+            await LoadOptions();
+            await Load();
+        }
+    }
+
+    /// <summary>
+    /// Today in the current year, else the last day of the shown year.
+    /// </summary>
+    private DateOnly DefaultDate()
+    {
+        var today = DateOnly.FromDateTime(Time.GetLocalNow().DateTime);
+        return today.Year == filter.Year ? today : new DateOnly(filter.Year, 12, 31);
+    }
+}

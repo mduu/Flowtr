@@ -34,5 +34,10 @@ public static class AuditAreas
         ["User"] = "Benutzer",
         ["UserRole"] = "Rolle",
         ["Passkey"] = "Passkey",
+        ["Booking"] = "Buchung",
+        ["Category"] = "Kategorie",
+        ["Counterparty"] = "Gegenpartei",
+        ["PaymentMethod"] = "Zahlungsart",
+        ["ClosedYear"] = "Jahresabschluss",
     };
 }

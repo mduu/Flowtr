@@ -1,6 +1,7 @@
 using Flowtr.Server.CrossCutting.Audit;
 using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.Data;
+using Flowtr.Server.Features.Journal;
 using Flowtr.Server.Features.Users;
 using Flowtr.Server.Features.Users.Commands;
 using Flowtr.Shared;
@@ -11,19 +12,19 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Flowtr.Tests.Users;
+namespace Flowtr.Tests;
 
 /// <summary>
-/// The user feature with Identity on an in-memory database.
+/// The server services (Identity, audit log, journal, handlers) on an in-memory database.
 /// </summary>
-internal sealed class UsersFixture : IDisposable
+internal sealed class TestApp : IDisposable
 {
     public static readonly Uri BaseUri = new("https://flowtr.test/");
 
     private readonly ServiceProvider provider;
     private readonly IServiceScope scope;
 
-    public UsersFixture(string[]? configuredAdmins = null, Action<IServiceCollection>? configure = null)
+    public TestApp(string[]? configuredAdmins = null, Action<IServiceCollection>? configure = null)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection((configuredAdmins ?? []).Select((email, index) =>
@@ -42,6 +43,7 @@ internal sealed class UsersFixture : IDisposable
             .UseInMemoryDatabase(database)
             .AddInterceptors(provider.GetRequiredService<AuditInterceptor>()));
         services.AddUsers();
+        services.AddJournal();
         services.AddHandlers(typeof(Program).Assembly);
         configure?.Invoke(services);
 

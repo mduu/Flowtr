@@ -15,21 +15,21 @@
     Jede Änderung an Benutzern, Rollen und Passkeys, später auch an Buchungen und Belegen. Niemand kann Einträge ändern oder löschen.
 </MudText>
 
-<MudStack Row="true" Wrap="Wrap.Wrap" Spacing="3" AlignItems="AlignItems.Center" Class="mb-4">
+<div class="flowtr-filters mb-4">
     <MudDatePicker Label="Von" Date="from" DateChanged="FromChanged" DateFormat="dd.MM.yyyy" Culture="swiss"
-                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Style="width: 170px; flex: none" />
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" />
     <MudDatePicker Label="Bis" Date="to" DateChanged="ToChanged" DateFormat="dd.MM.yyyy" Culture="swiss"
-                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Style="width: 170px; flex: none" />
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" />
     <MudTextField T="string" Label="Wer" Value="user" ValueChanged="UserChanged" DebounceInterval="400"
-                  Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Style="width: 220px; flex: none" />
+                  Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" />
     <MudSelect T="string" Label="Bereich" Value="area" ValueChanged="AreaChanged" Variant="Variant.Outlined" Margin="Margin.Dense"
-               Clearable="true" Style="width: 180px; flex: none">
+               Clearable="true">
         @foreach (var (key, label) in AuditAreas.Labels)
         {
             <MudSelectItem T="string" Value="key">@label</MudSelectItem>
         }
     </MudSelect>
-</MudStack>
+</div>
 
 <MudTable @ref="table" T="AuditEntryView" ServerData="Load" Outlined="true" Elevation="0" Breakpoint="Breakpoint.Sm" Dense="true"
           RowsPerPage="50" LoadingProgressColor="Color.Primary">

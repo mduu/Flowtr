@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -12,6 +13,9 @@ namespace Flowtr.Server.CrossCutting.Audit;
 /// <remarks>Audited entities must get their key before the save (for example a GUID), else a new entity has no ID in its entry.</remarks>
 public sealed class AuditInterceptor(IAuditActor actor, TimeProvider time) : SaveChangesInterceptor
 {
+    // Enums as names: the audit log must stay readable when an enum gets new values.
+    private static readonly JsonSerializerOptions jsonOptions = new() { Converters = { new JsonStringEnumConverter() } };
+
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
         AddEntries(eventData.Context);
@@ -72,7 +76,7 @@ public sealed class AuditInterceptor(IAuditActor actor, TimeProvider time) : Sav
                 Action = action,
                 EntityType = rule.Key,
                 EntityId = KeyText(change),
-                Changes = JsonSerializer.Serialize(properties),
+                Changes = JsonSerializer.Serialize(properties, jsonOptions),
             });
         }
     }

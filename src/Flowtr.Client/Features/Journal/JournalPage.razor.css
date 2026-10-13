@@ -1,0 +1,30 @@
+/* Month totals: right-aligned under the amount column, small. */
+.month-total {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px 24px;
+    font-size: .8125rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+    .month-total strong {
+        margin-left: 4px;
+        font-weight: 500;
+        color: var(--mud-palette-text-primary);
+    }
+
+        .month-total strong.mud-success-text {
+            color: var(--mud-palette-success);
+        }
+
+        .month-total strong.mud-error-text {
+            color: var(--mud-palette-error);
+        }
+
+@media (max-width: 599.98px) {
+    .month-total {
+        justify-content: space-between;
+        gap: 4px 12px;
+    }
+}

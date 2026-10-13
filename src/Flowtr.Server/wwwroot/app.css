@@ -23,3 +23,64 @@ h1:focus {
     .blazor-error-boundary::after {
         content: "Ein Fehler ist aufgetreten."
     }
+
+/* Filter bars: columns on wide screens, two per row on a phone. */
+.flowtr-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px 12px;
+    max-width: 1100px;
+    align-items: center;
+}
+
+    .flowtr-filters .flowtr-filter-wide {
+        grid-column: span 2;
+    }
+
+/* Booking dialog: rounded on wide screens; on a phone it opens full screen (JournalPage). */
+.booking-dialog {
+    border-radius: 16px !important;
+}
+
+    .booking-dialog.mud-dialog-fullscreen {
+        border-radius: 0 !important;
+    }
+
+.booking-dialog-content {
+    padding-top: 8px !important;
+}
+
+/* Journal: month header and month total rows. */
+.journal-month {
+    background: var(--mud-palette-background-gray);
+}
+
+.journal-month-total td {
+    border-bottom-width: 2px !important;
+}
+
+/* Journal: the column for the month expander is as narrow as the button. */
+.journal tr > :first-child {
+    width: 40px;
+    padding-inline: 4px !important;
+}
+
+    .journal thead tr > :first-child > div {
+        margin: 0 !important;
+    }
+
+/* Journal on a phone (below 600px): description and amount only; the rest is in the second line of the description. */
+.journal .phone-only {
+    display: none;
+}
+
+@media (max-width: 599.98px) {
+    .journal .wide-only,
+    .journal .wide-only-block {
+        display: none;
+    }
+
+    .journal .phone-only {
+        display: block;
+    }
+}

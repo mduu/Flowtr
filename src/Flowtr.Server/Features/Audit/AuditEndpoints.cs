@@ -1,3 +1,4 @@
+using Flowtr.Server.CrossCutting.Api;
 using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.Features.Audit.Queries;
 using Flowtr.Shared.Audit;
@@ -17,12 +18,7 @@ public static class AuditEndpoints
                 [AsParameters] AuditQuery query,
                 IQueryHandler<GetAuditEntries, AuditPage> handler,
                 CancellationToken cancellationToken) =>
-            {
-                var result = await handler.Handle(new GetAuditEntries(query.ToFilter()), cancellationToken);
-                return result.IsSuccess
-                    ? Results.Ok(result.Value)
-                    : Results.Problem(result.Error, statusCode: StatusCodes.Status400BadRequest);
-            })
+                (await handler.Handle(new GetAuditEntries(query.ToFilter()), cancellationToken)).ToHttp())
             .RequireAuthorization(policy => policy.RequireRole(Roles.Admin));
 
         return api;

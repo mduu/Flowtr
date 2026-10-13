@@ -1,0 +1,315 @@
+@using System.ComponentModel.DataAnnotations
+@using System.Globalization
+
+@inject IJournalApi Journal
+@inject ISnackbar Snackbar
+@inject IDialogService Dialogs
+
+<MudDialog Class="booking-dialog" ContentClass="booking-dialog-content">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudAvatar Size="Size.Medium" Color="@KindColor" Variant="Variant.Outlined">
+                <MudIcon Icon="@(form.Kind == BookingKind.Income ? Icons.Material.Outlined.TrendingUp : Icons.Material.Outlined.TrendingDown)" />
+            </MudAvatar>
+            <div>
+                <MudText Typo="Typo.h6" Style="line-height: 1.2">@Title</MudText>
+                @if (Booking?.ReceiptNumber is { } receipt)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Beleg @receipt</MudText>
+                }
+            </div>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (readOnly)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">Das Jahr ist abgeschlossen. Diese Buchung lässt sich nicht mehr ändern.</MudAlert>
+        }
+        @if (error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@error</MudAlert>
+        }
+        <EditForm id="booking-form" Model="form" OnValidSubmit="Save">
+            <DataAnnotationsValidator />
+
+            <div class="hero @(form.Kind == BookingKind.Income ? "income" : "expense")">
+                <div class="kind-switch" role="radiogroup" aria-label="Art">
+                    <MudButton Variant="@(form.Kind == BookingKind.Expense ? Variant.Filled : Variant.Text)"
+                               Color="@(form.Kind == BookingKind.Expense ? Color.Error : Color.Default)" Size="Size.Small" Disabled="readOnly"
+                               StartIcon="@Icons.Material.Outlined.TrendingDown" OnClick="() => KindChanged(BookingKind.Expense)"
+                               role="radio" aria-checked="@(form.Kind == BookingKind.Expense ? "true" : "false")">Ausgabe</MudButton>
+                    <MudButton Variant="@(form.Kind == BookingKind.Income ? Variant.Filled : Variant.Text)"
+                               Color="@(form.Kind == BookingKind.Income ? Color.Success : Color.Default)" Size="Size.Small" Disabled="readOnly"
+                               StartIcon="@Icons.Material.Outlined.TrendingUp" OnClick="() => KindChanged(BookingKind.Income)"
+                               role="radio" aria-checked="@(form.Kind == BookingKind.Income ? "true" : "false")">Einnahme</MudButton>
+                </div>
+                <MudText Typo="Typo.overline" Class="mud-text-secondary">Betrag CHF</MudText>
+                <div class="amount">
+                    <MudNumericField T="decimal?" @bind-Value="form.AmountChf" For="() => form.AmountChf" Format="0.00" Placeholder="0.00"
+                                     Culture="CultureInfo.InvariantCulture" HideSpinButtons="true" InputMode="@(InputMode.@decimal)" ReadOnly="readOnly"
+                                     AutoFocus="@(Booking is null)" Underline="false" aria-label="Betrag CHF" />
+                </div>
+                @if (form.OriginalCurrency is { Length: > 0 } currency && form.OriginalAmount is { } original)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@currency.ToUpperInvariant() @SwissFormat.Amount(original)</MudText>
+                }
+            </div>
+
+            <MudGrid Spacing="3">
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Datum" @bind-Date="form.Date" For="() => form.Date" DateFormat="dd.MM.yyyy" Culture="swiss"
+                                   Editable="true" ReadOnly="readOnly" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Guid?" Label="Kategorie" @bind-Value="form.CategoryId" For="() => form.CategoryId" ReadOnly="readOnly"
+                               AdornmentIcon="@Icons.Material.Outlined.Category" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var category in Categories)
+                        {
+                            <MudSelectItem T="Guid?" Value="category.Id">@category.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="form.Description" For="() => form.Description" Label="Beschreibung" ReadOnly="readOnly"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Notes"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="string" Label="Gegenpartei" @bind-Value="form.Counterparty" SearchFunc="SearchCounterparties"
+                                     CoerceText="true" CoerceValue="true" ResetValueOnEmptyText="true" ReadOnly="readOnly" MaxItems="8"
+                                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Storefront"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudAutocomplete T="string" Label="Zahlungsart" @bind-Value="form.PaymentMethod" SearchFunc="SearchPaymentMethods"
+                                     CoerceText="true" CoerceValue="true" ResetValueOnEmptyText="true" ReadOnly="readOnly" MaxItems="8"
+                                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.CreditCard"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                @if (showForeign)
+                {
+                    <MudItem xs="8">
+                        <MudNumericField T="decimal?" Label="Originalbetrag" @bind-Value="form.OriginalAmount" Format="0.00"
+                                         Culture="CultureInfo.InvariantCulture" HideSpinButtons="true" InputMode="@(InputMode.@decimal)" ReadOnly="readOnly"
+                                         Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.CurrencyExchange"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="4">
+                        <MudTextField @bind-Value="form.OriginalCurrency" Label="Währung" MaxLength="3" ReadOnly="readOnly" Placeholder="USD"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" Style="text-transform: uppercase" />
+                    </MudItem>
+                }
+                @if (showNote)
+                {
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="form.Note" Label="Notiz" Lines="2" ReadOnly="readOnly"
+                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.StickyNote2"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" />
+                    </MudItem>
+                }
+            </MudGrid>
+
+            @if (!readOnly && (!showForeign || !showNote))
+            {
+                <MudStack Row="true" Spacing="1" Class="mt-3">
+                    @if (!showForeign)
+                    {
+                        <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Outlined.Add" OnClick="() => showForeign = true">
+                            Fremdwährung
+                        </MudButton>
+                    }
+                    @if (!showNote)
+                    {
+                        <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Outlined.Add" OnClick="() => showNote = true">
+                            Notiz
+                        </MudButton>
+                    }
+                </MudStack>
+            }
+        </EditForm>
+    </DialogContent>
+    <DialogActions>
+        @if (Booking is not null && !readOnly)
+        {
+            <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" OnClick="Delete" Disabled="busy"
+                           aria-label="Löschen" title="Löschen" Class="mr-auto" />
+        }
+        <MudButton OnClick="() => MudDialog.Cancel()">@(readOnly ? "Schliessen" : "Abbrechen")</MudButton>
+        @if (!readOnly)
+        {
+            <MudButton ButtonType="ButtonType.Submit" form="booking-form" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy"
+                       StartIcon="@Icons.Material.Outlined.Check">Speichern</MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private static readonly CultureInfo swiss = CultureInfo.GetCultureInfo("de-CH");
+
+    private BookingForm form = new();
+    private string? error;
+    private bool busy;
+    private bool showForeign;
+    private bool showNote;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>
+    /// Null for a new booking.
+    /// </summary>
+    [Parameter]
+    public BookingView? Booking { get; set; }
+
+    [Parameter]
+    public BookingOptions? Options { get; set; }
+
+    [Parameter]
+    public DateOnly DefaultDate { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = "";
+
+    private bool readOnly => Booking?.IsLocked == true;
+
+    private Color KindColor => form.Kind == BookingKind.Income ? Color.Success : Color.Error;
+
+    /// <summary>
+    /// Active categories of the kind, plus the current category of the booking even if it is inactive.
+    /// </summary>
+    private IEnumerable<CategoryView> Categories =>
+        (Options?.Categories ?? []).Where(c => c.Kind == form.Kind && (c.IsActive || c.Id == Booking?.CategoryId));
+
+    protected override void OnInitialized()
+    {
+        form = Booking is null ? new BookingForm { Date = DefaultDate.ToDateTime(TimeOnly.MinValue) } : BookingForm.From(Booking);
+        showForeign = form.OriginalAmount is not null || !string.IsNullOrEmpty(form.OriginalCurrency);
+        showNote = !string.IsNullOrEmpty(form.Note);
+    }
+
+    private void KindChanged(BookingKind kind)
+    {
+        form.Kind = kind;
+        if (!Categories.Any(c => c.Id == form.CategoryId))
+        {
+            form.CategoryId = null;
+        }
+
+        // The dialog container renders the title: it must render again for the new colour.
+        MudDialog.StateHasChanged();
+    }
+
+    private Task<IEnumerable<string>> SearchCounterparties(string? text, CancellationToken cancellationToken) =>
+        Task.FromResult(Search(Options?.Counterparties, text));
+
+    private Task<IEnumerable<string>> SearchPaymentMethods(string? text, CancellationToken cancellationToken) =>
+        Task.FromResult(Search(Options?.PaymentMethods, text));
+
+    private static IEnumerable<string> Search(IReadOnlyList<string>? names, string? text) =>
+        string.IsNullOrWhiteSpace(text)
+            ? names ?? []
+            : (names ?? []).Where(name => name.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private async Task Save()
+    {
+        busy = true;
+        error = null;
+        var input = form.ToInput();
+
+        var result = Booking is null
+            ? await Journal.CreateBooking(input)
+            : await Journal.UpdateBooking(Booking.Id, input);
+        busy = false;
+
+        if (!result.IsSuccess)
+        {
+            error = result.Error;
+            return;
+        }
+
+        Snackbar.Add("Buchung gespeichert.", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(input.Date));
+    }
+
+    private async Task Delete()
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            "Buchung löschen?",
+            $"«{Booking!.Description}» vom {SwissFormat.Date(Booking.Date)} über {SwissFormat.Chf(Booking.AmountChf)}. Das Protokoll behält die Angaben.",
+            yesText: "Löschen",
+            cancelText: "Abbrechen");
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        busy = true;
+        var result = await Journal.DeleteBooking(Booking.Id);
+        busy = false;
+
+        if (!result.IsSuccess)
+        {
+            error = result.Error;
+            return;
+        }
+
+        Snackbar.Add("Buchung gelöscht.", Severity.Success);
+        MudDialog.Close(DialogResult.Ok(Booking.Date));
+    }
+
+    private sealed class BookingForm
+    {
+        [Required(ErrorMessage = "Bitte ein Datum angeben.")]
+        public DateTime? Date { get; set; }
+
+        public BookingKind Kind { get; set; } = BookingKind.Expense;
+
+        [Required(ErrorMessage = "Bitte einen Betrag angeben.")]
+        [Range(typeof(decimal), "0.01", "999999999", ErrorMessage = "Der Betrag muss grösser als 0 sein.")]
+        public decimal? AmountChf { get; set; }
+
+        [Required(ErrorMessage = "Bitte eine Beschreibung angeben.")]
+        [StringLength(500, ErrorMessage = "Höchstens 500 Zeichen.")]
+        public string Description { get; set; } = "";
+
+        [Required(ErrorMessage = "Bitte eine Kategorie wählen.")]
+        public Guid? CategoryId { get; set; }
+
+        public string? Counterparty { get; set; }
+
+        public string? PaymentMethod { get; set; }
+
+        public decimal? OriginalAmount { get; set; }
+
+        public string? OriginalCurrency { get; set; }
+
+        public string? Note { get; set; }
+
+        public static BookingForm From(BookingView booking) => new()
+        {
+            Date = booking.Date.ToDateTime(TimeOnly.MinValue),
+            Kind = booking.Kind,
+            AmountChf = booking.AmountChf,
+            Description = booking.Description,
+            CategoryId = booking.CategoryId,
+            Counterparty = booking.Counterparty,
+            PaymentMethod = booking.PaymentMethod,
+            OriginalAmount = booking.OriginalAmount,
+            OriginalCurrency = booking.OriginalCurrency,
+            Note = booking.Note,
+        };
+
+        public BookingInput ToInput() => new(
+            DateOnly.FromDateTime(Date!.Value),
+            Kind,
+            AmountChf!.Value,
+            OriginalAmount,
+            OriginalCurrency?.ToUpperInvariant(),
+            Description,
+            CategoryId!.Value,
+            Counterparty,
+            PaymentMethod,
+            Note);
+    }
+}

@@ -16,7 +16,7 @@ public class InvitationTests
     public async Task Invite_creates_user_without_password_with_the_role()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
 
         // Act
         var invitation = await fixture.Invite("anna@example.ch", Roles.Admin);
@@ -36,10 +36,10 @@ public class InvitationTests
     public async Task Invite_rejects_invalid_input(string email, string role)
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
 
         // Act
-        var result = await fixture.Command<InviteUser, Result<Invitation>>(new InviteUser(email, role, UsersFixture.BaseUri));
+        var result = await fixture.Command<InviteUser, Result<Invitation>>(new InviteUser(email, role, TestApp.BaseUri));
 
         // Assert
         result.IsSuccess.ShouldBeFalse();
@@ -49,11 +49,11 @@ public class InvitationTests
     public async Task Invite_rejects_address_with_account()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         await fixture.Invite("anna@example.ch");
 
         // Act
-        var result = await fixture.Command<InviteUser, Result<Invitation>>(new InviteUser("Anna@Example.ch", Roles.Contributor, UsersFixture.BaseUri));
+        var result = await fixture.Command<InviteUser, Result<Invitation>>(new InviteUser("Anna@Example.ch", Roles.Contributor, TestApp.BaseUri));
 
         // Assert
         result.Error.ShouldBe("Für diese E-Mail-Adresse gibt es schon ein Konto oder eine Einladung.");
@@ -63,7 +63,7 @@ public class InvitationTests
     public async Task Accept_sets_password_and_confirms_address()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch");
 
         // Act
@@ -80,7 +80,7 @@ public class InvitationTests
     public async Task Accept_rejects_weak_password_and_keeps_link_valid()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch");
 
         // Act
@@ -95,7 +95,7 @@ public class InvitationTests
     public async Task Used_link_says_already_accepted()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch");
         await fixture.Accept(invitation);
 
@@ -110,7 +110,7 @@ public class InvitationTests
     public async Task Revoked_link_says_not_found()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch");
 
         // Act
@@ -125,12 +125,12 @@ public class InvitationTests
     public async Task Renewed_invitation_makes_old_link_invalid()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var old = await fixture.Invite("anna@example.ch");
         fixture.Clock.Now = fixture.Clock.Now.AddDays(20);
 
         // Act
-        var renewed = await fixture.Command<RenewInvitation, Result<Invitation>>(new RenewInvitation(old.UserId, UsersFixture.BaseUri));
+        var renewed = await fixture.Command<RenewInvitation, Result<Invitation>>(new RenewInvitation(old.UserId, TestApp.BaseUri));
 
         // Assert
         (await Check(fixture, old)).Error.ShouldBe(Invitations.LinkNotValid);
@@ -142,7 +142,7 @@ public class InvitationTests
     public async Task Expired_link_says_not_valid()
     {
         // Arrange
-        using var fixture = new UsersFixture(configure: services =>
+        using var fixture = new TestApp(configure: services =>
             services.Configure<InvitationTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromTicks(-1)));
         var invitation = await fixture.Invite("anna@example.ch");
 
@@ -157,7 +157,7 @@ public class InvitationTests
     public async Task Changed_code_says_not_valid()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch");
 
         // Act
@@ -171,7 +171,7 @@ public class InvitationTests
     public async Task Accepted_invitation_cannot_be_revoked()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch");
         await fixture.Accept(invitation);
 
@@ -183,6 +183,6 @@ public class InvitationTests
         (await fixture.UserManager.FindByIdAsync(invitation.UserId)).ShouldNotBeNull();
     }
 
-    private static Task<Result<string>> Check(UsersFixture fixture, Invitation invitation) =>
-        fixture.Query<CheckInvitation, string>(new CheckInvitation(invitation.UserId, UsersFixture.Code(invitation)));
+    private static Task<Result<string>> Check(TestApp fixture, Invitation invitation) =>
+        fixture.Query<CheckInvitation, string>(new CheckInvitation(invitation.UserId, TestApp.Code(invitation)));
 }

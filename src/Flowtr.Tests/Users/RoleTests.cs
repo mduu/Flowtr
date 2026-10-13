@@ -16,7 +16,7 @@ public class RoleTests
     public async Task Change_roles_adds_and_removes()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch", Roles.Contributor);
 
         // Act
@@ -31,7 +31,7 @@ public class RoleTests
     public async Task Last_admin_keeps_the_admin_role()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var admin = await fixture.Invite("anna@example.ch", Roles.Admin);
 
         // Act
@@ -45,7 +45,7 @@ public class RoleTests
     public async Task Admin_role_can_go_when_another_admin_exists()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var anna = await fixture.Invite("anna@example.ch", Roles.Admin);
         await fixture.Invite("ben@example.ch", Roles.Admin);
 
@@ -60,7 +60,7 @@ public class RoleTests
     public async Task Change_roles_rejects_unknown_role()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch");
 
         // Act
@@ -74,7 +74,7 @@ public class RoleTests
     public async Task User_list_shows_roles_and_open_invitations()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var anna = await fixture.Invite("anna@example.ch", Roles.Admin);
         await fixture.Accept(anna);
         await fixture.Invite("ben@example.ch", Roles.Contributor);
@@ -91,7 +91,7 @@ public class RoleTests
     public async Task Configured_admin_gets_admin_role_when_address_is_confirmed()
     {
         // Arrange
-        using var fixture = new UsersFixture(configuredAdmins: ["Anna@Example.ch"]);
+        using var fixture = new TestApp(configuredAdmins: ["Anna@Example.ch"]);
         var invitation = await fixture.Invite("anna@example.ch", Roles.Contributor);
         var admins = fixture.Get<ConfiguredAdmins>();
         var user = (await fixture.UserManager.FindByIdAsync(invitation.UserId))!;
@@ -112,7 +112,7 @@ public class RoleTests
     public async Task Admin_role_stays_when_address_is_no_longer_configured()
     {
         // Arrange
-        using var fixture = new UsersFixture();
+        using var fixture = new TestApp();
         var invitation = await fixture.Invite("anna@example.ch", Roles.Admin);
         await fixture.Accept(invitation);
         var user = (await fixture.UserManager.FindByIdAsync(invitation.UserId))!;
@@ -128,10 +128,10 @@ public class RoleTests
     public async Task Set_up_invites_configured_admin_without_account()
     {
         // Arrange
-        using var fixture = new UsersFixture(configuredAdmins: ["anna@example.ch"]);
+        using var fixture = new TestApp(configuredAdmins: ["anna@example.ch"]);
 
         // Act
-        var result = await fixture.Command<SetUpConfiguredAdmins, Result>(new SetUpConfiguredAdmins(UsersFixture.BaseUri));
+        var result = await fixture.Command<SetUpConfiguredAdmins, Result>(new SetUpConfiguredAdmins(TestApp.BaseUri));
 
         // Assert
         result.IsSuccess.ShouldBeTrue();
@@ -144,18 +144,18 @@ public class RoleTests
     public async Task Restart_keeps_earlier_admin_invitation_link_valid()
     {
         // Arrange
-        using var fixture = new UsersFixture(configuredAdmins: ["anna@example.ch"]);
+        using var fixture = new TestApp(configuredAdmins: ["anna@example.ch"]);
         var invitedAt = fixture.Clock.Now;
-        await fixture.Command<SetUpConfiguredAdmins, Result>(new SetUpConfiguredAdmins(UsersFixture.BaseUri));
+        await fixture.Command<SetUpConfiguredAdmins, Result>(new SetUpConfiguredAdmins(TestApp.BaseUri));
         var user = (await fixture.UserManager.FindByEmailAsync("anna@example.ch"))!;
-        var earlierLink = await fixture.Get<Invitations>().CreateLink(user, UsersFixture.BaseUri);
+        var earlierLink = await fixture.Get<Invitations>().CreateLink(user, TestApp.BaseUri);
         fixture.Clock.Now = fixture.Clock.Now.AddDays(3);
 
         // Act
-        await fixture.Command<SetUpConfiguredAdmins, Result>(new SetUpConfiguredAdmins(UsersFixture.BaseUri));
+        await fixture.Command<SetUpConfiguredAdmins, Result>(new SetUpConfiguredAdmins(TestApp.BaseUri));
 
         // Assert
-        var check = await fixture.Query<CheckInvitation, string>(new CheckInvitation(earlierLink.UserId, UsersFixture.Code(earlierLink)));
+        var check = await fixture.Query<CheckInvitation, string>(new CheckInvitation(earlierLink.UserId, TestApp.Code(earlierLink)));
         check.IsSuccess.ShouldBeTrue(check.Error);
         (await fixture.UserManager.FindByEmailAsync("anna@example.ch"))!.InvitedAt.ShouldBe(invitedAt);
     }
@@ -164,12 +164,12 @@ public class RoleTests
     public async Task Restart_grants_admin_role_to_confirmed_configured_admin()
     {
         // Arrange
-        using var fixture = new UsersFixture(configuredAdmins: ["anna@example.ch"]);
+        using var fixture = new TestApp(configuredAdmins: ["anna@example.ch"]);
         var invitation = await fixture.Invite("anna@example.ch", Roles.Contributor);
         await fixture.Accept(invitation);
 
         // Act
-        await fixture.Command<SetUpConfiguredAdmins, Result>(new SetUpConfiguredAdmins(UsersFixture.BaseUri));
+        await fixture.Command<SetUpConfiguredAdmins, Result>(new SetUpConfiguredAdmins(TestApp.BaseUri));
 
         // Assert
         var roles = await fixture.UserManager.GetRolesAsync((await fixture.UserManager.FindByIdAsync(invitation.UserId))!);

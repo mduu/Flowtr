@@ -8,12 +8,6 @@ Ausgearbeitete Stories liegen in [`stories/`](stories/) (Vorlage: [`_template.md
 
 Reihenfolge: Jede Story baut auf der vorherigen auf.
 
-### Journal: Buchungen manuell erfassen
-
-> Detail-Story: [#007](stories/007-journal-manuell-erfassen.md)
-
-- Buchungen erfassen, bearbeiten, löschen. Journal mit Filtern und Summen. Kategorien mit Startliste.
-
 ### Beleg hochladen und ablegen
 
 > Detail-Story: [#008](stories/008-beleg-upload-und-ablage.md)
