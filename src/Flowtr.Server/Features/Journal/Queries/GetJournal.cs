@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Flowtr.Server.Features.Journal.Queries;
 
 /// <summary>
-/// The bookings of a year for a filter, newest first, with totals.
+/// The bookings of a year for a filter, newest first, with the totals of the whole year.
 /// </summary>
 public sealed record GetJournal(JournalFilter Filter);
 
@@ -19,7 +19,11 @@ public sealed class GetJournalHandler(ApplicationDbContext db, TimeProvider time
         var start = new DateOnly(filter.Year, 1, 1);
         var end = start.AddYears(1);
 
-        var bookings = db.Bookings.AsNoTracking().Where(b => b.Date >= start && b.Date < end);
+        var year = db.Bookings.AsNoTracking().Where(b => b.Date >= start && b.Date < end);
+        var income = await year.Where(b => b.Kind == BookingKind.Income).SumAsync(b => b.AmountChf, cancellationToken);
+        var expense = await year.Where(b => b.Kind == BookingKind.Expense).SumAsync(b => b.AmountChf, cancellationToken);
+
+        var bookings = year;
 
         if (filter.Kind is { } kind)
         {
@@ -75,8 +79,8 @@ public sealed class GetJournalHandler(ApplicationDbContext db, TimeProvider time
         return Result.Success(new JournalView(
             filter.Year,
             views,
-            Income: views.Where(b => b.Kind == BookingKind.Income).Sum(b => b.AmountChf),
-            Expense: views.Where(b => b.Kind == BookingKind.Expense).Sum(b => b.AmountChf),
+            income,
+            expense,
             years.Distinct().OrderDescending().ToList(),
             isClosed));
     }

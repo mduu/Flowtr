@@ -19,20 +19,20 @@
 <MudGrid Spacing="2" Class="mb-3">
     <MudItem xs="4">
         <MudPaper Outlined="true" Class="pa-3">
-            <MudText Typo="Typo.caption" Class="mud-text-secondary">Einnahmen</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Einnahmen CHF</MudText>
             <MudText Typo="Typo.h6" Color="Color.Success">@SwissFormat.Amount(journal?.Income ?? 0)</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="4">
         <MudPaper Outlined="true" Class="pa-3">
-            <MudText Typo="Typo.caption" Class="mud-text-secondary">Ausgaben</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Ausgaben CHF</MudText>
             <MudText Typo="Typo.h6" Color="Color.Error">@SwissFormat.Amount(journal?.Expense ?? 0)</MudText>
         </MudPaper>
     </MudItem>
     <MudItem xs="4">
-        <MudPaper Outlined="true" Class="pa-3">
-            <MudText Typo="Typo.caption" Class="mud-text-secondary">Ergebnis CHF</MudText>
-            <MudText Typo="Typo.h6">@SwissFormat.Amount(journal?.Result ?? 0)</MudText>
+        <MudPaper Outlined="true" Class="@($"pa-3 profit {ProfitClass}")">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@(Profit < 0 ? "Verlust CHF" : "Gewinn CHF")</MudText>
+            <MudText Typo="Typo.h6">@SwissFormat.Amount(Math.Abs(Profit))</MudText>
         </MudPaper>
     </MudItem>
 </MudGrid>
@@ -196,6 +196,15 @@ else
         }
     }
 
+    private decimal Profit => journal?.Profit ?? 0;
+
+    private string ProfitClass => Profit switch
+    {
+        > 0 => "gain",
+        < 0 => "loss",
+        _ => "",
+    };
+
     private static string MonthName(DateOnly month) => month.ToString("MMMM yyyy", swiss);
 
     private static string Count(int bookings) => bookings == 1 ? "1 Buchung" : $"{bookings} Buchungen";
@@ -219,7 +228,7 @@ else
 
         // On a phone the dialog uses the full screen, like an app.
         var phone = await Viewport.GetCurrentBreakpointAsync() == Breakpoint.Xs;
-        var dialogOptions = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, FullScreen = phone, CloseButton = true };
+        var dialogOptions = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, FullScreen = phone, CloseButton = true, DefaultFocus = DefaultFocus.None };
         var dialog = await Dialogs.ShowAsync<BookingDialog>(title, parameters, dialogOptions);
         if (await dialog.Result is { Canceled: false, Data: DateOnly date })
         {

@@ -144,7 +144,7 @@ public class BookingTests
 
         // Assert
         journal.Bookings.Select(b => b.Description).ShouldBe(["Dezember", "App-Verkäufe", "Januar"]);
-        (journal.Income, journal.Expense, journal.Result).ShouldBe((100.25m, 50.15m, 50.10m));
+        (journal.Income, journal.Expense, journal.Profit).ShouldBe((100.25m, 50.15m, 50.10m));
         journal.Years.ShouldBe([2026, 2025]);
     }
 
@@ -164,7 +164,8 @@ public class BookingTests
         (await Descriptions(app, new JournalFilter(2026, Counterparty: "anthropic"))).ShouldBe(["Claude Abo"]);
         (await Descriptions(app, new JournalFilter(2026, Search: "team"))).ShouldBe(["Claude Abo"]);
         (await Descriptions(app, new JournalFilter(2026, Search: "digi"))).ShouldBe(["Laptop"]);
-        (await Journal(app, new JournalFilter(2026, Kind: BookingKind.Expense))).Income.ShouldBe(0m);
+        var filtered = await Journal(app, new JournalFilter(2026, Kind: BookingKind.Expense, Search: "Abo"));
+        (filtered.Income, filtered.Expense).ShouldBe((100.00m, 60.00m), "the year totals do not depend on the filter");
     }
 
     [Fact]

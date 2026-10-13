@@ -84,3 +84,22 @@ h1:focus {
         display: block;
     }
 }
+
+/* Journal: profit card green, loss card red (light tint, text in the same colour). */
+.profit.gain {
+    background: color-mix(in srgb, var(--mud-palette-success) 12%, var(--mud-palette-surface));
+    border-color: color-mix(in srgb, var(--mud-palette-success) 40%, transparent);
+}
+
+    .profit.gain .mud-typography-h6 {
+        color: var(--mud-palette-success);
+    }
+
+.profit.loss {
+    background: color-mix(in srgb, var(--mud-palette-error) 10%, var(--mud-palette-surface));
+    border-color: color-mix(in srgb, var(--mud-palette-error) 40%, transparent);
+}
+
+    .profit.loss .mud-typography-h6 {
+        color: var(--mud-palette-error);
+    }

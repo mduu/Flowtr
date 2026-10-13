@@ -51,7 +51,8 @@ public sealed record BookingView(
 public sealed record JournalFilter(int Year, BookingKind? Kind = null, Guid? CategoryId = null, string? Counterparty = null, string? Search = null);
 
 /// <summary>
-/// The bookings of one year for a filter, newest first, with totals of the shown bookings.
+/// The bookings of one year for a filter, newest first.
+/// <see cref="Income"/> and <see cref="Expense"/> are the totals of the whole year: the filter does not change them.
 /// </summary>
 public sealed record JournalView(
     int Year,
@@ -61,7 +62,10 @@ public sealed record JournalView(
     IReadOnlyList<int> Years,
     bool IsClosed)
 {
-    public decimal Result => Income - Expense;
+    /// <summary>
+    /// Profit of the year, negative for a loss.
+    /// </summary>
+    public decimal Profit => Income - Expense;
 }
 
 /// <summary>

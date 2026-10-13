@@ -45,9 +45,9 @@
                 </div>
                 <MudText Typo="Typo.overline" Class="mud-text-secondary">Betrag CHF</MudText>
                 <div class="amount">
-                    <MudNumericField T="decimal?" @bind-Value="form.AmountChf" For="() => form.AmountChf" Format="0.00" Placeholder="0.00"
+                    <MudNumericField @ref="amountField" T="decimal?" @bind-Value="form.AmountChf" For="() => form.AmountChf" Format="0.00" Placeholder="0.00"
                                      Culture="CultureInfo.InvariantCulture" HideSpinButtons="true" InputMode="@(InputMode.@decimal)" ReadOnly="readOnly"
-                                     AutoFocus="@(Booking is null)" Underline="false" aria-label="Betrag CHF" />
+                                     Underline="false" aria-label="Betrag CHF" />
                 </div>
                 @if (form.OriginalCurrency is { Length: > 0 } currency && form.OriginalAmount is { } original)
                 {
@@ -151,6 +151,8 @@
     private bool busy;
     private bool showForeign;
     private bool showNote;
+    private MudNumericField<decimal?>? amountField;
+    private bool focusAmount;
 
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
@@ -187,6 +189,23 @@
         showNote = !string.IsNullOrEmpty(form.Note);
     }
 
+    /// <summary>
+    /// Puts the cursor into the amount: for a new booking, and after a change of the kind while the amount is empty.
+    /// </summary>
+    /// <remarks>
+    /// Only after the render and a short delay: the dialog focuses itself when it opens,
+    /// and a browser can move the focus when the kind buttons render again.
+    /// </remarks>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if ((firstRender && Booking is null) || focusAmount)
+        {
+            focusAmount = false;
+            await Task.Delay(firstRender ? 150 : 50);
+            await FocusAmount();
+        }
+    }
+
     private void KindChanged(BookingKind kind)
     {
         form.Kind = kind;
@@ -197,6 +216,16 @@
 
         // The dialog container renders the title: it must render again for the new colour.
         MudDialog.StateHasChanged();
+
+        focusAmount = form.AmountChf is null;
+    }
+
+    private async Task FocusAmount()
+    {
+        if (amountField is not null && !readOnly)
+        {
+            await amountField.FocusAsync();
+        }
     }
 
     private Task<IEnumerable<string>> SearchCounterparties(string? text, CancellationToken cancellationToken) =>
