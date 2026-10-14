@@ -59,3 +59,7 @@
 .amount ::deep .mud-input-helper-text > div {
     margin-inline: auto !important;
 }
+
+.ai-hint {
+    margin-top: 2px;
+}

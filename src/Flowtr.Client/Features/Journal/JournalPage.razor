@@ -3,12 +3,16 @@
 @using System.Globalization
 
 @inject IJournalApi Journal
+@inject IReceiptApi Receipts
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 @inject TimeProvider Time
 @inject IBrowserViewportService Viewport
 
 <PageTitle>Journal – Flowtr</PageTitle>
+
+@* Drop a receipt anywhere on the journal: Flowtr uploads it and opens a new booking with it. *@
+<div @ondragenter="ShowDropZone">
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
     <MudText Typo="Typo.h5">Journal</MudText>
@@ -97,6 +101,10 @@ else
                 <MudText Typo="Typo.body2">@context.Description</MudText>
                 <MudText Typo="Typo.caption" Class="mud-text-secondary wide-only-block">@context.Counterparty</MudText>
                 <MudText Typo="Typo.caption" Class="mud-text-secondary phone-only">
+                    @if (context.ReceiptId is not null)
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.AttachFile" Style="font-size: .9rem; vertical-align: -2px" />
+                    }
                     @string.Join(" · ", new[] { SwissFormat.Date(context.Date), context.Category, context.Counterparty }.Where(part => part is not null))
                 </MudText>
             </MudTd>
@@ -110,7 +118,18 @@ else
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.OriginalCurrency @SwissFormat.Amount(context.OriginalAmount ?? 0)</MudText>
                 }
             </MudTd>
-            <MudTd Class="wide-only">@(context.ReceiptNumber ?? "–")</MudTd>
+            <MudTd Class="wide-only">
+                @if (context.ReceiptId is { } receiptId)
+                {
+                    <span @onclick:stopPropagation="true">
+                        <MudLink Href="@ReceiptUrls.Receipt(receiptId)" Target="_blank" Typo="Typo.body2">@context.ReceiptNumber</MudLink>
+                    </span>
+                }
+                else
+                {
+                    <span class="mud-text-secondary">–</span>
+                }
+            </MudTd>
         </RowTemplate>
         <GroupHeaderTemplate>
             <MudTh colspan="5" Class="month-header">
@@ -131,6 +150,30 @@ else
             <MudText Typo="Typo.body2">Keine Buchungen für diesen Filter.</MudText>
         </NoRecordsContent>
     </MudTable>
+}
+</div>
+
+@if (dropZone)
+{
+    <div class="journal-drop">
+        <MudFileUpload T="IBrowserFile" DragAndDrop="true" FilesChanged="UploadDropped" OnDragLeave="() => dropZone = uploadingDropped" Class="journal-drop-upload"
+                       Accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,application/pdf,image/*">
+            <CustomContent>
+                <div class="journal-drop-content">
+                    @if (uploadingDropped)
+                    {
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">Beleg wird hochgeladen …</MudText>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Outlined.UploadFile" Color="Color.Primary" Style="font-size: 3rem" />
+                        <MudText Typo="Typo.h6">Beleg loslassen für eine neue Buchung</MudText>
+                    }
+                </div>
+            </CustomContent>
+        </MudFileUpload>
+    </div>
 }
 
 @code {
@@ -216,7 +259,43 @@ else
 
     private Task Edit(BookingView booking) => Open(booking, booking.IsLocked ? "Buchung (abgeschlossen)" : "Buchung bearbeiten");
 
-    private async Task Open(BookingView? booking, string title)
+    private bool dropZone;
+    private bool uploadingDropped;
+
+    private void ShowDropZone(DragEventArgs args)
+    {
+        if (args.DataTransfer.Types.Contains("Files") && journal?.IsClosed != true)
+        {
+            dropZone = true;
+        }
+    }
+
+    private async Task UploadDropped(IBrowserFile? file)
+    {
+        if (file is null)
+        {
+            dropZone = false;
+            return;
+        }
+
+        uploadingDropped = true;
+        StateHasChanged();
+        var result = await Receipts.Upload(file);
+        uploadingDropped = false;
+        dropZone = false;
+        StateHasChanged();
+
+        if (result.IsSuccess)
+        {
+            await Open(null, "Neue Buchung", result.Value);
+        }
+        else
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+    }
+
+    private async Task Open(BookingView? booking, string title, UploadedReceipt? upload = null)
     {
         var parameters = new DialogParameters<BookingDialog>
         {
@@ -224,6 +303,7 @@ else
             { dialog => dialog.Options, options },
             { dialog => dialog.DefaultDate, DefaultDate() },
             { dialog => dialog.Title, title },
+            { dialog => dialog.InitialUpload, upload },
         };
 
         // On a phone the dialog uses the full screen, like an app.

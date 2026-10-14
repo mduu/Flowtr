@@ -1,13 +1,18 @@
 using Flowtr.Server.CrossCutting.Audit;
 using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.Data;
+using Flowtr.Server.Features.Extraction;
 using Flowtr.Server.Features.Journal;
+using Flowtr.Tests.Extraction;
+using Flowtr.Server.Features.Receipts;
+using Flowtr.Tests.Receipts;
 using Flowtr.Server.Features.Users;
 using Flowtr.Server.Features.Users.Commands;
 using Flowtr.Shared;
 using Flowtr.Shared.Users;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,7 +29,12 @@ internal sealed class TestApp : IDisposable
     private readonly ServiceProvider provider;
     private readonly IServiceScope scope;
 
-    public TestApp(string[]? configuredAdmins = null, Action<IServiceCollection>? configure = null)
+    private readonly SqliteConnection? sqlite;
+
+    /// <param name="transactional">
+    /// SQLite in memory instead of EF InMemory: a failed save rolls back, as on SQL Server. Needed for tests of retries.
+    /// </param>
+    public TestApp(string[]? configuredAdmins = null, Action<IServiceCollection>? configure = null, bool transactional = false)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection((configuredAdmins ?? []).Select((email, index) =>
@@ -39,11 +49,32 @@ internal sealed class TestApp : IDisposable
         services.AddSingleton<IAuditActor>(Actor);
         services.AddAudit();
         var database = Guid.NewGuid().ToString();
-        services.AddDbContext<ApplicationDbContext>((provider, options) => options
-            .UseInMemoryDatabase(database)
-            .AddInterceptors(provider.GetRequiredService<AuditInterceptor>()));
+        if (transactional)
+        {
+            sqlite = new SqliteConnection("DataSource=:memory:");
+            sqlite.Open();
+        }
+
+        services.AddDbContext<ApplicationDbContext>((provider, options) =>
+        {
+            if (sqlite is not null)
+            {
+                options.UseSqlite(sqlite);
+            }
+            else
+            {
+                options.UseInMemoryDatabase(database);
+            }
+
+            options.AddInterceptors(provider.GetRequiredService<AuditInterceptor>());
+        });
         services.AddUsers();
         services.AddJournal();
+        services.AddReceipts();
+        services.AddSingleton<IReceiptStore>(Store);
+        services.AddExtraction(configuration);
+        services.AddSingleton<IReceiptReader>(Reader);
+        services.AddSingleton<IExchangeRates>(Rates);
         services.AddHandlers(typeof(Program).Assembly);
         configure?.Invoke(services);
 
@@ -55,6 +86,12 @@ internal sealed class TestApp : IDisposable
     public TestClock Clock { get; } = new();
 
     public TestActor Actor { get; } = new();
+
+    public MemoryReceiptStore Store { get; } = new();
+
+    public FakeReceiptReader Reader { get; } = new();
+
+    public FakeExchangeRates Rates { get; } = new();
 
     public ApplicationDbContext Db => Get<ApplicationDbContext>();
 
@@ -90,6 +127,7 @@ internal sealed class TestApp : IDisposable
     {
         scope.Dispose();
         provider.Dispose();
+        sqlite?.Dispose();
     }
 }
 

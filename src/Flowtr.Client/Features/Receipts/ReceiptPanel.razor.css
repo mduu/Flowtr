@@ -1,0 +1,102 @@
+.receipt-panel {
+    margin-bottom: 16px;
+}
+
+.drop-zone {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 1.5px dashed var(--mud-palette-lines-inputs);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: border-color .15s, background-color .15s;
+}
+
+    .drop-zone:hover,
+    .drop-zone.dragging {
+        border-color: var(--mud-palette-primary);
+        background: color-mix(in srgb, var(--mud-palette-primary) 6%, transparent);
+    }
+
+.camera {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 8px;
+    border-radius: 8px;
+    color: var(--mud-palette-primary);
+    font-size: .875rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+    .camera ::deep input[type=file] {
+        display: none;
+    }
+
+@media (max-width: 599.98px) {
+    .camera {
+        display: flex;
+    }
+}
+
+::deep .receipt-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 8px 8px 8px;
+    border-radius: 12px !important;
+}
+
+.thumb {
+    flex: none;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--mud-palette-background-gray);
+}
+
+    .thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+.info {
+    flex: 1;
+    min-width: 0;
+}
+
+    .info ::deep .name {
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+.actions {
+    flex: none;
+    display: flex;
+}
+
+::deep .drop-upload {
+    position: relative;
+    margin: 0;
+}
+
+::deep .drop-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 0;
+    cursor: pointer;
+}

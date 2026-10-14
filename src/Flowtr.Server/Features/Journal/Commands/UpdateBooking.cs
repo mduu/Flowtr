@@ -1,16 +1,17 @@
 using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.Data;
+using Flowtr.Server.Features.Receipts;
 using Flowtr.Shared;
 using Flowtr.Shared.Journal;
 
 namespace Flowtr.Server.Features.Journal.Commands;
 
 /// <summary>
-/// Changes a booking. Its old and its new year must be open.
+/// Changes a booking, and attaches, replaces or removes its receipt. Its old and its new year must be open.
 /// </summary>
 public sealed record UpdateBooking(Guid Id, BookingInput Input);
 
-public sealed class UpdateBookingHandler(ApplicationDbContext db, BookingRules rules) : ICommandHandler<UpdateBooking, Result>
+public sealed class UpdateBookingHandler(ApplicationDbContext db, BookingRules rules, ReceiptFiling receipts) : ICommandHandler<UpdateBooking, Result>
 {
     public async Task<Result> Handle(UpdateBooking command, CancellationToken cancellationToken)
     {
@@ -25,14 +26,33 @@ public sealed class UpdateBookingHandler(ApplicationDbContext db, BookingRules r
             return Result.Failure(string.Format(BookingRules.YearClosed, booking.Date.Year));
         }
 
-        if (await rules.Check(command.Input, booking.CategoryId, cancellationToken) is { } error)
+        if ((await rules.Check(command.Input, booking.CategoryId, cancellationToken) ?? ReceiptFiling.CheckChange(booking, command.Input)) is { } error)
         {
             return Result.Failure(error);
         }
 
-        await rules.Apply(booking, command.Input, cancellationToken);
-        await db.SaveChangesAsync(cancellationToken);
+        // A new receipt in another year or kind needs a new number: the old receipt goes first.
+        var removedBlob = command.Input.RemoveReceipt
+            || (command.Input.UploadId is not null && (booking.Date.Year != command.Input.Date.Year || booking.Kind != command.Input.Kind))
+                ? await receipts.Detach(booking, cancellationToken)
+                : null;
 
+        await rules.Apply(booking, command.Input, cancellationToken);
+
+        if (command.Input.UploadId is { } uploadId)
+        {
+            var filed = await receipts.SaveWithReceipt(booking, uploadId, cancellationToken);
+            if (!filed.IsSuccess)
+            {
+                return filed;
+            }
+        }
+        else
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        await receipts.DeleteAfterSave(removedBlob, cancellationToken);
         return Result.Success();
     }
 }

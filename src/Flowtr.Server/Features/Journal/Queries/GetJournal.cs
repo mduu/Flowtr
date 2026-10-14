@@ -67,7 +67,9 @@ public sealed class GetJournalHandler(ApplicationDbContext db, TimeProvider time
                 b.Category!.Name,
                 b.Counterparty != null ? b.Counterparty.Name : null,
                 b.PaymentMethod != null ? b.PaymentMethod.Name : null,
-                b.ReceiptNumber,
+                b.ReceiptId,
+                b.Receipt != null ? b.Receipt.Number : null,
+                b.Receipt != null ? b.Receipt.ContentType : null,
                 b.Note,
                 isClosed))
             .ToListAsync(cancellationToken);

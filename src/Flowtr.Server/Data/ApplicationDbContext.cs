@@ -1,5 +1,6 @@
 using Flowtr.Server.CrossCutting.Audit;
 using Flowtr.Server.Features.Journal.Model;
+using Flowtr.Server.Features.Receipts.Model;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +32,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<ClosedYear> ClosedYears => Set<ClosedYear>();
 
+    public DbSet<Receipt> Receipts => Set<Receipt>();
+
+    public DbSet<ReceiptSequence> ReceiptSequences => Set<ReceiptSequence>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -49,6 +54,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         });
 
         builder.ConfigureJournal();
+        builder.ConfigureReceipts();
 
         builder.Entity<IdentityRole>().HasData(
             new IdentityRole { Id = RoleIds.Admin, Name = FlowtrRoles.Admin, NormalizedName = FlowtrRoles.Admin.ToUpperInvariant(), ConcurrencyStamp = RoleIds.Admin },

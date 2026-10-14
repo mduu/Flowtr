@@ -9,6 +9,7 @@ public enum BookingKind
 /// <summary>
 /// What the user enters for a booking. <see cref="AmountChf"/> is always positive: <see cref="Kind"/> gives the direction.
 /// <see cref="Counterparty"/> and <see cref="PaymentMethod"/> are names. Flowtr adds a new name to its list.
+/// <see cref="UploadId"/> attaches an upload as receipt (or replaces the receipt). <see cref="RemoveReceipt"/> removes it.
 /// </summary>
 public sealed record BookingInput(
     DateOnly Date,
@@ -20,7 +21,9 @@ public sealed record BookingInput(
     Guid CategoryId,
     string? Counterparty,
     string? PaymentMethod,
-    string? Note);
+    string? Note,
+    Guid? UploadId = null,
+    bool RemoveReceipt = false);
 
 /// <summary>
 /// A booking in the journal. <see cref="IsLocked"/> is true when its year is closed.
@@ -37,7 +40,9 @@ public sealed record BookingView(
     string Category,
     string? Counterparty,
     string? PaymentMethod,
+    Guid? ReceiptId,
     string? ReceiptNumber,
+    string? ReceiptContentType,
     string? Note,
     bool IsLocked)
 {
@@ -81,3 +86,24 @@ public sealed record CategoryUpdate(string Name, bool IsActive);
 /// Lists for the booking form. <see cref="Categories"/> also contains inactive categories: an old booking can still use one.
 /// </summary>
 public sealed record BookingOptions(IReadOnlyList<CategoryView> Categories, IReadOnlyList<string> Counterparties, IReadOnlyList<string> PaymentMethods);
+
+/// <summary>
+/// A file in <c>eingang</c>: a booking files it when it is saved.
+/// </summary>
+public sealed record UploadedReceipt(Guid UploadId, string FileName, string ContentType, long Size);
+
+/// <summary>
+/// What the AI read from a receipt (story #009). Null means: not found. The dialog fills only empty fields with it.
+/// <see cref="ExchangeRateNote"/> tells how Flowtr got <see cref="AmountChf"/> from a foreign currency.
+/// </summary>
+public sealed record BookingProposal(
+    DateOnly? Date,
+    BookingKind? Kind,
+    decimal? AmountChf,
+    decimal? OriginalAmount,
+    string? OriginalCurrency,
+    string? Description,
+    Guid? CategoryId,
+    string? Counterparty,
+    string? PaymentMethod,
+    string? ExchangeRateNote);

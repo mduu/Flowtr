@@ -17,7 +17,7 @@ public static class JournalModel
             booking.Property(b => b.OriginalAmount).HasPrecision(18, 2);
             booking.Property(b => b.OriginalCurrency).HasMaxLength(3);
             booking.Property(b => b.Description).HasMaxLength(500);
-            booking.Property(b => b.ReceiptNumber).HasMaxLength(50);
+            booking.HasOne(b => b.Receipt).WithOne().HasForeignKey<Booking>(b => b.ReceiptId).OnDelete(DeleteBehavior.Restrict);
             booking.Property(b => b.Note).HasMaxLength(2000);
             booking.Property(b => b.VatRate).HasPrecision(5, 2);
             booking.Property(b => b.VatAmount).HasPrecision(18, 2);

@@ -10,10 +10,10 @@ Der User erfasst, bearbeitet und löscht Buchungen (Einnahmen und Ausgaben) von 
 
 - Felder einer Buchung: [Journal](../../journal.md#felder-einer-buchung). Datum, Art, Betrag und Währung (Original), Betrag CHF, Beschreibung, Kategorie, Gegenpartei, Zahlungsart/Konto, Belegnummer, Notiz.
 - **MWST:** noch nicht erfassen, aber das Modell nimmt Satz und Betrag später ohne Umbau auf (z.B. nullable Felder).
-- **Beträge:** `decimal`, nie `double`. Anzeige im Schweizer Format (`CHF 1'234.50`, Datum `dd.MM.yyyy`). Der CHF-Betrag ist in dieser Story manuell. Der Vorschlag per Tageskurs folgt mit [#009](../009-ki-extraktion.md).
+- **Beträge:** `decimal`, nie `double`. Anzeige im Schweizer Format (`CHF 1'234.50`, Datum `dd.MM.yyyy`). Der CHF-Betrag ist in dieser Story manuell. Der Vorschlag per Tageskurs folgt mit [#009](009-ki-extraktion.md).
 - **Kategorien:** vordefinierte Startliste angelehnt an das Formular «Selbständige Erwerbstätigkeit» (Seed), Admins können ergänzen ([Journal](../../journal.md#kategorien)).
 - **Gegenparteien und Zahlungsarten:** eigene Listen, beim Erfassen neue Werte direkt anlegen (Autocomplete).
-- **Belegnummer:** Die Nummer vergibt erst [#008](../008-beleg-upload-und-ablage.md). Hier bleibt sie leer.
+- **Belegnummer:** Die Nummer vergibt erst [#008](008-beleg-upload-und-ablage.md). Hier bleibt sie leer.
 - **Abschluss:** Read-only nach dem Jahresabschluss ([Journal](../../journal.md#bearbeitung--abschluss)). Der Abschluss selbst ist nicht Teil dieser Story. Das Modell soll ihn aber vorsehen (z.B. Tabelle der abgeschlossenen Jahre), damit Commands die Sperre von Anfang an prüfen.
 - **Audit:** Jede Änderung geht ins Audit-Log ([#006](006-audit-log.md), vorher umsetzen).
 - Rollen: Admin und Contributor dürfen erfassen. Wer Kategorien verwaltet: Admin.

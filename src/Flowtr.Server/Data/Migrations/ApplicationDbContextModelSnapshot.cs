@@ -191,9 +191,8 @@ namespace Flowtr.Server.Migrations
                     b.Property<Guid?>("PaymentMethodId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("ReceiptNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<Guid?>("ReceiptId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal?>("VatAmount")
                         .HasPrecision(18, 2)
@@ -212,6 +211,10 @@ namespace Flowtr.Server.Migrations
                     b.HasIndex("Date");
 
                     b.HasIndex("PaymentMethodId");
+
+                    b.HasIndex("ReceiptId")
+                        .IsUnique()
+                        .HasFilter("[ReceiptId] IS NOT NULL");
 
                     b.ToTable("Bookings");
                 });
@@ -428,6 +431,83 @@ namespace Flowtr.Server.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Flowtr.Server.Features.Receipts.Model.Receipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BlobName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset>("FiledAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("SequenceNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.HasIndex("Year", "Kind", "SequenceNumber")
+                        .IsUnique();
+
+                    b.ToTable("Receipts");
+                });
+
+            modelBuilder.Entity("Flowtr.Server.Features.Receipts.Model.ReceiptSequence", b =>
+                {
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Kind")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<int>("LastNumber")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.HasKey("Year", "Kind");
+
+                    b.ToTable("ReceiptSequences");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -616,11 +696,18 @@ namespace Flowtr.Server.Migrations
                         .HasForeignKey("PaymentMethodId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Flowtr.Server.Features.Receipts.Model.Receipt", "Receipt")
+                        .WithOne()
+                        .HasForeignKey("Flowtr.Server.Features.Journal.Model.Booking", "ReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Category");
 
                     b.Navigation("Counterparty");
 
                     b.Navigation("PaymentMethod");
+
+                    b.Navigation("Receipt");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

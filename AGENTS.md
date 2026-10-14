@@ -75,6 +75,8 @@ Use as little GitHub storage as possible. The repo keeps artifacts and logs for 
 - Do not use a `_` prefix on fields.
 - Do not use an `Async` suffix on method names.
 - A page loads its data one call after the other. Do not use `Task.WhenAll`: during prerendering, the server implementations use the same DbContext.
+- Tests use `TestApp` (EF Core in memory, fakes for blob storage, AI and exchange rates). EF Core in memory does not roll back a failed save: for tests of retries and transactions, use `new TestApp(transactional: true)` (SQLite in memory).
+- Do not call external services in tests. Put them behind an interface (for example `IReceiptReader`, `IExchangeRates`, `IReceiptStore`).
 - Comments (details in `specs/coding-guidelines.md`):
   - First make the code clearer, for example with Extract Method. Give the method a name that tells what it does.
   - Write a comment only when the code cannot show the information and the comment adds real value.

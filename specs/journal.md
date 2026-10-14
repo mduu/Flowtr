@@ -12,12 +12,12 @@ Das Journal (aka Milchbüchlein) enthält alle Angaben für die Schweizer Steuer
 | Datum | Belegdatum |
 | Art | Einnahme oder Ausgabe |
 | Betrag & Währung (Original) | Optional, nur bei Fremdwährung: wie auf dem Beleg, z.B. USD 20.00. Reine Information, Flowtr rechnet nur mit dem Betrag CHF |
-| Betrag CHF | Immer positiv, die Art gibt die Richtung. Höchstens zwei Nachkommastellen. Vorschlag per Tageskurs folgt mit der KI-Extraktion. Manuell korrigierbar (z.B. gemäss Kreditkartenabrechnung) |
+| Betrag CHF | Immer positiv, die Art gibt die Richtung. Höchstens zwei Nachkommastellen. Beim Upload schlägt Flowtr ihn per Tageskurs der EZB vor. Manuell korrigierbar (z.B. gemäss Kreditkartenabrechnung) |
 | Beschreibung | |
 | Kategorie | siehe [Kategorien](#kategorien) |
 | Gegenpartei | Lieferant oder Kunde (z.B. Microsoft, Stripe) |
 | Zahlungsart/Konto | z.B. Kreditkarte, Bankkonto, bar |
-| Belegnummer | Referenz auf den abgelegten Beleg |
+| Belegnummer | Referenz auf den abgelegten Beleg, z.B. A-2026-007 (fortlaufend pro Jahr und Art, [ADR-007](adrs/007-belegnummern-per-sequenz.md)) |
 | Notiz | Freitext |
 
 **MWST:** Aktuell nicht nötig. Das Datenmodell muss MWST-Satz und -Betrag aber später ohne Umbau aufnehmen können.

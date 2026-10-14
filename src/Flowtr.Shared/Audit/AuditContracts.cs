@@ -39,5 +39,6 @@ public static class AuditAreas
         ["Counterparty"] = "Gegenpartei",
         ["PaymentMethod"] = "Zahlungsart",
         ["ClosedYear"] = "Jahresabschluss",
+        ["Receipt"] = "Beleg",
     };
 }

@@ -31,6 +31,25 @@ public sealed class AuditInterceptor(IAuditActor actor, TimeProvider time) : Sav
         return ValueTask.FromResult(result);
     }
 
+    public override void SaveChangesFailed(DbContextErrorEventData eventData) => RemoveUnsavedEntries(eventData.Context);
+
+    public override Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken cancellationToken = default)
+    {
+        RemoveUnsavedEntries(eventData.Context);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// After a failed save, the entries of that save must go: a second attempt adds them again.
+    /// </summary>
+    private static void RemoveUnsavedEntries(DbContext? context)
+    {
+        foreach (var entry in context?.ChangeTracker.Entries<AuditEntry>().Where(e => e.State == EntityState.Added).ToList() ?? [])
+        {
+            entry.State = EntityState.Detached;
+        }
+    }
+
     private void AddEntries(DbContext? context)
     {
         if (context is null)

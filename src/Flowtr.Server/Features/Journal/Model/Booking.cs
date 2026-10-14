@@ -1,3 +1,4 @@
+using Flowtr.Server.Features.Receipts.Model;
 using Flowtr.Shared.Journal;
 
 namespace Flowtr.Server.Features.Journal.Model;
@@ -50,10 +51,9 @@ public sealed class Booking
 
     public PaymentMethod? PaymentMethod { get; set; }
 
-    /// <summary>
-    /// For example <c>A-2026-001</c>. Story #008 gives it.
-    /// </summary>
-    public string? ReceiptNumber { get; set; }
+    public Guid? ReceiptId { get; set; }
+
+    public Receipt? Receipt { get; set; }
 
     public string? Note { get; set; }
 

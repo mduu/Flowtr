@@ -2,6 +2,7 @@
 @using System.Globalization
 
 @inject IJournalApi Journal
+@inject IReceiptApi Receipts
 @inject ISnackbar Snackbar
 @inject IDialogService Dialogs
 
@@ -29,6 +30,13 @@
         {
             <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@error</MudAlert>
         }
+        <ReceiptPanel Booking="Booking" Upload="upload" UploadChanged="UploadChanged" @bind-Removed="removeReceipt" ReadOnly="readOnly"
+                      Analyzing="analyzing" />
+        @if (aiMessage is not null)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="() => aiMessage = null">@aiMessage</MudAlert>
+        }
+
         <EditForm id="booking-form" Model="form" OnValidSubmit="Save">
             <DataAnnotationsValidator />
 
@@ -49,20 +57,32 @@
                                      Culture="CultureInfo.InvariantCulture" HideSpinButtons="true" InputMode="@(InputMode.@decimal)" ReadOnly="readOnly"
                                      Underline="false" aria-label="Betrag CHF" />
                 </div>
-                @if (form.OriginalCurrency is { Length: > 0 } currency && form.OriginalAmount is { } original)
+                @if (IsProposed(nameof(BookingForm.AmountChf), form.AmountChf) && proposal?.ExchangeRateNote is { } exchange)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@exchange</MudText>
+                }
+                else if (form.OriginalCurrency is { Length: > 0 } currency && form.OriginalAmount is { } original)
                 {
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">@currency.ToUpperInvariant() @SwissFormat.Amount(original)</MudText>
+                }
+                @if (IsProposed(nameof(BookingForm.AmountChf), form.AmountChf) || IsProposed(nameof(BookingForm.Kind), form.Kind))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Primary" Class="ai-hint">
+                        <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" Style="font-size: .9rem; vertical-align: -2px" /> Von der KI erkannt
+                    </MudText>
                 }
             </div>
 
             <MudGrid Spacing="3">
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Datum" @bind-Date="form.Date" For="() => form.Date" DateFormat="dd.MM.yyyy" Culture="swiss"
-                                   Editable="true" ReadOnly="readOnly" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                   Editable="true" ReadOnly="readOnly" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   HelperText="@Hint(nameof(BookingForm.Date), form.Date)" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudSelect T="Guid?" Label="Kategorie" @bind-Value="form.CategoryId" For="() => form.CategoryId" ReadOnly="readOnly"
-                               AdornmentIcon="@Icons.Material.Outlined.Category" Variant="Variant.Outlined" Margin="Margin.Dense">
+                               AdornmentIcon="@Icons.Material.Outlined.Category" Variant="Variant.Outlined" Margin="Margin.Dense"
+                               HelperText="@Hint(nameof(BookingForm.CategoryId), form.CategoryId)">
                         @foreach (var category in Categories)
                         {
                             <MudSelectItem T="Guid?" Value="category.Id">@category.Name</MudSelectItem>
@@ -72,19 +92,19 @@
                 <MudItem xs="12">
                     <MudTextField @bind-Value="form.Description" For="() => form.Description" Label="Beschreibung" ReadOnly="readOnly"
                                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Notes"
-                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" HelperText="@Hint(nameof(BookingForm.Description), form.Description)" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudAutocomplete T="string" Label="Gegenpartei" @bind-Value="form.Counterparty" SearchFunc="SearchCounterparties"
                                      CoerceText="true" CoerceValue="true" ResetValueOnEmptyText="true" ReadOnly="readOnly" MaxItems="8"
                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Storefront"
-                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" HelperText="@Hint(nameof(BookingForm.Counterparty), form.Counterparty)" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudAutocomplete T="string" Label="Zahlungsart" @bind-Value="form.PaymentMethod" SearchFunc="SearchPaymentMethods"
                                      CoerceText="true" CoerceValue="true" ResetValueOnEmptyText="true" ReadOnly="readOnly" MaxItems="8"
                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.CreditCard"
-                                     Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" HelperText="@Hint(nameof(BookingForm.PaymentMethod), form.PaymentMethod)" />
                 </MudItem>
                 @if (showForeign)
                 {
@@ -92,7 +112,7 @@
                         <MudNumericField T="decimal?" Label="Originalbetrag" @bind-Value="form.OriginalAmount" Format="0.00"
                                          Culture="CultureInfo.InvariantCulture" HideSpinButtons="true" InputMode="@(InputMode.@decimal)" ReadOnly="readOnly"
                                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.CurrencyExchange"
-                                         Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" HelperText="@Hint(nameof(BookingForm.OriginalAmount), form.OriginalAmount)" />
                     </MudItem>
                     <MudItem xs="4">
                         <MudTextField @bind-Value="form.OriginalCurrency" Label="Währung" MaxLength="3" ReadOnly="readOnly" Placeholder="USD"
@@ -152,6 +172,17 @@
     private bool showForeign;
     private bool showNote;
     private MudNumericField<decimal?>? amountField;
+    private UploadedReceipt? upload;
+    private bool removeReceipt;
+    private bool analyzing;
+    private string? aiMessage;
+    private BookingProposal? proposal;
+    private BookingForm initial = new();
+
+    /// <summary>
+    /// The values that came from the AI. A field shows the hint while it still has this value.
+    /// </summary>
+    private readonly Dictionary<string, object?> proposed = [];
     private bool focusAmount;
 
     [CascadingParameter]
@@ -172,6 +203,12 @@
     [Parameter]
     public string Title { get; set; } = "";
 
+    /// <summary>
+    /// A file that the user dropped on the journal: the dialog opens with it as receipt.
+    /// </summary>
+    [Parameter]
+    public UploadedReceipt? InitialUpload { get; set; }
+
     private bool readOnly => Booking?.IsLocked == true;
 
     private Color KindColor => form.Kind == BookingKind.Income ? Color.Success : Color.Error;
@@ -187,7 +224,117 @@
         form = Booking is null ? new BookingForm { Date = DefaultDate.ToDateTime(TimeOnly.MinValue) } : BookingForm.From(Booking);
         showForeign = form.OriginalAmount is not null || !string.IsNullOrEmpty(form.OriginalCurrency);
         showNote = !string.IsNullOrEmpty(form.Note);
+        initial = form.Copy();
+        upload = InitialUpload;
     }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (upload is not null)
+        {
+            await Analyze(upload);
+        }
+    }
+
+    private async Task UploadChanged(UploadedReceipt? changed)
+    {
+        upload = changed;
+        if (changed is not null)
+        {
+            await Analyze(changed);
+        }
+    }
+
+    /// <summary>
+    /// Reads the receipt with AI and fills the fields that the user did not fill yet (story #009).
+    /// </summary>
+    private async Task Analyze(UploadedReceipt receipt)
+    {
+        analyzing = true;
+        aiMessage = null;
+        StateHasChanged();
+
+        var result = await Receipts.Analyze(receipt.UploadId);
+        analyzing = false;
+
+        if (!result.IsSuccess)
+        {
+            aiMessage = result.Error;
+            return;
+        }
+
+        // Another receipt in the meantime: this proposal is old.
+        if (upload?.UploadId != receipt.UploadId)
+        {
+            return;
+        }
+
+        proposal = result.Value!;
+        Apply(proposal);
+        MudDialog.StateHasChanged();
+    }
+
+    /// <summary>
+    /// Fills only fields that are still empty: a new booking's fields as they were at the start, an existing booking's empty fields.
+    /// </summary>
+    private void Apply(BookingProposal p)
+    {
+        if (p.Kind is { } kind && IsOpen(form.Kind, initial.Kind, isEmpty: false))
+        {
+            Set(nameof(BookingForm.Kind), kind, value => form.Kind = value);
+        }
+
+        if (p.Date is { } date && IsOpen(form.Date, initial.Date, form.Date is null))
+        {
+            Set<DateTime?>(nameof(BookingForm.Date), date.ToDateTime(TimeOnly.MinValue), value => form.Date = value);
+        }
+
+        if (p.AmountChf is { } amount && IsOpen(form.AmountChf, initial.AmountChf, form.AmountChf is null))
+        {
+            Set<decimal?>(nameof(BookingForm.AmountChf), amount, value => form.AmountChf = value);
+        }
+
+        if (p.OriginalAmount is { } original && p.OriginalCurrency is { } currency && form.OriginalAmount is null)
+        {
+            Set<decimal?>(nameof(BookingForm.OriginalAmount), original, value => form.OriginalAmount = value);
+            form.OriginalCurrency = currency;
+            showForeign = true;
+        }
+
+        if (p.Description is { } description && string.IsNullOrWhiteSpace(form.Description))
+        {
+            Set(nameof(BookingForm.Description), description, value => form.Description = value);
+        }
+
+        if (p.Counterparty is { } counterparty && string.IsNullOrWhiteSpace(form.Counterparty))
+        {
+            Set<string?>(nameof(BookingForm.Counterparty), counterparty, value => form.Counterparty = value);
+        }
+
+        if (p.PaymentMethod is { } method && string.IsNullOrWhiteSpace(form.PaymentMethod))
+        {
+            Set<string?>(nameof(BookingForm.PaymentMethod), method, value => form.PaymentMethod = value);
+        }
+
+        if (p.CategoryId is { } category && form.CategoryId is null && Categories.Any(c => c.Id == category))
+        {
+            Set<Guid?>(nameof(BookingForm.CategoryId), category, value => form.CategoryId = value);
+        }
+    }
+
+    private bool IsOpen<T>(T current, T start, bool isEmpty) =>
+        Booking is null ? EqualityComparer<T>.Default.Equals(current, start) : isEmpty;
+
+    private void Set<T>(string field, T value, Action<T> set)
+    {
+        set(value);
+        proposed[field] = value;
+    }
+
+    private bool IsProposed(string field, object? value) =>
+        proposed.TryGetValue(field, out var proposedValue) && Equals(proposedValue, value);
+
+    private string? Hint(string field, object? value) => IsProposed(field, value) ? "Von der KI erkannt" : null;
 
     /// <summary>
     /// Puts the cursor into the amount: for a new booking, and after a change of the kind while the amount is empty.
@@ -243,7 +390,7 @@
     {
         busy = true;
         error = null;
-        var input = form.ToInput();
+        var input = form.ToInput() with { UploadId = upload?.UploadId, RemoveReceipt = removeReceipt && upload is null };
 
         var result = Booking is null
             ? await Journal.CreateBooking(input)
@@ -314,6 +461,8 @@
         public string? OriginalCurrency { get; set; }
 
         public string? Note { get; set; }
+
+        public BookingForm Copy() => (BookingForm)MemberwiseClone();
 
         public static BookingForm From(BookingView booking) => new()
         {

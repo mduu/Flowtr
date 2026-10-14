@@ -1,0 +1,198 @@
+@inject IReceiptApi Receipts
+
+@* The receipt at the top of the booking dialog: drop zone without a receipt, else a card with preview and actions. *@
+<div class="receipt-panel">
+    @if (uploading is not null)
+    {
+        <MudPaper Outlined="true" Class="receipt-card">
+            <div class="thumb"><MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" /></div>
+            <div class="info">
+                <MudText Typo="Typo.body2" Class="name">@uploading</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Wird hochgeladen …</MudText>
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Size="Size.Small" Class="mt-1" />
+            </div>
+        </MudPaper>
+    }
+    else if (Current is { } receipt)
+    {
+        <MudPaper Outlined="true" Class="receipt-card">
+            <a class="thumb" href="@receipt.Url" target="_blank" rel="noopener" title="Beleg ansehen">
+                @if (ReceiptUrls.IsPreviewImage(receipt.ContentType))
+                {
+                    <img src="@receipt.Url" alt="Vorschau des Belegs" />
+                }
+                else
+                {
+                    <MudIcon Icon="@(receipt.ContentType == "application/pdf" ? Icons.Material.Outlined.PictureAsPdf : Icons.Material.Outlined.Image)"
+                             Color="Color.Error" Size="Size.Large" />
+                }
+            </a>
+            <div class="info">
+                <MudText Typo="Typo.body2" Class="name">@receipt.Title</MudText>
+                @if (Analyzing)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Primary">
+                        <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" Style="font-size: .9rem; vertical-align: -2px" /> Beleg wird gelesen …
+                    </MudText>
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Size="Size.Small" Class="mt-1" />
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@receipt.Subtitle</MudText>
+                }
+            </div>
+            <div class="actions">
+                <MudIconButton Href="@receipt.Url" Target="_blank" Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small"
+                               aria-label="Beleg ansehen" title="Beleg ansehen" />
+                @if (!ReadOnly)
+                {
+                    <MudIconButton Icon="@Icons.Material.Outlined.SwapHoriz" Size="Size.Small" OnClick="OpenPicker"
+                                   aria-label="Beleg ersetzen" title="Beleg ersetzen" />
+                    <MudIconButton Icon="@Icons.Material.Outlined.Close" Size="Size.Small" OnClick="Remove"
+                                   aria-label="Beleg entfernen" title="Beleg entfernen" />
+                }
+            </div>
+        </MudPaper>
+    }
+
+    @if (!ReadOnly)
+    {
+        @* The file input lies invisible over the drop zone: a click opens the picker, a drop gives the file. *@
+        <MudFileUpload T="IBrowserFile" @ref="picker" FilesChanged="UploadFile" Accept="@Accept" DragAndDrop="true" @bind-Dragging="dragging"
+                       Class="drop-upload" InputClass="drop-input">
+            <CustomContent>
+                @if (Current is null && uploading is null)
+                {
+                    <div class="drop-zone @(dragging ? "dragging" : "")">
+                        <MudIcon Icon="@Icons.Material.Outlined.UploadFile" Color="Color.Primary" />
+                        <div>
+                            <MudText Typo="Typo.body2"><strong>Beleg hierher ziehen</strong> oder auswählen</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">PDF oder Bild, bis 20 MB · ohne Beleg geht es auch</MudText>
+                        </div>
+                    </div>
+                }
+            </CustomContent>
+            <SelectedTemplate />
+        </MudFileUpload>
+        @if (Current is null && uploading is null)
+        {
+            <label class="camera">
+                <InputFile OnChange="args => UploadFile(args.File)" accept="image/*" capture="environment" />
+                <MudIcon Icon="@Icons.Material.Outlined.PhotoCamera" Size="Size.Small" />
+                <span>Foto aufnehmen</span>
+            </label>
+        }
+    }
+    @if (error is not null)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Error" Class="mt-1">@error</MudText>
+    }
+</div>
+
+@code {
+    private const string Accept = ".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,application/pdf,image/*";
+
+    private MudFileUpload<IBrowserFile>? picker;
+    private bool dragging;
+    private string? uploading;
+    private string? error;
+
+    /// <summary>
+    /// The filed receipt of the booking, if any.
+    /// </summary>
+    [Parameter]
+    public BookingView? Booking { get; set; }
+
+    /// <summary>
+    /// A new file that replaces the receipt when the booking is saved.
+    /// </summary>
+    [Parameter]
+    public UploadedReceipt? Upload { get; set; }
+
+    [Parameter]
+    public EventCallback<UploadedReceipt?> UploadChanged { get; set; }
+
+    /// <summary>
+    /// True when the user removed the filed receipt. The save then detaches it.
+    /// </summary>
+    [Parameter]
+    public bool Removed { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> RemovedChanged { get; set; }
+
+    [Parameter]
+    public bool ReadOnly { get; set; }
+
+    /// <summary>
+    /// True while the AI reads the receipt.
+    /// </summary>
+    [Parameter]
+    public bool Analyzing { get; set; }
+
+    private ShownReceipt? Current =>
+        Upload is { } upload
+            ? new ShownReceipt(ReceiptUrls.Upload(upload.UploadId), upload.ContentType, upload.FileName,
+                $"{FileSize(upload.Size)} · wird beim Speichern abgelegt")
+            : Booking is { ReceiptId: { } id } booking && !Removed
+                ? new ShownReceipt(ReceiptUrls.Receipt(id), booking.ReceiptContentType, booking.ReceiptNumber ?? "Beleg", "Abgelegt")
+                : null;
+
+    private async Task OpenPicker()
+    {
+        if (picker is not null)
+        {
+            await picker.OpenFilePickerAsync();
+        }
+    }
+
+    private async Task UploadFile(IBrowserFile? file)
+    {
+        if (file is null)
+        {
+            return;
+        }
+
+        error = null;
+        uploading = file.Name;
+        StateHasChanged();
+
+        var result = await Receipts.Upload(file);
+        uploading = null;
+
+        if (picker is not null)
+        {
+            await picker.ClearAsync();
+        }
+
+        if (result.IsSuccess)
+        {
+            await UploadChanged.InvokeAsync(result.Value);
+        }
+        else
+        {
+            error = result.Error;
+        }
+    }
+
+    private async Task Remove()
+    {
+        if (Upload is not null)
+        {
+            await UploadChanged.InvokeAsync(null);
+        }
+        else
+        {
+            await RemovedChanged.InvokeAsync(true);
+        }
+    }
+
+    private static string FileSize(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} B",
+        < 1024 * 1024 => $"{bytes / 1024.0:0} KB",
+        _ => $"{bytes / 1024.0 / 1024.0:0.0} MB",
+    };
+
+    private sealed record ShownReceipt(string Url, string? ContentType, string Title, string Subtitle);
+}

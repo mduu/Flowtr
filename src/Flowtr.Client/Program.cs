@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Flowtr.Client.Features.Audit;
 using Flowtr.Client.Features.Journal;
+using Flowtr.Client.Features.Receipts;
 using Flowtr.Client.Features.Users;
 using MudBlazor.Services;
 
@@ -15,5 +16,6 @@ builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.H
 builder.Services.AddScoped<IUserAdministration, HttpUserAdministration>();
 builder.Services.AddScoped<IAuditLogReader, HttpAuditLogReader>();
 builder.Services.AddScoped<IJournalApi, HttpJournalApi>();
+builder.Services.AddScoped<IReceiptApi, HttpReceiptApi>();
 
 await builder.Build().RunAsync();

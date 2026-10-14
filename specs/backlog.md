@@ -8,25 +8,16 @@ Ausgearbeitete Stories liegen in [`stories/`](stories/) (Vorlage: [`_template.md
 
 Reihenfolge: Jede Story baut auf der vorherigen auf.
 
-### Beleg hochladen und ablegen
+### E-Mail-Eingang (IMAP)
 
-> Detail-Story: [#008](stories/008-beleg-upload-und-ablage.md)
+> Detail-Story: [#010](stories/010-email-eingang-imap.md)
 
-- Upload mit Fortschritt, fortlaufende Belegnummer, Ablage im Blob Storage nach ADR-001, Beleg im Journal öffnen.
-
-### KI-Extraktion aus dem Beleg
-
-> Detail-Story: [#009](stories/009-ki-extraktion.md)
-
-- Claude liest den Beleg und schlägt die Buchung vor. Der User bestätigt. Erst dann Ablage und Buchung.
+- Rechnungen per E-Mail weiterleiten. Flowtr holt sie ab, analysiert sie und zeigt sie als Eingang zuoberst im Journal. Der User prüft und speichert sie später einzeln.
 
 ## Später
 
 ### E-Mail-Versand
 - Einladungen, Passwort-Reset und Bestätigungen per E-Mail statt Link kopieren.
-
-### E-Mail-Eingang (IMAP)
-- Belege per E-Mail an eine Mailbox weiterleiten (siehe [Konzept](concept.md#eingangskanäle)). Nutzt die Analyse aus #009.
 
 ### Deployment nach Azure
 - Bicep in `deploy/`, Deployment aus GitHub Actions, Managed Identity, Key Vault.
