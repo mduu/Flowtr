@@ -12,6 +12,8 @@ Einfache Buchhaltung für Einnahmen und Ausgaben eines Nebenerwerbs. Jede Buchun
 ## Vision
 Flowtr ist eine Web-App. Mit ihr erfassen Einzelfirmen und Nebenerwerbstätige ihre Einnahmen und Ausgaben einfach. Einmal im Jahr exportiert der User auf Knopfdruck alle Unterlagen für den Treuhänder oder die Schweizer Steuererklärung.
 
+**Scope:** Flowtr ist für den Eigengebrauch gebaut. Es ist keine SaaS-Lösung. Wer Flowtr selbst betreiben will, forkt das Repo und betreibt eine eigene Installation.
+
 ## Schlüsselkonzepte
 - **Beleg rein, Buchung raus:** Der User lädt den Beleg hoch oder leitet ihn per Email weiter. Die KI extrahiert die Buchungsdaten. Der User bestätigt oder korrigiert sie.
 - **Saubere Ablage:** Flowtr nummeriert die Belege, benennt sie um und legt sie 1:1 ab. Jede Buchung im Journal referenziert ihren Beleg.

@@ -16,6 +16,7 @@
 - Vertical Slices / Feature Slices (VSA)
 - CQS-Handler-Pattern. Details: siehe [Coding Guidelines](coding-guidelines.md#cqs-handler)
 - Keine Mandanten / Tenants. Pro Installation gibt es nur einen Tenant.
+- Eigengebrauch, keine SaaS-Lösung. Andere Betreiber forken das Repo und betreiben eine eigene Installation. Kein Code für Registrierung, Abos oder Abrechnung.
 
 ## Komponenten
 - ASP.NET Server mit WebAPI
