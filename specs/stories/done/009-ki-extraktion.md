@@ -18,8 +18,8 @@ Der User lädt nur den Beleg hoch, zuoberst im Buchungsdialog ([#008](008-beleg-
 - **Kosten:** pro Beleg loggen (Tokens). Optional eine Monatslimite.
 - **Fehler:** Wenn die KI nichts erkennt oder nicht erreichbar ist, kann der User die Buchung von Hand erfassen. Der Beleg geht nicht verloren.
 - **Im Dialog:** Während der Analyse zeigt die Beleg-Karte «Beleg wird gelesen …». Danach füllt Flowtr nur **leere** Felder: Was der User schon eingegeben hat, überschreibt die KI nicht. Vorgeschlagene Felder sind dezent markiert («von der KI erkannt»), bis der User sie ändert oder speichert. Alles bleibt von Hand bearbeitbar.
-- **Ein Beleg pro Buchung:** Mehrere Belege auf einmal hochladen braucht es nicht (Entscheid des Users, 14.10.2026). Der [Eingang](../../concept.md#eingang) für E-Mails folgt mit [#010](../010-email-eingang-imap.md) und nutzt dieselbe Analyse.
-- Der E-Mail-Eingang (IMAP) ist eine eigene Story ([#010](../010-email-eingang-imap.md)). Er nutzt dieselbe Analyse.
+- **Ein Beleg pro Buchung:** Mehrere Belege auf einmal hochladen braucht es nicht (Entscheid des Users, 14.10.2026). Der [Eingang](../../concept.md#eingang) für E-Mails folgt mit [#010](010-email-eingang-imap.md) und nutzt dieselbe Analyse.
+- Der E-Mail-Eingang (IMAP) ist eine eigene Story ([#010](010-email-eingang-imap.md)). Er nutzt dieselbe Analyse.
 
 ## Umsetzung
 
@@ -47,7 +47,7 @@ Der User lädt nur den Beleg hoch, zuoberst im Buchungsdialog ([#008](008-beleg-
 - [x] ADR: KI-Anbieter, Datenschutz, Prompt-Injection-Schutz, Wechselkursquelle
 - [x] Analyse: Anthropic-Client, Prompt mit Schema, Kontext aus Kategorien und Gegenparteien, Validierung der Antwort
 - [x] Wechselkurs-Dienst mit Cache
-- [x] Analyse als eigener Use Case (Beleg → Vorschlag), damit der E-Mail-Eingang ([#010](../010-email-eingang-imap.md)) ihn wiederverwendet
+- [x] Analyse als eigener Use Case (Beleg → Vorschlag), damit der E-Mail-Eingang ([#010](010-email-eingang-imap.md)) ihn wiederverwendet
 - [x] UI: Vorschlag im Buchungsdialog (Beleg oben, leere Felder vorausgefüllt, Markierung «von der KI erkannt»)
 - [x] Tests: Antwort-Validierung, Zuordnung aus früheren Buchungen, Bestätigen (Reihenfolge Blob → Buchung), Ausfall der KI. Die KI selbst über eine Schnittstelle mocken
 - [x] Konfiguration und `README.md` (API-Key lokal per User Secrets)

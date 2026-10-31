@@ -21,6 +21,7 @@
 - ASP.NET Server mit WebAPI
 - ASP.NET Identity mit Blazor Pages (.NET Default)
 - Web-Interface in Blazor WebAssembly
+- Hintergrund-Jobs im Server: E-Mail-Eingang per IMAP (MailKit), Aufräumen der Uploads
 
 ## Projektstruktur
 

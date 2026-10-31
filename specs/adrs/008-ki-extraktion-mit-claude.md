@@ -56,7 +56,7 @@ Nach dem Upload eines Belegs soll Flowtr die Buchung vorschlagen: Datum, Art, Be
 ### Positive Auswirkungen
 
 - Ein Beleg genügt für einen Buchungsvorschlag, auch in Fremdwährung.
-- Die Analyse ist ein eigener Use Case (`AnalyzeUpload`). Der E-Mail-Eingang ([#010](../stories/010-email-eingang-imap.md)) nutzt ihn wieder.
+- Die Analyse ist ein eigener Use Case (`AnalyzeUpload`). Der E-Mail-Eingang ([#010](../stories/done/010-email-eingang-imap.md)) nutzt ihn wieder.
 
 ### Negative Auswirkungen / Risiken
 

@@ -1,0 +1,205 @@
+@implements IDisposable
+
+@inject IInboxApi Inbox
+@inject ISnackbar Snackbar
+@inject IDialogService Dialogs
+
+@* The e-mail inbox at the top of the journal (story #010). Without receipts and without an error it is not visible. *@
+@if (view is { } inbox && (inbox.Items.Count > 0 || inbox.Mailbox.LastError is not null))
+{
+    <MudPaper Outlined="true" Class="mb-3">
+        <div class="inbox-header">
+            <MudIcon Icon="@Icons.Material.Outlined.Inbox" Color="Color.Primary" Size="Size.Small" />
+            <MudText Typo="Typo.subtitle2">Eingang</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@Count(inbox.Items.Count)</MudText>
+        </div>
+        @if (inbox.Mailbox.LastError is { } error)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Square="true">@error</MudAlert>
+        }
+        @foreach (var item in inbox.Items)
+        {
+            <div class="inbox-item" role="button" tabindex="0" @onclick="() => OnOpen.InvokeAsync(item)"
+                 @onkeydown="args => Key(args, item)" title="Prüfen und buchen">
+                <MudIcon Icon="@FileIcon(item.ContentType)" Color="@(item.ContentType == MailContentTypes.Mail ? Color.Primary : Color.Error)" />
+                <div class="info">
+                    <MudText Typo="Typo.body2" Class="name">@(item.Proposal?.Description ?? item.Subject)</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary origin">@Origin(item)</MudText>
+                </div>
+                <div class="state">
+                    @switch (item.Analysis)
+                    {
+                        case AnalysisState.Pending:
+                            <MudText Typo="Typo.caption" Color="Color.Primary">
+                                <MudProgressCircular Indeterminate="true" Size="Size.Small" Style="width: 12px; height: 12px; vertical-align: -1px" /> wird gelesen
+                            </MudText>
+                            break;
+                        case AnalysisState.Failed:
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary" title="@item.AnalysisError">nicht gelesen</MudText>
+                            break;
+                        default:
+                            @if (item.Proposal?.AmountChf is { } amount)
+                            {
+                                <MudText Typo="Typo.body2" Color="@(item.Proposal.Kind == BookingKind.Income ? Color.Success : Color.Error)">
+                                    @(item.Proposal.Kind == BookingKind.Income ? "+" : "−")@SwissFormat.Amount(amount)
+                                </MudText>
+                            }
+                            @if (item.Proposal?.Date is { } date)
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@SwissFormat.Date(date)</MudText>
+                            }
+                            break;
+                    }
+                </div>
+                <span @onclick:stopPropagation="true" @onkeydown:stopPropagation="true">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" OnClick="() => Discard(item)"
+                                   aria-label="Verwerfen" title="Verwerfen" />
+                </span>
+            </div>
+        }
+    </MudPaper>
+}
+
+@code {
+    private InboxView? view;
+    private CancellationTokenSource? polling;
+
+    /// <summary>
+    /// A click on a receipt: the journal opens the booking dialog with it.
+    /// </summary>
+    [Parameter]
+    public EventCallback<InboxItemView> OnOpen { get; set; }
+
+    /// <summary>
+    /// The state of the mailbox after each load, for the fetch button of the journal.
+    /// </summary>
+    [Parameter]
+    public EventCallback<MailboxStatus> StatusChanged { get; set; }
+
+    protected override Task OnInitializedAsync() => Reload();
+
+    public async Task Reload()
+    {
+        var result = await Inbox.GetInbox();
+        if (!result.IsSuccess)
+        {
+            return;
+        }
+
+        var before = view?.Mailbox;
+        view = result.Value!;
+        if (before?.IsConfigured != view.Mailbox.IsConfigured)
+        {
+            await StatusChanged.InvokeAsync(view.Mailbox);
+        }
+
+        PollWhilePending();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// «Jetzt abholen»: reads the mailbox and shows the new receipts. The AI reads them in the background.
+    /// </summary>
+    public async Task Fetch()
+    {
+        var result = await Inbox.Fetch();
+
+        if (result.IsSuccess)
+        {
+            var (receipts, rejected) = (result.Value!.Receipts, result.Value.Rejected);
+            Snackbar.Add(receipts switch
+            {
+                0 => "Keine neuen Belege.",
+                1 => "1 neuer Beleg im Eingang.",
+                _ => $"{receipts} neue Belege im Eingang.",
+            } + (rejected > 0 ? $" {rejected} E-Mail(s) von fremden Absendern abgelehnt." : ""), receipts > 0 ? Severity.Success : Severity.Info);
+        }
+        else
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+
+        await Reload();
+    }
+
+    private async Task Discard(InboxItemView item)
+    {
+        var confirmed = await Dialogs.ShowMessageBoxAsync(
+            "Beleg verwerfen?",
+            $"«{item.Subject}» ({item.FileName}) verschwindet aus dem Eingang. Die E-Mail bleibt in der Mailbox.",
+            yesText: "Verwerfen",
+            cancelText: "Abbrechen");
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var result = await Inbox.Discard(item.Id);
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+
+        await Reload();
+    }
+
+    /// <summary>
+    /// While the AI reads receipts, the list loads again every few seconds. Only in the browser.
+    /// </summary>
+    private void PollWhilePending()
+    {
+        if (!RendererInfo.IsInteractive || polling is not null || view?.Items.Any(i => i.Analysis == AnalysisState.Pending) != true)
+        {
+            return;
+        }
+
+        polling = new CancellationTokenSource();
+        _ = Poll(polling.Token);
+    }
+
+    private async Task Poll(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        // Reload starts the next round while receipts are still pending.
+        polling = null;
+        await InvokeAsync(Reload);
+    }
+
+    private async Task Key(KeyboardEventArgs args, InboxItemView item)
+    {
+        if (args.Key is "Enter" or " ")
+        {
+            await OnOpen.InvokeAsync(item);
+        }
+    }
+
+    private static string Count(int receipts) => receipts == 1 ? "1 Beleg" : $"{receipts} Belege";
+
+    /// <summary>
+    /// For example «E-Mail von marc@example.ch · weitergeleitet von Microsoft · 11.10.2026 09:30».
+    /// </summary>
+    private static string Origin(InboxItemView item) =>
+        string.Join(" · ", new[]
+        {
+            $"E-Mail von {item.Sender}",
+            item.OriginalSender is { } original ? $"ursprünglich von {original}" : null,
+            item.ReceivedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm"),
+        }.Where(part => part is not null));
+
+    private static string FileIcon(string contentType) => contentType switch
+    {
+        MailContentTypes.Mail => Icons.Material.Outlined.Email,
+        "application/pdf" => Icons.Material.Outlined.PictureAsPdf,
+        _ => Icons.Material.Outlined.Image,
+    };
+
+    public void Dispose() => polling?.Cancel();
+}

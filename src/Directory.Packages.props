@@ -28,6 +28,9 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.13" />
     <!-- Indirect packages with security fixes -->
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
+    <!-- E-mail inbox -->
+    <PackageVersion Include="HtmlSanitizer" Version="9.2.1039" />
+    <PackageVersion Include="MailKit" Version="4.18.1" />
     <!-- UI -->
     <PackageVersion Include="MudBlazor" Version="9.7.0" />
     <PackageVersion Include="Extensions.MudBlazor.StaticInput" Version="4.1.0" />

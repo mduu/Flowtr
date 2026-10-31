@@ -31,7 +31,7 @@
             <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@error</MudAlert>
         }
         <ReceiptPanel Booking="Booking" Upload="upload" UploadChanged="UploadChanged" @bind-Removed="removeReceipt" ReadOnly="readOnly"
-                      Analyzing="analyzing" />
+                      Analyzing="analyzing" Origin="@(upload?.UploadId == InitialUpload?.UploadId ? Origin : null)" />
         @if (aiMessage is not null)
         {
             <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="() => aiMessage = null">@aiMessage</MudAlert>
@@ -209,6 +209,18 @@
     [Parameter]
     public UploadedReceipt? InitialUpload { get; set; }
 
+    /// <summary>
+    /// The proposal that the AI already made for <see cref="InitialUpload"/> (e-mail inbox). Without it, the dialog reads the receipt.
+    /// </summary>
+    [Parameter]
+    public BookingProposal? InitialProposal { get; set; }
+
+    /// <summary>
+    /// Where <see cref="InitialUpload"/> comes from, for example «E-Mail von …».
+    /// </summary>
+    [Parameter]
+    public string? Origin { get; set; }
+
     private bool readOnly => Booking?.IsLocked == true;
 
     private Color KindColor => form.Kind == BookingKind.Income ? Color.Success : Color.Error;
@@ -230,7 +242,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (upload is not null)
+        if (upload is not null && InitialProposal is not null)
+        {
+            proposal = InitialProposal;
+            Apply(proposal);
+        }
+        else if (upload is not null)
         {
             await Analyze(upload);
         }

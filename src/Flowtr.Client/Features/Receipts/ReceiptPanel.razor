@@ -23,8 +23,7 @@
                 }
                 else
                 {
-                    <MudIcon Icon="@(receipt.ContentType == "application/pdf" ? Icons.Material.Outlined.PictureAsPdf : Icons.Material.Outlined.Image)"
-                             Color="Color.Error" Size="Size.Large" />
+                    <MudIcon Icon="@Icon(receipt.ContentType)" Color="@(receipt.ContentType == MailContentTypes.Mail ? Color.Primary : Color.Error)" Size="Size.Large" />
                 }
             </a>
             <div class="info">
@@ -130,10 +129,16 @@
     [Parameter]
     public bool Analyzing { get; set; }
 
+    /// <summary>
+    /// Where the upload comes from (e-mail inbox). Shown instead of the file size.
+    /// </summary>
+    [Parameter]
+    public string? Origin { get; set; }
+
     private ShownReceipt? Current =>
         Upload is { } upload
             ? new ShownReceipt(ReceiptUrls.Upload(upload.UploadId), upload.ContentType, upload.FileName,
-                $"{FileSize(upload.Size)} · wird beim Speichern abgelegt")
+                $"{Origin ?? FileSize(upload.Size)} · wird beim Speichern abgelegt")
             : Booking is { ReceiptId: { } id } booking && !Removed
                 ? new ShownReceipt(ReceiptUrls.Receipt(id), booking.ReceiptContentType, booking.ReceiptNumber ?? "Beleg", "Abgelegt")
                 : null;
@@ -186,6 +191,13 @@
             await RemovedChanged.InvokeAsync(true);
         }
     }
+
+    private static string Icon(string? contentType) => contentType switch
+    {
+        MailContentTypes.Mail => Icons.Material.Outlined.Email,
+        "application/pdf" => Icons.Material.Outlined.PictureAsPdf,
+        _ => Icons.Material.Outlined.Image,
+    };
 
     private static string FileSize(long bytes) => bytes switch
     {

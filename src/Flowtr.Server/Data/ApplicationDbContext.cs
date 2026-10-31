@@ -1,4 +1,5 @@
 using Flowtr.Server.CrossCutting.Audit;
+using Flowtr.Server.Features.Inbox.Model;
 using Flowtr.Server.Features.Journal.Model;
 using Flowtr.Server.Features.Receipts.Model;
 using Microsoft.AspNetCore.Identity;
@@ -36,6 +37,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<ReceiptSequence> ReceiptSequences => Set<ReceiptSequence>();
 
+    public DbSet<ImportedMail> ImportedMails => Set<ImportedMail>();
+
+    public DbSet<InboxItem> InboxItems => Set<InboxItem>();
+
+    public DbSet<AllowedSender> AllowedSenders => Set<AllowedSender>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -55,6 +62,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         builder.ConfigureJournal();
         builder.ConfigureReceipts();
+        builder.ConfigureInbox();
 
         builder.Entity<IdentityRole>().HasData(
             new IdentityRole { Id = RoleIds.Admin, Name = FlowtrRoles.Admin, NormalizedName = FlowtrRoles.Admin.ToUpperInvariant(), ConcurrencyStamp = RoleIds.Admin },

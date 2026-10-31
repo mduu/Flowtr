@@ -1,0 +1,134 @@
+@page "/email-eingang"
+@attribute [Authorize(Roles = Roles.Admin)]
+
+@inject IInboxApi Inbox
+@inject ISnackbar Snackbar
+
+<PageTitle>E-Mail-Eingang – Flowtr</PageTitle>
+
+<AdminNav />
+
+@if (settings is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudPaper Outlined="true" Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-2">Mailbox</MudText>
+        @if (!settings.Mailbox.IsConfigured)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">
+                Keine Mailbox eingerichtet. Die Zugangsdaten stehen in der Konfiguration (Abschnitt «Mailbox», siehe README).
+            </MudAlert>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2">Leite Rechnungen an <strong>@settings.Mailbox.Address</strong> weiter. Flowtr holt sie alle paar Minuten ab.</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                @(settings.Mailbox.LastFetch is { } at ? $"Zuletzt abgeholt: {at.ToLocalTime():dd.MM.yyyy HH:mm}" : "Noch nicht abgeholt seit dem Start.")
+            </MudText>
+            @if (settings.Mailbox.LastError is { } error)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">@error</MudAlert>
+            }
+        }
+    </MudPaper>
+
+    <MudText Typo="Typo.h6" Class="mb-1">Erlaubte Absender</MudText>
+    <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+        Flowtr nimmt nur E-Mails von diesen Absendern in den Eingang. Andere E-Mails landen in der Mailbox im Ordner «Flowtr/Abgelehnt».
+        Die Adressen der Benutzer sind immer erlaubt. Eine Domain (z.B. @@stripe.com) erlaubt alle ihre Adressen.
+    </MudText>
+
+    <MudPaper Outlined="true" Class="pa-4 mb-4">
+        <EditForm Model="newSender" OnValidSubmit="Add">
+            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2" AlignItems="AlignItems.Center">
+                <MudTextField @bind-Value="newSender.Address" Immediate="true" Label="Adresse oder Domain" Placeholder="@Example"
+                              Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 280px" />
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add"
+                           Disabled="busy || string.IsNullOrWhiteSpace(newSender.Address)">Hinzufügen</MudButton>
+            </MudStack>
+        </EditForm>
+    </MudPaper>
+
+    <MudList T="string" Dense="true" Class="mud-paper-outlined" Style="border: 1px solid var(--mud-palette-lines-default); border-radius: var(--mud-default-borderradius)">
+        @foreach (var address in settings.UserAddresses)
+        {
+            <MudListItem T="string" Icon="@Icons.Material.Outlined.Person">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudText Typo="Typo.body2">@address</MudText>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Benutzer</MudChip>
+                </MudStack>
+            </MudListItem>
+        }
+        @foreach (var sender in settings.Senders)
+        {
+            <MudListItem T="string" Icon="@(sender.Address.StartsWith('@') ? Icons.Material.Outlined.Domain : Icons.Material.Outlined.AlternateEmail)">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.body2">@sender.Address</MudText>
+                    <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" Size="Size.Small" OnClick="() => Remove(sender)"
+                                   Disabled="busy" aria-label="@($"{sender.Address} entfernen")" title="Entfernen" />
+                </MudStack>
+            </MudListItem>
+        }
+    </MudList>
+}
+
+@code {
+    private const string Example = "rechnungen@firma.ch oder @firma.ch";
+
+    private readonly NewSender newSender = new();
+    private SenderSettings? settings;
+    private bool busy;
+
+    protected override Task OnInitializedAsync() => Load();
+
+    private async Task Load()
+    {
+        var result = await Inbox.GetSenderSettings();
+        if (result.IsSuccess)
+        {
+            settings = result.Value;
+        }
+        else
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+    }
+
+    private async Task Add()
+    {
+        busy = true;
+        var result = await Inbox.AddSender(new SenderInput(newSender.Address));
+        busy = false;
+
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+            return;
+        }
+
+        newSender.Address = "";
+        await Load();
+    }
+
+    private async Task Remove(SenderView sender)
+    {
+        busy = true;
+        var result = await Inbox.RemoveSender(sender.Id);
+        busy = false;
+
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+
+        await Load();
+    }
+
+    private sealed class NewSender
+    {
+        public string Address { get; set; } = "";
+    }
+}

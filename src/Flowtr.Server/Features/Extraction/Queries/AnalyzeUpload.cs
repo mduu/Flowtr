@@ -2,8 +2,10 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.Data;
+using Flowtr.Server.Features.Inbox.Mail;
 using Flowtr.Server.Features.Receipts;
 using Flowtr.Shared;
+using Flowtr.Shared.Inbox;
 using Flowtr.Shared.Journal;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,9 +17,10 @@ namespace Flowtr.Server.Features.Extraction.Queries;
 /// <remarks>
 /// The answer of the AI is only a proposal: Flowtr keeps only valid values (date, amount, currency, a category of the
 /// right kind, known payment methods), takes category and payment method of earlier bookings of the same
-/// counterparty, and converts foreign currencies to CHF.
+/// counterparty, and converts foreign currencies to CHF. A mail as receipt goes to the AI as text (ADR-009).
 /// </remarks>
-public sealed record AnalyzeUpload(Guid UploadId);
+/// <param name="Origin">Where the receipt comes from, for example the sender of the mail. A hint for the counterparty.</param>
+public sealed record AnalyzeUpload(Guid UploadId, string? Origin = null);
 
 public sealed partial class AnalyzeUploadHandler(
     ApplicationDbContext db,
@@ -43,8 +46,16 @@ public sealed partial class AnalyzeUploadHandler(
             content = buffer.ToArray();
         }
 
+        var contentType = upload.ContentType;
+        if (contentType == MailContentTypes.Mail)
+        {
+            content = System.Text.Encoding.UTF8.GetBytes(MailText.ForReader(content));
+            contentType = "text/plain";
+        }
+
         var today = DateOnly.FromDateTime(time.GetLocalNow().DateTime);
-        var reading = await reader.Read(content, upload.ContentType, await Context(today, cancellationToken), cancellationToken);
+        var context = await Context(today, cancellationToken) with { Origin = query.Origin };
+        var reading = await reader.Read(content, contentType, context, cancellationToken);
         if (!reading.IsSuccess)
         {
             return Result.Failure<BookingProposal>(reading.Error!);

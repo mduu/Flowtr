@@ -25,9 +25,15 @@ Flowtr verarbeitet Buchhaltungsdaten. Darum ist Security ein Key-Feature und Tei
 - Der Inhalt eines Belegs ist Daten, nie eine Anweisung: Die Antwort der KI füllt nur ein Formular, das der User prüft. Flowtr prüft jeden Wert.
 - Wechselkurse holt Flowtr bei Frankfurter (EZB). Dabei gehen nur Währung und Datum hinaus, kein Beleg.
 
+## E-Mail-Eingang
+- Zugang zur Mailbox per IMAP mit TLS. Passwort nur in User Secrets bzw. Key Vault ([ADR-009](adrs/009-email-eingang-mail-als-beleg.md)).
+- Nur erlaubte Absender: die Adressen der User und eine Liste, die nur Admins pflegen. Bei `dmarc=fail` oder bei `spf=fail` ohne `dkim=pass` (Header `Authentication-Results` des Providers) gilt die Mail als gefälscht. Abgelehnte Mails landen in «Flowtr/Abgelehnt» und im Audit-Log.
+- Inhalt einer Mail ist Daten, nie eine Anweisung (wie bei Belegen).
+- HTML aus Mails zeigt Flowtr nur bereinigt (HtmlSanitizer) und mit einer eigenen Content-Security-Policy mit `sandbox`: kein Skript, keine Cookies, nichts von fremden Servern (keine Tracking-Pixel).
+
 ## Unveränderbarkeit
 - Belege liegen im Blob Storage mit Versionierung und Soft-Delete. Ein Beleg überschreibt nie einen anderen, die Nummern vergibt eine Sequenz ([ADR-007](adrs/007-belegnummern-per-sequenz.md)).
-- Flowtr prüft Uploads am Inhalt (PDF und Bilder, höchstens 20 MB) und speichert den SHA-256 jedes Belegs.
+- Flowtr prüft Uploads am Inhalt (PDF und Bilder, höchstens 20 MB) und speichert den SHA-256 jedes Belegs. Eine Mail als Beleg bleibt das unveränderte Original (`.eml`).
 - Eine Immutability-Policy schützt Belege abgeschlossener Jahre (10 Jahre, OR 958f). Siehe [ADR-001](adrs/001-belegablage-in-blob-storage.md).
 
 ## Web-Sicherheit

@@ -2,6 +2,9 @@ using Flowtr.Server.CrossCutting.Audit;
 using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.Data;
 using Flowtr.Server.Features.Extraction;
+using Flowtr.Server.Features.Inbox;
+using Flowtr.Server.Features.Inbox.Mail;
+using Flowtr.Tests.Inbox;
 using Flowtr.Server.Features.Journal;
 using Flowtr.Tests.Extraction;
 using Flowtr.Server.Features.Receipts;
@@ -20,7 +23,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Flowtr.Tests;
 
 /// <summary>
-/// The server services (Identity, audit log, journal, handlers) on an in-memory database.
+/// The server services (Identity, audit log, journal, inbox, handlers) on an in-memory database.
 /// </summary>
 internal sealed class TestApp : IDisposable
 {
@@ -75,6 +78,14 @@ internal sealed class TestApp : IDisposable
         services.AddExtraction(configuration);
         services.AddSingleton<IReceiptReader>(Reader);
         services.AddSingleton<IExchangeRates>(Rates);
+        services.AddInbox(configuration);
+        services.AddSingleton<IMailbox>(Mailbox);
+        services.Configure<MailboxOptions>(options =>
+        {
+            options.Host = "imap.flowtr.test";
+            options.UserName = "belege@flowtr.test";
+            options.Password = "test";
+        });
         services.AddHandlers(typeof(Program).Assembly);
         configure?.Invoke(services);
 
@@ -92,6 +103,8 @@ internal sealed class TestApp : IDisposable
     public FakeReceiptReader Reader { get; } = new();
 
     public FakeExchangeRates Rates { get; } = new();
+
+    public FakeMailbox Mailbox { get; } = new();
 
     public ApplicationDbContext Db => Get<ApplicationDbContext>();
 

@@ -12,6 +12,7 @@ using Flowtr.Server.Data;
 using Flowtr.Server.Features.Appearance;
 using Flowtr.Server.Features.Audit;
 using Flowtr.Server.Features.Extraction;
+using Flowtr.Server.Features.Inbox;
 using Flowtr.Server.Features.Journal;
 using Flowtr.Server.Features.Receipts;
 using Flowtr.Server.Features.Users;
@@ -51,6 +52,7 @@ builder.Services.AddScoped<IAuditLogReader, ServerAuditLogReader>();
 builder.Services.AddJournal();
 builder.Services.AddReceipts();
 builder.Services.AddExtraction(builder.Configuration);
+builder.Services.AddInbox(builder.Configuration);
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
@@ -92,6 +94,7 @@ api.MapUsersEndpoints();
 api.MapAuditEndpoints();
 api.MapJournalEndpoints();
 api.MapReceiptEndpoints();
+api.MapInboxEndpoints();
 
 app.MapDefaultEndpoints();
 

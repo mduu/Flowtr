@@ -16,9 +16,29 @@
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
     <MudText Typo="Typo.h5">Journal</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add" OnClick="New"
-               Disabled="options is null || journal?.IsClosed == true">Neue Buchung</MudButton>
+    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+        @if (mailbox?.IsConfigured == true)
+        {
+            @if (fetching)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" Class="mx-3" />
+            }
+            else
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.MarkEmailUnread" OnClick="Fetch" aria-label="E-Mails jetzt abholen"
+                               title="@($"E-Mails jetzt abholen ({mailbox.Address})")" />
+            }
+        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add" OnClick="New"
+                   Disabled="options is null || journal?.IsClosed == true">Neue Buchung</MudButton>
+    </MudStack>
 </MudStack>
+
+@* Only after the journal: during prerendering, the inbox uses the same DbContext. *@
+@if (journal is not null)
+{
+    <InboxPanel @ref="inbox" OnOpen="OpenInboxItem" StatusChanged="status => mailbox = status" />
+}
 
 <MudGrid Spacing="2" Class="mb-3">
     <MudItem xs="4">
@@ -190,6 +210,9 @@ else
         Indentation = false,
     };
 
+    private InboxPanel? inbox;
+    private MailboxStatus? mailbox;
+    private bool fetching;
     private JournalFilter filter = default!;
     private JournalView? journal;
     private BookingOptions? options;
@@ -295,7 +318,20 @@ else
         }
     }
 
-    private async Task Open(BookingView? booking, string title, UploadedReceipt? upload = null)
+    private async Task Fetch()
+    {
+        fetching = true;
+        await inbox!.Fetch();
+        fetching = false;
+    }
+
+    /// <summary>
+    /// A receipt from the inbox: a new booking with it and the proposal of the AI. Saving takes it from the inbox.
+    /// </summary>
+    private Task OpenInboxItem(InboxItemView item) =>
+        Open(null, "Beleg aus dem Eingang buchen", item.Upload, item.Analysis == AnalysisState.Done ? item.Proposal : null, $"E-Mail von {item.Sender}");
+
+    private async Task Open(BookingView? booking, string title, UploadedReceipt? upload = null, BookingProposal? proposal = null, string? origin = null)
     {
         var parameters = new DialogParameters<BookingDialog>
         {
@@ -304,6 +340,8 @@ else
             { dialog => dialog.DefaultDate, DefaultDate() },
             { dialog => dialog.Title, title },
             { dialog => dialog.InitialUpload, upload },
+            { dialog => dialog.InitialProposal, proposal },
+            { dialog => dialog.Origin, origin },
         };
 
         // On a phone the dialog uses the full screen, like an app.
@@ -315,6 +353,11 @@ else
             filter = filter with { Year = date.Year };
             await LoadOptions();
             await Load();
+        }
+
+        if (upload is not null && inbox is not null)
+        {
+            await inbox.Reload();
         }
     }
 

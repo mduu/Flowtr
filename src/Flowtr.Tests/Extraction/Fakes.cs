@@ -12,9 +12,15 @@ internal sealed class FakeReceiptReader : IReceiptReader
 
     public ReadingContext? LastContext { get; private set; }
 
+    public byte[]? LastContent { get; private set; }
+
+    public string? LastContentType { get; private set; }
+
     public Task<Result<ReceiptReading>> Read(byte[] content, string contentType, ReadingContext context, CancellationToken cancellationToken)
     {
         LastContext = context;
+        LastContent = content;
+        LastContentType = contentType;
         return Task.FromResult(Next);
     }
 }

@@ -2,6 +2,7 @@ using Flowtr.Server.Data;
 using Flowtr.Server.Features.Journal.Model;
 using Flowtr.Server.Features.Receipts.Model;
 using Flowtr.Shared;
+using Flowtr.Shared.Inbox;
 using Flowtr.Shared.Journal;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,6 +31,7 @@ public sealed class ReceiptFiling(ApplicationDbContext db, IReceiptStore store, 
 
         var existing = booking.ReceiptId is { } id ? await db.Set<Receipt>().FindAsync([id], cancellationToken) : null;
         var oldBlob = existing?.BlobName;
+        await TakeFromInbox(uploadId, cancellationToken);
 
         for (var attempt = 1; ; attempt++)
         {
@@ -81,6 +83,17 @@ public sealed class ReceiptFiling(ApplicationDbContext db, IReceiptStore store, 
 
             logger.LogInformation("Filed receipt {Number} as {BlobName}", receipt.Number, receipt.BlobName);
             return Result.Success();
+        }
+    }
+
+    /// <summary>
+    /// A receipt from the e-mail inbox is booked with this save: it leaves the inbox in the same transaction.
+    /// </summary>
+    private async Task TakeFromInbox(Guid uploadId, CancellationToken cancellationToken)
+    {
+        if (await db.InboxItems.FirstOrDefaultAsync(i => i.UploadId == uploadId, cancellationToken) is { } item)
+        {
+            db.InboxItems.Remove(item);
         }
     }
 
@@ -181,6 +194,7 @@ public sealed class ReceiptFiling(ApplicationDbContext db, IReceiptStore store, 
         "image/png" => ".png",
         "image/webp" => ".webp",
         "image/heic" => ".heic",
+        MailContentTypes.Mail => ".eml",
         _ => "",
     };
 }

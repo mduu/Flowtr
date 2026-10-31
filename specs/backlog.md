@@ -4,16 +4,6 @@ Dieses Backlog listet Ideen für künftige Stories. Setze diese Ideen nur um, we
 
 Ausgearbeitete Stories liegen in [`stories/`](stories/) (Vorlage: [`_template.md`](stories/_template.md)). Dieses Backlog verlinkt sie.
 
-## Als Nächstes
-
-Reihenfolge: Jede Story baut auf der vorherigen auf.
-
-### E-Mail-Eingang (IMAP)
-
-> Detail-Story: [#010](stories/010-email-eingang-imap.md)
-
-- Rechnungen per E-Mail weiterleiten. Flowtr holt sie ab, analysiert sie und zeigt sie als Eingang zuoberst im Journal. Der User prüft und speichert sie später einzeln.
-
 ## Später
 
 ### E-Mail-Versand

@@ -15,6 +15,7 @@ public static class ReceiptModel
             receipt.Property(r => r.ContentType).HasMaxLength(100);
             receipt.Property(r => r.Sha256).HasMaxLength(64);
             receipt.HasIndex(r => r.Number).IsUnique();
+            receipt.HasIndex(r => r.Sha256);
             receipt.HasIndex(r => new { r.Year, r.Kind, r.SequenceNumber }).IsUnique();
         });
 

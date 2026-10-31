@@ -14,6 +14,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" />
+    <PackageReference Include="HtmlSanitizer" />
+    <PackageReference Include="MailKit" />
     <PackageReference Include="MudBlazor" />
     <PackageReference Include="Extensions.MudBlazor.StaticInput" />
   </ItemGroup>

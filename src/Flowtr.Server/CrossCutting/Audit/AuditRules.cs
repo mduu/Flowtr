@@ -1,4 +1,5 @@
 using Flowtr.Server.Data;
+using Flowtr.Server.Features.Inbox.Model;
 using Flowtr.Server.Features.Journal.Model;
 using Flowtr.Server.Features.Receipts.Model;
 using Microsoft.AspNetCore.Identity;
@@ -37,6 +38,12 @@ public static class AuditRules
         [typeof(PaymentMethod)] = new AuditRule("PaymentMethod", Hidden: new HashSet<string>(), Ignored: new HashSet<string>()),
         [typeof(Receipt)] = new AuditRule("Receipt", Hidden: new HashSet<string>(), Ignored: new HashSet<string>()),
         [typeof(ClosedYear)] = new AuditRule("ClosedYear", Hidden: new HashSet<string>(), Ignored: new HashSet<string>()),
+
+        // E-mail inbox (ADR-009): import and rejection of a mail, a receipt that comes in and goes (discarded, booked, expired).
+        // The analysis changes an inbox item: it is not relevant for the audit log.
+        [typeof(ImportedMail)] = new AuditRule("Mail", Hidden: new HashSet<string>(), Ignored: new HashSet<string> { nameof(ImportedMail.MessageKey) }, AuditModified: false),
+        [typeof(InboxItem)] = new AuditRule("InboxItem", Hidden: new HashSet<string>(), Ignored: new HashSet<string> { nameof(InboxItem.Proposal), nameof(InboxItem.AnalysisError) }, AuditModified: false),
+        [typeof(AllowedSender)] = new AuditRule("AllowedSender", Hidden: new HashSet<string>(), Ignored: new HashSet<string>()),
 
         // A passkey sign-in updates the passkey data (sign count). Only create and delete are relevant.
         [typeof(IdentityUserPasskey<string>)] = new AuditRule(

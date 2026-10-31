@@ -54,9 +54,35 @@ public sealed class GetAuditEntriesHandler(ApplicationDbContext db) : IQueryHand
         ["SortOrder"] = "Reihenfolge",
         ["Year"] = "Jahr",
         ["ClosedAt"] = "Abgeschlossen am",
+        ["MessageId"] = "Message-ID",
+        ["Sender"] = "Absender",
+        ["OriginalSender"] = "Ursprünglicher Absender",
+        ["Subject"] = "Betreff",
+        ["ReceivedAt"] = "Empfangen am",
+        ["ImportedAt"] = "Importiert am",
+        ["Outcome"] = "Ergebnis",
+        ["Reason"] = "Grund",
+        ["MailId"] = "E-Mail",
+        ["UploadId"] = "Upload",
+        ["FileName"] = "Datei",
+        ["ContentType"] = "Dateityp",
+        ["Size"] = "Grösse (Bytes)",
+        ["Sha256"] = "SHA-256",
+        ["Analysis"] = "Analyse",
+        ["Address"] = "Adresse",
     };
 
     private static readonly HashSet<string> amountProperties = ["AmountChf", "OriginalAmount", "VatAmount"];
+
+    private static readonly Dictionary<string, string> valueLabels = new()
+    {
+        ["Imported"] = "Importiert",
+        ["Duplicate"] = "Schon bekannt",
+        ["Rejected"] = "Abgelehnt",
+        ["Pending"] = "Offen",
+        ["Done"] = "Gelesen",
+        ["Failed"] = "Fehlgeschlagen",
+    };
 
     private static readonly Dictionary<AuditAction, string> actionLabels = new()
     {
@@ -159,7 +185,23 @@ public sealed class GetAuditEntriesHandler(ApplicationDbContext db) : IQueryHand
                 changes => Value(changes, "Name"), cancellationToken);
         }
 
+        await AddInboxNames(names, page, cancellationToken);
         return names;
+    }
+
+    /// <summary>
+    /// Mails by subject (also the mail of an inbox receipt), inbox receipts by file name, allowed senders by address.
+    /// </summary>
+    private async Task AddInboxNames(Dictionary<string, string> names, List<AuditEntry> page, CancellationToken cancellationToken)
+    {
+        var mailIds = page.Where(entry => entry.EntityType == "Mail").Select(entry => entry.EntityId)
+            .Concat(page.Where(entry => entry.EntityType == "InboxItem").Select(entry => Value(Parse(entry.Changes), "MailId")).OfType<string>());
+        await AddFromHistory(names, "Mail", mailIds, changes => Value(changes, "Subject"), cancellationToken);
+
+        await AddFromHistory(names, "InboxItem", page.Where(entry => entry.EntityType == "InboxItem").Select(entry => entry.EntityId),
+            changes => Value(changes, "FileName"), cancellationToken);
+        await AddFromHistory(names, "AllowedSender", page.Where(entry => entry.EntityType == "AllowedSender").Select(entry => entry.EntityId),
+            changes => Value(changes, "Address"), cancellationToken);
     }
 
     private async Task AddFromHistory(
@@ -250,6 +292,7 @@ public sealed class GetAuditEntriesHandler(ApplicationDbContext db) : IQueryHand
             JsonValueKind.String when property == "RoleId" => Roles.GetValueOrDefault(value.GetString()!, value.GetString()!),
             JsonValueKind.String when property == "UserId" => Users.GetValueOrDefault(value.GetString()!, value.GetString()!),
             JsonValueKind.String when property.EndsWith("Id") => Entities.GetValueOrDefault(value.GetString()!, value.GetString()!),
+            JsonValueKind.String when property is "Outcome" or "Analysis" => valueLabels.GetValueOrDefault(value.GetString()!, value.GetString()!),
             JsonValueKind.String when property == "Kind" => value.GetString() == nameof(BookingKind.Income) ? "Einnahme" : "Ausgabe",
             JsonValueKind.String when DateOnly.TryParseExact(value.GetString(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var day) =>
                 SwissFormat.Date(day),

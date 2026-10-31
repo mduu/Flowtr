@@ -58,6 +58,17 @@ dotnet user-secrets set "Anthropic:ApiKey" "<key>" --project src/Flowtr.Server
 
 Ohne Key funktioniert alles ausser dem automatischen Ausfüllen. `Anthropic:Model` wählt das Modell. Gehört der Key zu keinem Workspace, braucht es zusätzlich `Anthropic:WorkspaceId`.
 
+**E-Mail-Eingang:** Flowtr holt weitergeleitete Rechnungen per IMAP ab ([ADR-009](specs/adrs/009-email-eingang-mail-als-beleg.md)). Lokal startet Aspire eine Test-Mailbox (GreenMail): Test-Mails per SMTP an `belege@flowtr.test` über `localhost:3025` senden. Für eine echte Mailbox (z.B. Hostpoint) die Test-Mailbox ausschalten und die Zugangsdaten als User Secrets des Servers setzen, im Betrieb als App-Einstellungen `Mailbox__…` (Passwort aus dem Key Vault):
+
+```bash
+dotnet user-secrets set "TestMailbox" "false" --project src/Flowtr.AppHost
+dotnet user-secrets set "Mailbox:Host" "imap.mail.hostpoint.ch" --project src/Flowtr.Server
+dotnet user-secrets set "Mailbox:UserName" "belege@example.ch" --project src/Flowtr.Server
+dotnet user-secrets set "Mailbox:Password" "<passwort>" --project src/Flowtr.Server
+```
+
+Standard: Port 993 mit TLS, Ordner `INBOX`, Abholen alle 5 Minuten (`Mailbox:Interval`). Verarbeitete Mails verschiebt Flowtr nach «Flowtr/Verarbeitet», abgelehnte nach «Flowtr/Abgelehnt». Erlaubte Absender pflegen Admins unter «Verwaltung → E-Mail-Eingang».
+
 ## Spezifikationen
 | Dokument | Inhalt |
 | :-- | :-- |

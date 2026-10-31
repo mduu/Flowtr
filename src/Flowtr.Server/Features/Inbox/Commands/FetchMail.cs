@@ -1,0 +1,205 @@
+using System.Security.Authentication;
+using System.Security.Cryptography;
+using Flowtr.Server.CrossCutting.Cqs;
+using Flowtr.Server.Data;
+using Flowtr.Server.Features.Inbox.Mail;
+using Flowtr.Server.Features.Inbox.Model;
+using Flowtr.Server.Features.Receipts;
+using Flowtr.Shared;
+using Flowtr.Shared.Inbox;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using MimeKit;
+
+namespace Flowtr.Server.Features.Inbox.Commands;
+
+/// <summary>
+/// Reads the mailbox and puts the receipts of allowed mails into the inbox (story #010, ADR-009).
+/// Order per mail: files to <c>eingang</c>, then the database, then the mail to «Flowtr/Verarbeitet» or «Flowtr/Abgelehnt».
+/// </summary>
+/// <remarks>
+/// A mail that fails stays in the mailbox: the next fetch tries it again. A mail that Flowtr knows (<see cref="ImportedMail"/>)
+/// is only moved: the move after the last import failed.
+/// </remarks>
+public sealed record FetchMail;
+
+public sealed class FetchMailHandler(
+    ApplicationDbContext db,
+    IMailbox mailbox,
+    IReceiptStore store,
+    SenderCheck senders,
+    MailboxState state,
+    IOptions<MailboxOptions> options,
+    TimeProvider time,
+    ILogger<FetchMailHandler> logger)
+    : ICommandHandler<FetchMail, Result<FetchResult>>
+{
+    public const string NotConfigured = "Die Mailbox ist nicht eingerichtet.";
+
+    public const string Unreachable = "Die Mailbox ist nicht erreichbar. Flowtr versucht es beim nächsten Abholen wieder.";
+
+    public async Task<Result<FetchResult>> Handle(FetchMail command, CancellationToken cancellationToken)
+    {
+        if (!options.Value.IsConfigured)
+        {
+            return Result.Failure<FetchResult>(NotConfigured);
+        }
+
+        await state.Lock.WaitAsync(cancellationToken);
+        try
+        {
+            return await Fetch(cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(exception, "Fetching mail from {Host} failed", options.Value.Host);
+            state.Failed(Unreachable);
+            return Result.Failure<FetchResult>(Unreachable);
+        }
+        finally
+        {
+            state.Lock.Release();
+        }
+    }
+
+    private async Task<Result<FetchResult>> Fetch(CancellationToken cancellationToken)
+    {
+        IMailboxSession session;
+        try
+        {
+            session = await mailbox.Open(cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(exception, "Mailbox {Host} not reachable", options.Value.Host);
+            var error = exception is AuthenticationException or MailKit.Security.AuthenticationException
+                ? "Die Anmeldung an der Mailbox ist fehlgeschlagen. Bitte Benutzer und Passwort prüfen."
+                : Unreachable;
+            state.Failed(error);
+            return Result.Failure<FetchResult>(error);
+        }
+
+        var (receipts, rejected) = (0, 0);
+        await using (session)
+        {
+            foreach (var id in await session.List(cancellationToken))
+            {
+                try
+                {
+                    var message = await session.Get(id, cancellationToken);
+                    var (folder, imported) = await Import(message, cancellationToken);
+                    await session.Move(id, folder, cancellationToken);
+                    receipts += imported;
+                    rejected += folder == options.Value.RejectedFolder ? 1 : 0;
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    logger.LogError(exception, "Mail {Id} not imported, it stays in the mailbox", id);
+                    db.ChangeTracker.Clear();
+                }
+            }
+        }
+
+        state.Succeeded(time.GetUtcNow());
+        if (receipts > 0 || rejected > 0)
+        {
+            logger.LogInformation("Fetched mail: {Receipts} receipts, {Rejected} mails rejected", receipts, rejected);
+        }
+
+        return Result.Success(new FetchResult(receipts, rejected));
+    }
+
+    /// <returns>The folder to move the mail to and the number of new receipts.</returns>
+    private async Task<(string Folder, int Receipts)> Import(MimeMessage message, CancellationToken cancellationToken)
+    {
+        var key = MailReceipts.MessageKey(message);
+        if (await db.ImportedMails.AsNoTracking().FirstOrDefaultAsync(m => m.MessageKey == key, cancellationToken) is { } known)
+        {
+            return (Folder(known.Outcome), 0);
+        }
+
+        var now = time.GetUtcNow();
+        var mail = new ImportedMail
+        {
+            MessageKey = key,
+            MessageId = message.MessageId is { } messageId ? MailReceipts.Shorten(messageId, 300) : null,
+            Sender = MailReceipts.Shorten(MailReceipts.Sender(message) ?? message.From.ToString(), 256),
+            OriginalSender = MailReceipts.OriginalSender(message),
+            Subject = MailReceipts.Shorten(message.Subject ?? "", 500),
+            ReceivedAt = message.Date == DateTimeOffset.MinValue ? now : message.Date,
+            ImportedAt = now,
+        };
+        db.ImportedMails.Add(mail);
+
+        if (await senders.Reject(message, cancellationToken) is { } reason)
+        {
+            mail.Outcome = MailOutcome.Rejected;
+            mail.Reason = reason;
+            await db.SaveChangesAsync(cancellationToken);
+            logger.LogWarning("Rejected mail from {Sender} ({Subject}): {Reason}", mail.Sender, mail.Subject, reason);
+            return (options.Value.RejectedFolder, 0);
+        }
+
+        var items = await SaveUploads(mail, MailReceipts.Files(message), cancellationToken);
+        mail.Outcome = items.Count > 0 ? MailOutcome.Imported : MailOutcome.Duplicate;
+        db.InboxItems.AddRange(items);
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch
+        {
+            foreach (var item in items)
+            {
+                await store.DeleteUpload(item.UploadId, CancellationToken.None);
+            }
+
+            throw;
+        }
+
+        logger.LogInformation("Imported mail from {Sender} ({Subject}): {Count} receipts", mail.Sender, mail.Subject, items.Count);
+        return (options.Value.ProcessedFolder, items.Count);
+    }
+
+    /// <summary>
+    /// Puts each new file into <c>eingang</c>. A file that is in the inbox or filed already is left out.
+    /// </summary>
+    private async Task<List<InboxItem>> SaveUploads(ImportedMail mail, IReadOnlyList<MailFile> files, CancellationToken cancellationToken)
+    {
+        var items = new List<InboxItem>();
+        foreach (var file in files)
+        {
+            var sha256 = Convert.ToHexStringLower(SHA256.HashData(file.Content));
+            if (items.Any(i => i.Sha256 == sha256) || await IsKnown(sha256, cancellationToken))
+            {
+                logger.LogInformation("Receipt {FileName} from mail {Subject} is known already", file.FileName, mail.Subject);
+                continue;
+            }
+
+            var item = new InboxItem
+            {
+                MailId = mail.Id,
+                UploadId = Guid.CreateVersion7(),
+                FileName = MailReceipts.Shorten(file.FileName, 255),
+                ContentType = file.ContentType,
+                Size = file.Content.Length,
+                Sha256 = sha256,
+                ImportedAt = mail.ImportedAt,
+                Analysis = AnalysisState.Pending,
+            };
+            await store.SaveUpload(item.UploadId, new MemoryStream(file.Content),
+                new UploadInfo(item.FileName, item.ContentType, item.Size, sha256, mail.ImportedAt), cancellationToken);
+            items.Add(item);
+        }
+
+        return items;
+    }
+
+    private async Task<bool> IsKnown(string sha256, CancellationToken cancellationToken) =>
+        await db.InboxItems.AnyAsync(i => i.Sha256 == sha256, cancellationToken)
+        || await db.Receipts.AnyAsync(r => r.Sha256 == sha256, cancellationToken);
+
+    private string Folder(MailOutcome outcome) =>
+        outcome == MailOutcome.Rejected ? options.Value.RejectedFolder : options.Value.ProcessedFolder;
+}

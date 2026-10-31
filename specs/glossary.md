@@ -3,6 +3,7 @@
 | Begriff | Bedeutung |
 | :-- | :-- |
 | **Beleg** | Quittung/Rechnung als Datei (PDF, Bild, Email), Nachweis einer Buchung. |
+| **Eingang** | Belege aus weitergeleiteten E-Mails, die noch keine Buchung haben. Zuoberst im Journal. |
 | **Belegnummer** | Fortlaufende Nummer, mit der ein Beleg abgelegt und umbenannt wird. |
 | **Buchung** | Eine Zeile im Journal (Einnahme oder Ausgabe) mit Referenz auf ihren Beleg. |
 | **Journal** | Chronologische Liste aller Buchungen (aka Milchbüchlein). |

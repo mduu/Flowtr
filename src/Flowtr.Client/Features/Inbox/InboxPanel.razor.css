@@ -1,0 +1,44 @@
+.inbox-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+.inbox-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 8px 8px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+    .inbox-item:last-child {
+        border-bottom: none;
+    }
+
+    .inbox-item:hover,
+    .inbox-item:focus-visible {
+        background: var(--mud-palette-action-default-hover);
+        outline: none;
+    }
+
+    .inbox-item .info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .inbox-item .state {
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    .inbox-item ::deep .name,
+    .inbox-item ::deep .origin {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
