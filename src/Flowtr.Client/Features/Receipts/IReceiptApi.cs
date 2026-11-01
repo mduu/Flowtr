@@ -12,9 +12,9 @@ public interface IReceiptApi
     Task<Result<UploadedReceipt>> Upload(IBrowserFile file, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Reads the upload with AI and gives a booking proposal (story #009).
+    /// Reads the uploads of one receipt together with AI and gives one booking proposal (story #009, #012).
     /// </summary>
-    Task<Result<BookingProposal>> Analyze(Guid uploadId, CancellationToken cancellationToken = default);
+    Task<Result<BookingProposal>> Analyze(IReadOnlyList<Guid> uploadIds, CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -24,7 +24,7 @@ public static class ReceiptUrls
 {
     public static string Upload(Guid uploadId) => $"api/receipts/uploads/{uploadId}";
 
-    public static string Receipt(Guid receiptId) => $"api/receipts/{receiptId}";
+    public static string File(Guid fileId) => $"api/receipts/files/{fileId}";
 
     /// <summary>
     /// Browsers can show these images. HEIC only Safari: Flowtr shows an icon instead.

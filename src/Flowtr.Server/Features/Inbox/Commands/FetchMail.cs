@@ -5,6 +5,7 @@ using Flowtr.Server.Data;
 using Flowtr.Server.Features.Inbox.Mail;
 using Flowtr.Server.Features.Inbox.Model;
 using Flowtr.Server.Features.Receipts;
+using Flowtr.Server.Features.Receipts.Model;
 using Flowtr.Shared;
 using Flowtr.Shared.Inbox;
 using Microsoft.EntityFrameworkCore;
@@ -140,9 +141,14 @@ public sealed class FetchMailHandler(
             return (options.Value.RejectedFolder, 0);
         }
 
-        var items = await SaveUploads(mail, MailReceipts.Files(message), cancellationToken);
-        mail.Outcome = items.Count > 0 ? MailOutcome.Imported : MailOutcome.Duplicate;
-        db.InboxItems.AddRange(items);
+        // One item with all files of the mail: one receipt, one booking (story #012).
+        var item = new InboxItem { MailId = mail.Id, ImportedAt = mail.ImportedAt, Analysis = AnalysisState.Pending };
+        item.Files = await SaveUploads(mail, item, MailReceipts.Files(message), cancellationToken);
+        mail.Outcome = item.Files.Count > 0 ? MailOutcome.Imported : MailOutcome.Duplicate;
+        if (item.Files.Count > 0)
+        {
+            db.InboxItems.Add(item);
+        }
 
         try
         {
@@ -150,55 +156,61 @@ public sealed class FetchMailHandler(
         }
         catch
         {
-            foreach (var item in items)
+            foreach (var file in item.Files)
             {
-                await store.DeleteUpload(item.UploadId, CancellationToken.None);
+                await store.DeleteUpload(file.UploadId, CancellationToken.None);
             }
 
             throw;
         }
 
-        logger.LogInformation("Imported mail {Id}: {Count} receipts", mail.Id, items.Count);
-        return (options.Value.ProcessedFolder, items.Count);
+        var receipts = item.Files.Count > 0 ? 1 : 0;
+        logger.LogInformation("Imported mail {Id}: {Count} files", mail.Id, item.Files.Count);
+        return (options.Value.ProcessedFolder, receipts);
     }
 
     /// <summary>
-    /// Puts each new file into <c>eingang</c>. A file that is in the inbox or filed already is left out.
+    /// Puts each new file into <c>eingang</c>, at most <see cref="Receipt.MaxFiles"/>. A file that is in the inbox or filed already is left out.
     /// </summary>
-    private async Task<List<InboxItem>> SaveUploads(ImportedMail mail, IReadOnlyList<MailFile> files, CancellationToken cancellationToken)
+    private async Task<List<InboxFile>> SaveUploads(ImportedMail mail, InboxItem item, IReadOnlyList<MailFile> files, CancellationToken cancellationToken)
     {
-        var items = new List<InboxItem>();
+        var saved = new List<InboxFile>();
         foreach (var file in files)
         {
             var sha256 = Convert.ToHexStringLower(SHA256.HashData(file.Content));
-            if (items.Any(i => i.Sha256 == sha256) || await IsKnown(sha256, cancellationToken))
+            if (saved.Any(f => f.Sha256 == sha256) || await IsKnown(sha256, cancellationToken))
             {
-                logger.LogInformation("A receipt of mail {Id} is known already", mail.Id);
+                logger.LogInformation("A file of mail {Id} is known already", mail.Id);
                 continue;
             }
 
-            var item = new InboxItem
+            if (saved.Count == Receipt.MaxFiles)
             {
-                MailId = mail.Id,
+                logger.LogWarning("Mail {Id} has more than {Max} files: Flowtr takes the first ones", mail.Id, Receipt.MaxFiles);
+                break;
+            }
+
+            var inboxFile = new InboxFile
+            {
+                InboxItemId = item.Id,
+                Position = saved.Count + 1,
                 UploadId = Guid.CreateVersion7(),
                 FileName = MailReceipts.Shorten(file.FileName, 255),
                 ContentType = file.ContentType,
                 Size = file.Content.Length,
                 Sha256 = sha256,
-                ImportedAt = mail.ImportedAt,
-                Analysis = AnalysisState.Pending,
             };
-            await store.SaveUpload(item.UploadId, new MemoryStream(file.Content),
-                new UploadInfo(item.FileName, item.ContentType, item.Size, sha256, mail.ImportedAt), cancellationToken);
-            items.Add(item);
+            await store.SaveUpload(inboxFile.UploadId, new MemoryStream(file.Content),
+                new UploadInfo(inboxFile.FileName, inboxFile.ContentType, inboxFile.Size, sha256, mail.ImportedAt), cancellationToken);
+            saved.Add(inboxFile);
         }
 
-        return items;
+        return saved;
     }
 
     private async Task<bool> IsKnown(string sha256, CancellationToken cancellationToken) =>
-        await db.InboxItems.AnyAsync(i => i.Sha256 == sha256, cancellationToken)
-        || await db.Receipts.AnyAsync(r => r.Sha256 == sha256, cancellationToken);
+        await db.InboxFiles.AnyAsync(f => f.Sha256 == sha256, cancellationToken)
+        || await db.ReceiptFiles.AnyAsync(f => f.Sha256 == sha256, cancellationToken);
 
     private string Folder(MailOutcome outcome) =>
         outcome == MailOutcome.Rejected ? options.Value.RejectedFolder : options.Value.ProcessedFolder;

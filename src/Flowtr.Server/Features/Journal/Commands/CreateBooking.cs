@@ -8,7 +8,7 @@ using Flowtr.Shared.Journal;
 namespace Flowtr.Server.Features.Journal.Commands;
 
 /// <summary>
-/// Saves a new booking. With <see cref="BookingInput.UploadId"/>, its receipt gets the next number and is filed.
+/// Saves a new booking. With <see cref="BookingInput.UploadIds"/>, its receipt gets the next number and its files are filed.
 /// </summary>
 public sealed record CreateBooking(BookingInput Input);
 
@@ -26,13 +26,7 @@ public sealed class CreateBookingHandler(ApplicationDbContext db, BookingRules r
         await rules.Apply(booking, command.Input, cancellationToken);
         db.Bookings.Add(booking);
 
-        if (command.Input.UploadId is { } uploadId)
-        {
-            var filed = await receipts.SaveWithReceipt(booking, uploadId, cancellationToken);
-            return filed.IsSuccess ? Result.Success(booking.Id) : Result.Failure<Guid>(filed.Error!);
-        }
-
-        await db.SaveChangesAsync(cancellationToken);
-        return Result.Success(booking.Id);
+        var saved = await receipts.Save(booking, command.Input.UploadIds ?? [], [], cancellationToken);
+        return saved.IsSuccess ? Result.Success(booking.Id) : Result.Failure<Guid>(saved.Error!);
     }
 }

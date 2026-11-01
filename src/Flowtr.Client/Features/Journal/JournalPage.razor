@@ -121,7 +121,7 @@ else
                 <MudText Typo="Typo.body2">@context.Description</MudText>
                 <MudText Typo="Typo.caption" Class="mud-text-secondary wide-only-block">@context.Counterparty</MudText>
                 <MudText Typo="Typo.caption" Class="mud-text-secondary phone-only">
-                    @if (context.ReceiptId is not null)
+                    @if (context.ReceiptFiles.Count > 0)
                     {
                         <MudIcon Icon="@Icons.Material.Outlined.AttachFile" Style="font-size: .9rem; vertical-align: -2px" />
                     }
@@ -139,10 +139,14 @@ else
                 }
             </MudTd>
             <MudTd Class="wide-only">
-                @if (context.ReceiptId is { } receiptId)
+                @if (context.ReceiptFiles is [var first, ..] files)
                 {
                     <span @onclick:stopPropagation="true">
-                        <MudLink Href="@ReceiptUrls.Receipt(receiptId)" Target="_blank" Typo="Typo.body2">@context.ReceiptNumber</MudLink>
+                        <MudLink Href="@ReceiptUrls.File(first.Id)" Target="_blank" Typo="Typo.body2">@context.ReceiptNumber</MudLink>
+                        @if (files.Count > 1)
+                        {
+                            <MudText Typo="Typo.caption" Inline="true" Class="mud-text-secondary" title="@($"{files.Count} Dateien")"> · @files.Count</MudText>
+                        }
                     </span>
                 }
                 else
@@ -176,19 +180,20 @@ else
 @if (dropZone)
 {
     <div class="journal-drop">
-        <MudFileUpload T="IBrowserFile" DragAndDrop="true" FilesChanged="UploadDropped" OnDragLeave="() => dropZone = uploadingDropped" Class="journal-drop-upload"
+        <MudFileUpload T="IReadOnlyList<IBrowserFile>" DragAndDrop="true" FilesChanged="UploadDropped" OnDragLeave="() => dropZone = uploadingDropped" Class="journal-drop-upload"
                        Accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,application/pdf,image/*">
             <CustomContent>
                 <div class="journal-drop-content">
                     @if (uploadingDropped)
                     {
                         <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-                        <MudText Typo="Typo.h6">Beleg wird hochgeladen …</MudText>
+                        <MudText Typo="Typo.h6">Wird hochgeladen …</MudText>
                     }
                     else
                     {
                         <MudIcon Icon="@Icons.Material.Outlined.UploadFile" Color="Color.Primary" Style="font-size: 3rem" />
-                        <MudText Typo="Typo.h6">Beleg loslassen für eine neue Buchung</MudText>
+                        <MudText Typo="Typo.h6">Loslassen für eine neue Buchung</MudText>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Mehrere Dateien geben einen Beleg, z.B. Rechnung und Quittung.</MudText>
                     }
                 </div>
             </CustomContent>
@@ -293,9 +298,12 @@ else
         }
     }
 
-    private async Task UploadDropped(IBrowserFile? file)
+    /// <summary>
+    /// The dropped files are one receipt of a new booking (story #012).
+    /// </summary>
+    private async Task UploadDropped(IReadOnlyList<IBrowserFile>? files)
     {
-        if (file is null)
+        if (files is null || files.Count == 0)
         {
             dropZone = false;
             return;
@@ -303,18 +311,27 @@ else
 
         uploadingDropped = true;
         StateHasChanged();
-        var result = await Receipts.Upload(file);
+        var uploads = new List<UploadedReceipt>();
+        foreach (var file in files.Take(ReceiptPanel.MaxFiles))
+        {
+            var result = await Receipts.Upload(file);
+            if (result.IsSuccess)
+            {
+                uploads.Add(result.Value!);
+            }
+            else
+            {
+                Snackbar.Add($"{file.Name}: {result.Error}", Severity.Error);
+            }
+        }
+
         uploadingDropped = false;
         dropZone = false;
         StateHasChanged();
 
-        if (result.IsSuccess)
+        if (uploads.Count > 0)
         {
-            await Open(null, "Neue Buchung", result.Value);
-        }
-        else
-        {
-            Snackbar.Add(result.Error!, Severity.Error);
+            await Open(null, "Neue Buchung", uploads);
         }
     }
 
@@ -329,9 +346,9 @@ else
     /// A receipt from the inbox: a new booking with it and the proposal of the AI. Saving takes it from the inbox.
     /// </summary>
     private Task OpenInboxItem(InboxItemView item) =>
-        Open(null, "Beleg aus dem Eingang buchen", item.Upload, item.Analysis == AnalysisState.Done ? item.Proposal : null, $"E-Mail von {item.Sender}");
+        Open(null, "Beleg aus dem Eingang buchen", item.Files, item.Analysis == AnalysisState.Done ? item.Proposal : null, $"E-Mail von {item.Sender}");
 
-    private async Task Open(BookingView? booking, string title, UploadedReceipt? upload = null, BookingProposal? proposal = null, string? origin = null)
+    private async Task Open(BookingView? booking, string title, IReadOnlyList<UploadedReceipt>? uploads = null, BookingProposal? proposal = null, string? origin = null)
     {
         var parameters = new DialogParameters<BookingDialog>
         {
@@ -339,7 +356,7 @@ else
             { dialog => dialog.Options, options },
             { dialog => dialog.DefaultDate, DefaultDate() },
             { dialog => dialog.Title, title },
-            { dialog => dialog.InitialUpload, upload },
+            { dialog => dialog.InitialUploads, uploads },
             { dialog => dialog.InitialProposal, proposal },
             { dialog => dialog.Origin, origin },
         };
@@ -355,7 +372,7 @@ else
             await Load();
         }
 
-        if (upload is not null && inbox is not null)
+        if (uploads is not null && inbox is not null)
         {
             await inbox.Reload();
         }

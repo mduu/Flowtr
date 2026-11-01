@@ -67,9 +67,9 @@ public sealed class GetJournalHandler(ApplicationDbContext db, TimeProvider time
                 b.Category!.Name,
                 b.Counterparty != null ? b.Counterparty.Name : null,
                 b.PaymentMethod != null ? b.PaymentMethod.Name : null,
-                b.ReceiptId,
                 b.Receipt != null ? b.Receipt.Number : null,
-                b.Receipt != null ? b.Receipt.ContentType : null,
+                db.ReceiptFiles.Where(f => f.ReceiptId == b.ReceiptId).OrderBy(f => f.Position)
+                    .Select(f => new ReceiptFileView(f.Id, f.FileName, f.ContentType, f.Size)).ToList(),
                 b.Note,
                 isClosed))
             .ToListAsync(cancellationToken);

@@ -18,17 +18,18 @@ public sealed class ExpireInboxItemsHandler(ApplicationDbContext db, IReceiptSto
     public async Task<Result<int>> Handle(ExpireInboxItems command, CancellationToken cancellationToken)
     {
         var limit = time.GetUtcNow() - ReceiptHousekeeping.UploadLifetime;
-        var expired = await db.InboxItems.Where(i => i.ImportedAt <= limit).ToListAsync(cancellationToken);
+        var expired = await db.InboxItems.Include(i => i.Files).Where(i => i.ImportedAt <= limit).ToListAsync(cancellationToken);
         if (expired.Count == 0)
         {
             return Result.Success(0);
         }
 
+        db.InboxFiles.RemoveRange(expired.SelectMany(i => i.Files));
         db.InboxItems.RemoveRange(expired);
         await db.SaveChangesAsync(cancellationToken);
-        foreach (var item in expired)
+        foreach (var file in expired.SelectMany(i => i.Files))
         {
-            await store.DeleteUpload(item.UploadId, cancellationToken);
+            await store.DeleteUpload(file.UploadId, cancellationToken);
         }
 
         logger.LogInformation("Removed {Count} expired inbox receipts", expired.Count);

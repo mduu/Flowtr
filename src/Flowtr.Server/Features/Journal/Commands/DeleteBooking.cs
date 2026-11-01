@@ -25,11 +25,11 @@ public sealed class DeleteBookingHandler(ApplicationDbContext db, BookingRules r
             return Result.Failure(string.Format(BookingRules.YearClosed, booking.Date.Year));
         }
 
-        var removedBlob = await receipts.Detach(booking, cancellationToken);
+        var removedBlobs = await receipts.Detach(booking, cancellationToken);
         db.Bookings.Remove(booking);
         await db.SaveChangesAsync(cancellationToken);
 
-        await receipts.DeleteAfterSave(removedBlob, cancellationToken);
+        await receipts.DeleteAfterSave(removedBlobs, cancellationToken);
         return Result.Success();
     }
 }

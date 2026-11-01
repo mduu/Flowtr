@@ -13,7 +13,7 @@ namespace Flowtr.Server.Features.Receipts;
 public static class ReceiptEndpoints
 {
     /// <summary>
-    /// Maps <c>receipts</c> in the API group: upload, preview of an upload, file of a filed receipt.
+    /// Maps <c>receipts</c> in the API group: upload, analysis of uploads, preview of an upload, file of a filed receipt.
     /// A mail as receipt shows as a page (ADR-009); <c>?original=true</c> gives the <c>.eml</c>.
     /// </summary>
     /// <remarks>
@@ -32,13 +32,13 @@ public static class ReceiptEndpoints
             .DisableAntiforgery()
             .WithMetadata(new RequestSizeLimitAttributeMetadata(ReceiptFiles.MaxSize + 1024 * 1024));
 
-        receipts.MapPost("/uploads/{id:guid}/analysis", async (Guid id, IQueryHandler<AnalyzeUpload, BookingProposal> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new AnalyzeUpload(id), cancellationToken)).ToHttp());
+        receipts.MapPost("/uploads/analysis", async (AnalysisInput input, IQueryHandler<AnalyzeUploads, BookingProposal> handler, CancellationToken cancellationToken) =>
+            (await handler.Handle(new AnalyzeUploads(input.UploadIds), cancellationToken)).ToHttp());
 
-        receipts.MapGet("/uploads/{id:guid}", async (Guid id, bool? original, IQueryHandler<GetUploadFile, ReceiptFile> handler, CancellationToken cancellationToken) =>
+        receipts.MapGet("/uploads/{id:guid}", async (Guid id, bool? original, IQueryHandler<GetUploadFile, FileContent> handler, CancellationToken cancellationToken) =>
             await File(await handler.Handle(new GetUploadFile(id), cancellationToken), original == true, cancellationToken));
 
-        receipts.MapGet("/{id:guid}", async (Guid id, bool? original, IQueryHandler<GetReceiptFile, ReceiptFile> handler, CancellationToken cancellationToken) =>
+        receipts.MapGet("/files/{id:guid}", async (Guid id, bool? original, IQueryHandler<GetReceiptFile, FileContent> handler, CancellationToken cancellationToken) =>
             await File(await handler.Handle(new GetReceiptFile(id), cancellationToken), original == true, cancellationToken));
 
         return api;
@@ -47,7 +47,7 @@ public static class ReceiptEndpoints
     /// <summary>
     /// Inline, thus the browser shows PDF and images in a tab. Private: the receipt must not stay in a shared cache.
     /// </summary>
-    private static async Task<IResult> File(Result<ReceiptFile> result, bool original, CancellationToken cancellationToken)
+    private static async Task<IResult> File(Result<FileContent> result, bool original, CancellationToken cancellationToken)
     {
         if (!result.IsSuccess)
         {

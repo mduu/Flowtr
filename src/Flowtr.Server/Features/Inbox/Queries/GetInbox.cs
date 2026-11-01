@@ -22,12 +22,14 @@ public sealed class GetInboxHandler(ApplicationDbContext db, MailboxState state,
     {
         var items = await db.InboxItems.AsNoTracking()
             .Include(i => i.Mail)
-            .OrderByDescending(i => i.Mail!.ReceivedAt).ThenBy(i => i.FileName)
+            .Include(i => i.Files)
+            .OrderByDescending(i => i.Mail!.ReceivedAt)
             .ToListAsync(cancellationToken);
 
         return Result.Success(new InboxView(
             items.Select(i => new InboxItemView(
-                i.Id, i.UploadId, i.FileName, i.ContentType, i.Size,
+                i.Id,
+                i.Files.OrderBy(f => f.Position).Select(f => new UploadedReceipt(f.UploadId, f.FileName, f.ContentType, f.Size)).ToList(),
                 i.Mail!.Sender, i.Mail.OriginalSender, i.Mail.Subject, i.Mail.ReceivedAt,
                 i.ImportedAt + ReceiptHousekeeping.UploadLifetime,
                 i.Analysis, i.AnalysisError,

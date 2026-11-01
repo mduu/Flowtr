@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using Flowtr.Client.Api;
 using Flowtr.Shared;
 using Flowtr.Shared.Journal;
@@ -28,6 +29,6 @@ public sealed class HttpReceiptApi(HttpClient http) : IReceiptApi
         return await http.PostAsync("api/receipts/uploads", content, cancellationToken).Read<UploadedReceipt>(cancellationToken);
     }
 
-    public Task<Result<BookingProposal>> Analyze(Guid uploadId, CancellationToken cancellationToken = default) =>
-        http.PostAsync($"api/receipts/uploads/{uploadId}/analysis", null, cancellationToken).Read<BookingProposal>(cancellationToken);
+    public Task<Result<BookingProposal>> Analyze(IReadOnlyList<Guid> uploadIds, CancellationToken cancellationToken = default) =>
+        http.PostAsJsonAsync("api/receipts/uploads/analysis", new AnalysisInput(uploadIds), cancellationToken).Read<BookingProposal>(cancellationToken);
 }

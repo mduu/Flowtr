@@ -10,14 +10,13 @@ public enum AnalysisState
 }
 
 /// <summary>
-/// A receipt from a mail that has no booking yet (story #010). <see cref="Proposal"/> is set when <see cref="Analysis"/> is done.
+/// A receipt from a mail that has no booking yet (story #010), with all files of the mail (story #012).
+/// The booking dialog takes <see cref="Files"/> like files that the user uploaded.
+/// <see cref="Proposal"/> is set when <see cref="Analysis"/> is done.
 /// </summary>
 public sealed record InboxItemView(
     Guid Id,
-    Guid UploadId,
-    string FileName,
-    string ContentType,
-    long Size,
+    IReadOnlyList<UploadedReceipt> Files,
     string Sender,
     string? OriginalSender,
     string Subject,
@@ -25,13 +24,7 @@ public sealed record InboxItemView(
     DateTimeOffset ExpiresAt,
     AnalysisState Analysis,
     string? AnalysisError,
-    BookingProposal? Proposal)
-{
-    /// <summary>
-    /// The file as upload: the booking dialog takes it like a file that the user uploaded.
-    /// </summary>
-    public UploadedReceipt Upload => new(UploadId, FileName, ContentType, Size);
-}
+    BookingProposal? Proposal);
 
 /// <summary>
 /// <see cref="Address"/> is the address to forward receipts to. <see cref="LastError"/> is set when the last fetch failed.

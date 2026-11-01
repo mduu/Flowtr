@@ -59,16 +59,16 @@ public class ReceiptTests
         var uploadId = await app.UploadPdf();
 
         // Act
-        await app.Create(Expense(date: "2026-10-01", description: "Azure Abo") with { UploadId = uploadId });
+        await app.Create(Expense(date: "2026-10-01", description: "Azure Abo") with { UploadIds = [uploadId] });
 
         // Assert
         var booking = (await Journal(app)).Bookings.ShouldHaveSingleItem();
         booking.ReceiptNumber.ShouldBe("A-2026-001");
-        booking.ReceiptContentType.ShouldBe("application/pdf");
+        booking.ReceiptFiles.ShouldHaveSingleItem().ContentType.ShouldBe("application/pdf");
         app.Store.Receipts.Keys.ShouldBe(["2026/ausgaben/A-2026-001_azure-abo.pdf"]);
         app.Store.Uploads.ShouldBeEmpty();
-        var receipt = await app.Db.Receipts.SingleAsync();
-        (receipt.FileName, receipt.Size, receipt.Sha256.Length).ShouldBe(("rechnung.pdf", ReceiptTestData.Pdf().Length, 64));
+        var file = await app.Db.ReceiptFiles.SingleAsync();
+        (file.FileName, file.Size, file.Sha256.Length, file.Position).ShouldBe(("rechnung.pdf", ReceiptTestData.Pdf().Length, 64, 1));
     }
 
     [Fact]
@@ -78,10 +78,10 @@ public class ReceiptTests
         using var app = new TestApp();
 
         // Act
-        await app.Create(Expense(date: "2026-01-05") with { UploadId = await app.UploadPdf() });
-        await app.Create(Expense(date: "2026-02-05") with { UploadId = await app.UploadPdf() });
-        await app.Create(Income(date: "2026-02-06") with { UploadId = await app.UploadPdf() });
-        await app.Create(Expense(date: "2025-12-30") with { UploadId = await app.UploadPdf() });
+        await app.Create(Expense(date: "2026-01-05") with { UploadIds = [await app.UploadPdf()] });
+        await app.Create(Expense(date: "2026-02-05") with { UploadIds = [await app.UploadPdf()] });
+        await app.Create(Income(date: "2026-02-06") with { UploadIds = [await app.UploadPdf()] });
+        await app.Create(Expense(date: "2025-12-30") with { UploadIds = [await app.UploadPdf()] });
         await app.Create(Expense(date: "2026-03-01"));
 
         // Assert
@@ -94,16 +94,16 @@ public class ReceiptTests
     {
         // Arrange: the second save starts with an old sequence, as if it ran at the same time.
         using var app = new TestApp(transactional: true);
-        await app.Create(Expense() with { UploadId = await app.UploadPdf() });
+        await app.Create(Expense() with { UploadIds = [await app.UploadPdf()] });
         using var second = app.NewScope();
         var secondDb = second.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var stale = await secondDb.ReceiptSequences.SingleAsync();
-        await app.Create(Expense() with { UploadId = await app.UploadPdf() });
+        await app.Create(Expense() with { UploadIds = [await app.UploadPdf()] });
         var uploadId = await app.UploadPdf();
 
         // Act
         var result = await second.ServiceProvider.GetRequiredService<ICommandHandler<CreateBooking, Result<Guid>>>()
-            .Handle(new CreateBooking(Expense() with { UploadId = uploadId }), CancellationToken.None);
+            .Handle(new CreateBooking(Expense() with { UploadIds = [uploadId] }), CancellationToken.None);
 
         // Assert
         result.IsSuccess.ShouldBeTrue(result.Error);
@@ -117,23 +117,27 @@ public class ReceiptTests
     {
         // Arrange
         using var app = new TestApp();
-        var id = await app.Create(Expense(description: "Laptop") with { UploadId = await app.UploadPdf("alt") });
+        var id = await app.Create(Expense(description: "Laptop") with { UploadIds = [await app.UploadPdf("alt")] });
+        var oldFile = (await Journal(app)).Bookings.Single().ReceiptFiles.Single().Id;
         var newUpload = await app.Upload(ReceiptTestData.Png, "foto.png");
 
         // Act
-        var replaced = await app.Command<UpdateBooking, Result>(new UpdateBooking(id, Expense(description: "Laptop") with { UploadId = newUpload.Value!.UploadId }));
+        var replaced = await app.Command<UpdateBooking, Result>(new UpdateBooking(id, Expense(description: "Laptop")
+            with { UploadIds = [newUpload.Value!.UploadId], RemovedFileIds = [oldFile] }));
 
-        // Assert
+        // Assert: a position is never used again (story #012).
         replaced.IsSuccess.ShouldBeTrue(replaced.Error);
-        app.Store.Receipts.Keys.ShouldBe(["2026/ausgaben/A-2026-001_laptop.png"]);
+        app.Store.Receipts.Keys.ShouldBe(["2026/ausgaben/A-2026-001_laptop_2.png"]);
+        var newFile = (await Journal(app)).Bookings.Single().ReceiptFiles.Single().Id;
 
         // Act
-        var removed = await app.Command<UpdateBooking, Result>(new UpdateBooking(id, Expense(description: "Laptop") with { RemoveReceipt = true }));
+        var removed = await app.Command<UpdateBooking, Result>(new UpdateBooking(id, Expense(description: "Laptop") with { RemovedFileIds = [newFile] }));
 
         // Assert
         removed.IsSuccess.ShouldBeTrue(removed.Error);
         app.Store.Receipts.ShouldBeEmpty();
         (await app.Db.Receipts.CountAsync()).ShouldBe(0);
+        (await app.Db.ReceiptFiles.CountAsync()).ShouldBe(0);
         (await Journal(app)).Bookings.Single().ReceiptNumber.ShouldBeNull();
     }
 
@@ -142,7 +146,7 @@ public class ReceiptTests
     {
         // Arrange
         using var app = new TestApp();
-        var id = await app.Create(Expense(date: "2026-10-01") with { UploadId = await app.UploadPdf() });
+        var id = await app.Create(Expense(date: "2026-10-01") with { UploadIds = [await app.UploadPdf()] });
 
         // Act
         var otherYear = await app.Command<UpdateBooking, Result>(new UpdateBooking(id, Expense(date: "2025-10-01")));
@@ -158,7 +162,7 @@ public class ReceiptTests
     {
         // Arrange
         using var app = new TestApp();
-        var id = await app.Create(Expense() with { UploadId = await app.UploadPdf() });
+        var id = await app.Create(Expense() with { UploadIds = [await app.UploadPdf()] });
 
         // Act
         var result = await app.Command<DeleteBooking, Result>(new DeleteBooking(id));
@@ -176,7 +180,7 @@ public class ReceiptTests
         using var app = new TestApp();
 
         // Act
-        var result = await app.Command<CreateBooking, Result<Guid>>(new CreateBooking(Expense() with { UploadId = Guid.NewGuid() }));
+        var result = await app.Command<CreateBooking, Result<Guid>>(new CreateBooking(Expense() with { UploadIds = [Guid.NewGuid()] }));
 
         // Assert
         result.Error.ShouldBe(ReceiptFiling.UploadGone);
@@ -188,11 +192,11 @@ public class ReceiptTests
     {
         // Arrange
         using var app = new TestApp();
-        await app.Create(Expense() with { UploadId = await app.UploadPdf("Inhalt") });
-        var receiptId = (await app.Db.Receipts.SingleAsync()).Id;
+        await app.Create(Expense() with { UploadIds = [await app.UploadPdf("Inhalt")] });
+        var fileId = (await app.Db.ReceiptFiles.SingleAsync()).Id;
 
         // Act
-        var file = (await app.Query<GetReceiptFile, ReceiptFile>(new GetReceiptFile(receiptId))).Value!;
+        var file = (await app.Query<GetReceiptFile, FileContent>(new GetReceiptFile(fileId))).Value!;
 
         // Assert
         file.FileName.ShouldBe("A-2026-001.pdf");
@@ -224,10 +228,12 @@ public class ReceiptTests
         using var app = new TestApp();
 
         // Act
-        await app.Create(Expense() with { UploadId = await app.UploadPdf() });
+        await app.Create(Expense() with { UploadIds = [await app.UploadPdf()] });
 
         // Assert
-        (await app.Db.AuditEntries.Select(e => e.EntityType).ToListAsync()).ShouldContain("Receipt");
+        var areas = await app.Db.AuditEntries.Select(e => e.EntityType).ToListAsync();
+        areas.ShouldContain("Receipt");
+        areas.ShouldContain("ReceiptFile");
     }
 
     private static async Task<JournalView> Journal(TestApp app) =>

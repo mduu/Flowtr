@@ -90,6 +90,10 @@ Der User leitet Rechnungen an eine Mailbox weiter. *Flowtr* holt sie per IMAP ab
 
 *Flowtr* läuft nicht auf App Service, sondern auf Azure Container Apps ([ADR-010](010-hosting-auf-container-apps.md)). Der Entscheid bleibt: Auch in einem Container wäre Chromium ein grosses Image mit langer Startzeit. Das Abholen übernimmt in Azure ein stündlicher Job. Er öffnet die Datenbank nur, wenn Mails da sind.
 
+## Nachtrag (01.11.2026, Story #012)
+
+Eine Mail mit mehreren Anhängen ist **ein** Beleg mit mehreren Dateien, nicht mehrere Belege: Stripe (z.B. Anthropic) schickt Rechnung und Quittung derselben Zahlung zusammen. Der Eingang hat einen Eintrag pro Mail, die KI liest alle Dateien zusammen, die Buchung erhält eine Belegnummer. Siehe [Story #012](../stories/done/012-beleg-mit-mehreren-dateien.md).
+
 ## Referenzen
 
 - [Story #010: E-Mail-Eingang (IMAP)](../stories/done/010-email-eingang-imap.md)

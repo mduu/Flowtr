@@ -33,6 +33,9 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
         A receipt can be an e-mail as text. Often the user forwarded it: then the forwarded mail is the receipt, and the user
         who forwarded it is not the counterparty.
 
+        A receipt can have several files, for example an invoice and the receipt of its payment. Together they are one
+        business transaction: record one booking with the amount that was paid once, not the sum of the files.
+
         Rules:
         - kind: "Expense" for invoices and receipts that the business pays. "Income" for payouts, credit notes and
           invoices of the business to its customers.
@@ -45,16 +48,18 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
         - payment_method: only a name from the list of known payment methods, when the receipt shows it (for example a credit card).
         """;
 
-    public async Task<Result<ReceiptReading>> Read(byte[] content, string contentType, ReadingContext context, CancellationToken cancellationToken)
+    public async Task<Result<ReceiptReading>> Read(IReadOnlyList<ReceiptContent> files, ReadingContext context, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(options.Value.ApiKey))
         {
             return Result.Failure<ReceiptReading>(NotConfigured);
         }
 
-        if (Source(content, contentType) is not { } source)
+        // A file that the AI cannot read (HEIC, too large) stays out, if another file is readable.
+        var sources = files.Select(file => Source(file.Content, file.ContentType)).OfType<JsonObject>().ToList();
+        if (sources.Count == 0)
         {
-            return Result.Failure<ReceiptReading>(contentType == "image/heic"
+            return Result.Failure<ReceiptReading>(files.Any(file => file.ContentType == "image/heic")
                 ? "HEIC-Fotos kann die KI nicht lesen. Bitte als JPEG oder PDF hochladen, oder fülle die Felder selbst aus."
                 : "Dieses Bild ist zu gross für die KI (höchstens 5 MB). Bitte fülle die Felder selbst aus.");
         }
@@ -62,7 +67,7 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
         using var request = new HttpRequestMessage(HttpMethod.Post, new Uri(options.Value.BaseAddress, "v1/messages"))
         {
             // Buffered with a length: the receipt is in memory anyway, and some proxies reject chunked requests.
-            Content = new StringContent(Body(source, context).ToJsonString(), Encoding.UTF8, "application/json"),
+            Content = new StringContent(Body(sources, context).ToJsonString(), Encoding.UTF8, "application/json"),
         };
         request.Headers.Add("x-api-key", options.Value.ApiKey);
         request.Headers.Add("anthropic-version", "2023-06-01");
@@ -139,7 +144,7 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
         };
     }
 
-    private JsonObject Body(JsonObject source, ReadingContext context) => new()
+    private JsonObject Body(List<JsonObject> sources, ReadingContext context) => new()
     {
         ["model"] = options.Value.Model,
         ["max_tokens"] = options.Value.MaxTokens,
@@ -150,7 +155,7 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
         ["messages"] = new JsonArray(new JsonObject
         {
             ["role"] = "user",
-            ["content"] = new JsonArray(source, new JsonObject { ["type"] = "text", ["text"] = ContextText(context) }),
+            ["content"] = new JsonArray([.. sources, new JsonObject { ["type"] = "text", ["text"] = ContextText(context, sources.Count) }]),
         }),
     };
 
@@ -175,7 +180,7 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
         },
     };
 
-    private static string ContextText(ReadingContext context)
+    private static string ContextText(ReadingContext context, int files)
     {
         var categories = string.Join("\n", context.Categories.Select(c => $"- {c.Id}: {c.Name} ({c.Kind})"));
         var history = context.History.Count == 0 ? "- (none)" : string.Join("\n", context.History.Select(h => $"- {h}"));
@@ -194,7 +199,7 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
             Earlier bookings per counterparty (counterparty: category, payment method):
             {history}
             {origin}
-            Read the receipt above and record the booking.
+            {(files > 1 ? $"Read the {files} files above: one receipt. Record one booking." : "Read the receipt above and record the booking.")}
             """;
     }
 

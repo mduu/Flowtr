@@ -215,6 +215,51 @@ namespace Flowtr.Server.Migrations
                     b.ToTable("ImportedMails");
                 });
 
+            modelBuilder.Entity("Flowtr.Server.Features.Inbox.Model.InboxFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("InboxItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("UploadId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InboxItemId");
+
+                    b.HasIndex("Sha256");
+
+                    b.HasIndex("UploadId")
+                        .IsUnique();
+
+                    b.ToTable("InboxFiles");
+                });
+
             modelBuilder.Entity("Flowtr.Server.Features.Inbox.Model.InboxItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -230,16 +275,6 @@ namespace Flowtr.Server.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
                     b.Property<DateTimeOffset>("ImportedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -249,25 +284,9 @@ namespace Flowtr.Server.Migrations
                     b.Property<string>("Proposal")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Sha256")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<long>("Size")
-                        .HasColumnType("bigint");
-
-                    b.Property<Guid>("UploadId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("MailId");
-
-                    b.HasIndex("Sha256");
-
-                    b.HasIndex("UploadId")
-                        .IsUnique();
 
                     b.ToTable("InboxItems");
                 });
@@ -565,6 +584,42 @@ namespace Flowtr.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<int>("LastFilePosition")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("SequenceNumber")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.HasIndex("Year", "Kind", "SequenceNumber")
+                        .IsUnique();
+
+                    b.ToTable("Receipts");
+                });
+
+            modelBuilder.Entity("Flowtr.Server.Features.Receipts.Model.ReceiptFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("BlobName")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -583,18 +638,11 @@ namespace Flowtr.Server.Migrations
                     b.Property<DateTimeOffset>("FiledAt")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<string>("Kind")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("Number")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("SequenceNumber")
+                    b.Property<int>("Position")
                         .HasColumnType("int");
+
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Sha256")
                         .IsRequired()
@@ -604,20 +652,17 @@ namespace Flowtr.Server.Migrations
                     b.Property<long>("Size")
                         .HasColumnType("bigint");
 
-                    b.Property<int>("Year")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("Number")
+                    b.HasIndex("BlobName")
                         .IsUnique();
 
                     b.HasIndex("Sha256");
 
-                    b.HasIndex("Year", "Kind", "SequenceNumber")
+                    b.HasIndex("ReceiptId", "Position")
                         .IsUnique();
 
-                    b.ToTable("Receipts");
+                    b.ToTable("ReceiptFiles");
                 });
 
             modelBuilder.Entity("Flowtr.Server.Features.Receipts.Model.ReceiptSequence", b =>
@@ -808,6 +853,15 @@ namespace Flowtr.Server.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Flowtr.Server.Features.Inbox.Model.InboxFile", b =>
+                {
+                    b.HasOne("Flowtr.Server.Features.Inbox.Model.InboxItem", null)
+                        .WithMany("Files")
+                        .HasForeignKey("InboxItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Flowtr.Server.Features.Inbox.Model.InboxItem", b =>
                 {
                     b.HasOne("Flowtr.Server.Features.Inbox.Model.ImportedMail", "Mail")
@@ -849,6 +903,15 @@ namespace Flowtr.Server.Migrations
                     b.Navigation("PaymentMethod");
 
                     b.Navigation("Receipt");
+                });
+
+            modelBuilder.Entity("Flowtr.Server.Features.Receipts.Model.ReceiptFile", b =>
+                {
+                    b.HasOne("Flowtr.Server.Features.Receipts.Model.Receipt", null)
+                        .WithMany("Files")
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -951,6 +1014,16 @@ namespace Flowtr.Server.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Flowtr.Server.Features.Inbox.Model.InboxItem", b =>
+                {
+                    b.Navigation("Files");
+                });
+
+            modelBuilder.Entity("Flowtr.Server.Features.Receipts.Model.Receipt", b =>
+                {
+                    b.Navigation("Files");
                 });
 #pragma warning restore 612, 618
         }

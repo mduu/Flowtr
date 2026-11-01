@@ -38,9 +38,10 @@ public class MailImportTests
         // Assert
         result.ShouldBe(new FetchResult(1, 0));
         var item = (await app.Inbox()).Items.ShouldHaveSingleItem();
-        (item.FileName, item.ContentType, item.Sender, item.OriginalSender, item.Subject, item.Analysis)
+        var file = item.Files.ShouldHaveSingleItem();
+        (file.FileName, file.ContentType, item.Sender, item.OriginalSender, item.Subject, item.Analysis)
             .ShouldBe(("rechnung.pdf", "application/pdf", User, "Microsoft <billing@microsoft.com>", "WG: Ihre Azure-Rechnung", AnalysisState.Pending));
-        app.Store.Uploads[item.UploadId].Content.ShouldBe(pdf);
+        app.Store.Uploads[file.UploadId].Content.ShouldBe(pdf);
         app.Mailbox.Inbox.ShouldBeEmpty();
         app.Mailbox.Folder(Processed).Count.ShouldBe(1);
     }
@@ -57,8 +58,9 @@ public class MailImportTests
 
         // Assert
         var item = (await app.Inbox()).Items.ShouldHaveSingleItem();
-        (item.FileName, item.ContentType).ShouldBe(("your-receipt-from-stripe.eml", MailContentTypes.Mail));
-        System.Text.Encoding.UTF8.GetString(app.Store.Uploads[item.UploadId].Content).ShouldContain("Subject: Your receipt from Stripe");
+        var file = item.Files.ShouldHaveSingleItem();
+        (file.FileName, file.ContentType).ShouldBe(("your-receipt-from-stripe.eml", MailContentTypes.Mail));
+        System.Text.Encoding.UTF8.GetString(app.Store.Uploads[file.UploadId].Content).ShouldContain("Subject: Your receipt from Stripe");
     }
 
     [Theory]
@@ -96,7 +98,9 @@ public class MailImportTests
         await app.FetchOk();
 
         // Assert
-        (await app.Inbox()).Items.Select(i => i.FileName).Order().ShouldBe(["quittung.png", "rechnung-1.pdf"]);
+        // One mail, one receipt with its files (story #012).
+        var item = (await app.Inbox()).Items.ShouldHaveSingleItem();
+        item.Files.Select(f => f.FileName).ShouldBe(["rechnung-1.pdf", "quittung.png"]);
     }
 
     [Fact]

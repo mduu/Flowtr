@@ -94,6 +94,10 @@ backups/   Datenbank-Dumps für das Offsite-Backup.
 
 - Gering: Storage Account mit Versionierung, Soft-Delete und Immutability auf Versionsebene via IaC. Ein Abschluss-Job setzt die Policies.
 
+## Nachtrag (01.11.2026, Story #012)
+
+Ein Beleg hat eine oder mehrere Dateien (höchstens 10), z.B. Rechnung und Quittung derselben Zahlung. Jede Datei liegt einzeln und unverändert in `belege/`. Die erste Datei heisst wie bisher `A-2026-007_azure-abo.pdf`, die weiteren `…_azure-abo_2.pdf`, `_3` usw. Eine Position wird nie wiederverwendet: Ein Name gehört immer zu derselben Datei. Siehe [Story #012](../stories/done/012-beleg-mit-mehreren-dateien.md).
+
 ## Referenzen
 
 - [Immutable storage for Azure Blob Storage](https://learn.microsoft.com/azure/storage/blobs/immutable-storage-overview)

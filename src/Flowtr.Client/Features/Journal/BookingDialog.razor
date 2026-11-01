@@ -30,8 +30,8 @@
         {
             <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@error</MudAlert>
         }
-        <ReceiptPanel Booking="Booking" Upload="upload" UploadChanged="UploadChanged" @bind-Removed="removeReceipt" ReadOnly="readOnly"
-                      Analyzing="analyzing" Origin="@(upload?.UploadId == InitialUpload?.UploadId ? Origin : null)" />
+        <ReceiptPanel Booking="Booking" Uploads="uploads" UploadsChanged="UploadsChanged" @bind-RemovedFiles="removedFiles" ReadOnly="readOnly"
+                      Analyzing="analyzing" Origin="@(uploads.All(u => InitialUploads?.Contains(u) == true) ? Origin : null)" />
         @if (aiMessage is not null)
         {
             <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="() => aiMessage = null">@aiMessage</MudAlert>
@@ -172,8 +172,8 @@
     private bool showForeign;
     private bool showNote;
     private MudNumericField<decimal?>? amountField;
-    private UploadedReceipt? upload;
-    private bool removeReceipt;
+    private IReadOnlyList<UploadedReceipt> uploads = [];
+    private IReadOnlySet<Guid> removedFiles = new HashSet<Guid>();
     private bool analyzing;
     private string? aiMessage;
     private BookingProposal? proposal;
@@ -204,19 +204,19 @@
     public string Title { get; set; } = "";
 
     /// <summary>
-    /// A file that the user dropped on the journal: the dialog opens with it as receipt.
+    /// Files that the user dropped on the journal, or the files of a mail in the inbox: the dialog opens with them as receipt.
     /// </summary>
     [Parameter]
-    public UploadedReceipt? InitialUpload { get; set; }
+    public IReadOnlyList<UploadedReceipt>? InitialUploads { get; set; }
 
     /// <summary>
-    /// The proposal that the AI already made for <see cref="InitialUpload"/> (e-mail inbox). Without it, the dialog reads the receipt.
+    /// The proposal that the AI already made for <see cref="InitialUploads"/> (e-mail inbox). Without it, the dialog reads the files.
     /// </summary>
     [Parameter]
     public BookingProposal? InitialProposal { get; set; }
 
     /// <summary>
-    /// Where <see cref="InitialUpload"/> comes from, for example «E-Mail von …».
+    /// Where <see cref="InitialUploads"/> come from, for example «E-Mail von …».
     /// </summary>
     [Parameter]
     public string? Origin { get; set; }
@@ -237,41 +237,46 @@
         showForeign = form.OriginalAmount is not null || !string.IsNullOrEmpty(form.OriginalCurrency);
         showNote = !string.IsNullOrEmpty(form.Note);
         initial = form.Copy();
-        upload = InitialUpload;
+        uploads = InitialUploads ?? [];
     }
 
     protected override async Task OnInitializedAsync()
     {
-        if (upload is not null && InitialProposal is not null)
+        if (uploads.Count > 0 && InitialProposal is not null)
         {
             proposal = InitialProposal;
             Apply(proposal);
         }
-        else if (upload is not null)
+        else if (uploads.Count > 0)
         {
-            await Analyze(upload);
-        }
-    }
-
-    private async Task UploadChanged(UploadedReceipt? changed)
-    {
-        upload = changed;
-        if (changed is not null)
-        {
-            await Analyze(changed);
+            await Analyze();
         }
     }
 
     /// <summary>
-    /// Reads the receipt with AI and fills the fields that the user did not fill yet (story #009).
+    /// After a new file, the AI reads all new files again: together they are one receipt (story #012).
     /// </summary>
-    private async Task Analyze(UploadedReceipt receipt)
+    private async Task UploadsChanged(IReadOnlyList<UploadedReceipt> changed)
     {
+        var added = changed.Count > uploads.Count;
+        uploads = changed;
+        if (added)
+        {
+            await Analyze();
+        }
+    }
+
+    /// <summary>
+    /// Reads the new files with AI and fills the fields that the user did not fill yet (story #009).
+    /// </summary>
+    private async Task Analyze()
+    {
+        var files = uploads.Select(u => u.UploadId).ToList();
         analyzing = true;
         aiMessage = null;
         StateHasChanged();
 
-        var result = await Receipts.Analyze(receipt.UploadId);
+        var result = await Receipts.Analyze(files);
         analyzing = false;
 
         if (!result.IsSuccess)
@@ -280,8 +285,8 @@
             return;
         }
 
-        // Another receipt in the meantime: this proposal is old.
-        if (upload?.UploadId != receipt.UploadId)
+        // Other files in the meantime: this proposal is old.
+        if (!uploads.Select(u => u.UploadId).SequenceEqual(files))
         {
             return;
         }
@@ -407,7 +412,7 @@
     {
         busy = true;
         error = null;
-        var input = form.ToInput() with { UploadId = upload?.UploadId, RemoveReceipt = removeReceipt && upload is null };
+        var input = form.ToInput() with { UploadIds = uploads.Select(u => u.UploadId).ToList(), RemovedFileIds = removedFiles.ToList() };
 
         var result = Booking is null
             ? await Journal.CreateBooking(input)

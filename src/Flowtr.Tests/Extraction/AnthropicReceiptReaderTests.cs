@@ -30,7 +30,7 @@ public class AnthropicReceiptReaderTests
             """);
 
         // Act
-        var result = await Reader(server).Read("%PDF-1.7"u8.ToArray(), "application/pdf", context, CancellationToken.None);
+        var result = await Reader(server).Read([new ReceiptContent("%PDF-1.7"u8.ToArray(), "application/pdf")], context, CancellationToken.None);
 
         // Assert
         result.Value.ShouldBe(new ReceiptReading("2026-10-01", "Expense", 64.2m, "USD", "Azure Abo", "Microsoft", null, null));
@@ -57,7 +57,7 @@ public class AnthropicReceiptReaderTests
             NullLogger<AnthropicReceiptReader>.Instance);
 
         // Act
-        await reader.Read("%PDF-1.7"u8.ToArray(), "application/pdf", context, CancellationToken.None);
+        await reader.Read([new ReceiptContent("%PDF-1.7"u8.ToArray(), "application/pdf")], context, CancellationToken.None);
 
         // Assert
         server.Headers["anthropic-workspace-id"].ShouldBe("wrkspc_123");
@@ -73,7 +73,7 @@ public class AnthropicReceiptReaderTests
         var server = new FakeServer(status, """{"content":[{"type":"text","text":"Hallo"}]}""");
 
         // Act
-        var result = await Reader(server).Read("%PDF-1.7"u8.ToArray(), "application/pdf", context, CancellationToken.None);
+        var result = await Reader(server).Read([new ReceiptContent("%PDF-1.7"u8.ToArray(), "application/pdf")], context, CancellationToken.None);
 
         // Assert
         result.Error.ShouldBe(message);
@@ -86,8 +86,8 @@ public class AnthropicReceiptReaderTests
         var server = new FakeServer(HttpStatusCode.OK, "{}");
 
         // Act
-        var noKey = await Reader(server, apiKey: null).Read("%PDF-1.7"u8.ToArray(), "application/pdf", context, CancellationToken.None);
-        var heic = await Reader(server).Read([0, 0, 0, 0x18], "image/heic", context, CancellationToken.None);
+        var noKey = await Reader(server, apiKey: null).Read([new ReceiptContent("%PDF-1.7"u8.ToArray(), "application/pdf")], context, CancellationToken.None);
+        var heic = await Reader(server).Read([new ReceiptContent([0, 0, 0, 0x18], "image/heic")], context, CancellationToken.None);
 
         // Assert
         noKey.Error.ShouldBe(AnthropicReceiptReader.NotConfigured);
@@ -97,6 +97,29 @@ public class AnthropicReceiptReaderTests
 
     private static AnthropicReceiptReader Reader(FakeServer server, string? apiKey = "test-key") =>
         new(new HttpClient(server), Options.Create(new AnthropicOptions { ApiKey = apiKey }), NullLogger<AnthropicReceiptReader>.Instance);
+
+    [Fact]
+    public async Task All_files_of_a_receipt_go_in_one_message()
+    {
+        // Arrange
+        var server = new FakeServer(HttpStatusCode.OK, """{"content":[]}""");
+        var reader = new AnthropicReceiptReader(new HttpClient(server), Options.Create(new AnthropicOptions { ApiKey = "test-key" }),
+            NullLogger<AnthropicReceiptReader>.Instance);
+
+        // Act
+        await reader.Read(
+        [
+            new ReceiptContent(Flowtr.Tests.Receipts.ReceiptTestData.Pdf("Invoice"), "application/pdf"),
+            new ReceiptContent([0, 0, 0, 0x18], "image/heic"),
+            new ReceiptContent(Flowtr.Tests.Receipts.ReceiptTestData.Pdf("Receipt"), "application/pdf"),
+        ], context, CancellationToken.None);
+
+        // Assert: the HEIC photo stays out, the two PDFs go with one text.
+        var content = server.Request!["messages"]![0]!["content"]!.AsArray();
+        content.Select(block => (string?)block!["type"]).ShouldBe(["document", "document", "text"]);
+        ((string?)content[2]!["text"])!.ShouldContain("Read the 2 files above: one receipt. Record one booking.");
+        ((string?)server.Request!["system"])!.ShouldContain("not the sum of the files");
+    }
 
     private sealed class FakeServer(HttpStatusCode status, string answer) : HttpMessageHandler
     {

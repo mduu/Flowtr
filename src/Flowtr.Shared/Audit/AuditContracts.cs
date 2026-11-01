@@ -40,8 +40,10 @@ public static class AuditAreas
         ["PaymentMethod"] = "Zahlungsart",
         ["ClosedYear"] = "Jahresabschluss",
         ["Receipt"] = "Beleg",
+        ["ReceiptFile"] = "Belegdatei",
         ["Mail"] = "E-Mail",
         ["InboxItem"] = "Eingang",
+        ["InboxFile"] = "Eingang (Datei)",
         ["AllowedSender"] = "Erlaubter Absender",
     };
 }

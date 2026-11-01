@@ -12,15 +12,19 @@ internal sealed class FakeReceiptReader : IReceiptReader
 
     public ReadingContext? LastContext { get; private set; }
 
-    public byte[]? LastContent { get; private set; }
+    /// <summary>
+    /// The files of the last call.
+    /// </summary>
+    public IReadOnlyList<ReceiptContent> LastFiles { get; private set; } = [];
 
-    public string? LastContentType { get; private set; }
+    public byte[]? LastContent => LastFiles.FirstOrDefault()?.Content;
 
-    public Task<Result<ReceiptReading>> Read(byte[] content, string contentType, ReadingContext context, CancellationToken cancellationToken)
+    public string? LastContentType => LastFiles.FirstOrDefault()?.ContentType;
+
+    public Task<Result<ReceiptReading>> Read(IReadOnlyList<ReceiptContent> files, ReadingContext context, CancellationToken cancellationToken)
     {
         LastContext = context;
-        LastContent = content;
-        LastContentType = contentType;
+        LastFiles = files;
         return Task.FromResult(Next);
     }
 }

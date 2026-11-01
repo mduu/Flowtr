@@ -15,6 +15,6 @@ public sealed class ServerReceiptApi : IReceiptApi
     public Task<Result<UploadedReceipt>> Upload(IBrowserFile file, CancellationToken cancellationToken = default) =>
         Task.FromResult(Result.Failure<UploadedReceipt>(BrowserOnly));
 
-    public Task<Result<BookingProposal>> Analyze(Guid uploadId, CancellationToken cancellationToken = default) =>
+    public Task<Result<BookingProposal>> Analyze(IReadOnlyList<Guid> uploadIds, CancellationToken cancellationToken = default) =>
         Task.FromResult(Result.Failure<BookingProposal>(BrowserOnly));
 }

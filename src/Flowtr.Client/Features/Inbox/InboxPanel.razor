@@ -21,7 +21,9 @@
         {
             <div class="inbox-item" role="button" tabindex="0" @onclick="() => OnOpen.InvokeAsync(item)"
                  @onkeydown="args => Key(args, item)" title="Prüfen und buchen">
-                <MudIcon Icon="@FileIcon(item.ContentType)" Color="@(item.ContentType == MailContentTypes.Mail ? Color.Primary : Color.Error)" />
+                <MudBadge Content="item.Files.Count" Visible="item.Files.Count > 1" Color="Color.Primary" Overlap="true" Bordered="true">
+                    <MudIcon Icon="@FileIcon(item.Files[0].ContentType)" Color="@(item.Files[0].ContentType == MailContentTypes.Mail ? Color.Primary : Color.Error)" />
+                </MudBadge>
                 <div class="info">
                     <MudText Typo="Typo.body2" Class="name">@(item.Proposal?.Description ?? item.Subject)</MudText>
                     <MudText Typo="Typo.caption" Class="mud-text-secondary origin">@Origin(item)</MudText>
@@ -126,7 +128,7 @@
     {
         var confirmed = await Dialogs.ShowMessageBoxAsync(
             "Beleg verwerfen?",
-            $"«{item.Subject}» ({item.FileName}) verschwindet aus dem Eingang. Die E-Mail bleibt in der Mailbox.",
+            $"«{item.Subject}» ({string.Join(", ", item.Files.Select(f => f.FileName))}) verschwindet aus dem Eingang. Die E-Mail bleibt in der Mailbox.",
             yesText: "Verwerfen",
             cancelText: "Abbrechen");
         if (confirmed != true)
@@ -191,6 +193,7 @@
         {
             $"E-Mail von {item.Sender}",
             item.OriginalSender is { } original ? $"ursprünglich von {original}" : null,
+            item.Files.Count > 1 ? $"{item.Files.Count} Dateien" : null,
             item.ReceivedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm"),
         }.Where(part => part is not null));
 

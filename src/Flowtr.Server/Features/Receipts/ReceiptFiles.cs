@@ -46,10 +46,11 @@ public static partial class ReceiptFiles
     }
 
     /// <summary>
-    /// The blob name of a filed receipt, for example <c>2026/ausgaben/A-2026-007_azure-abo.pdf</c> (ADR-001).
+    /// The blob name of a file of a filed receipt, for example <c>2026/ausgaben/A-2026-007_azure-abo.pdf</c> (ADR-001).
+    /// From the second file on with its position: <c>…_azure-abo_2.pdf</c> (story #012).
     /// </summary>
-    public static string BlobName(int year, bool income, string number, string description, string extension) =>
-        $"{year}/{(income ? "einnahmen" : "ausgaben")}/{number}_{Slug(description)}{extension}";
+    public static string BlobName(int year, bool income, string number, string description, string extension, int position = 1) =>
+        $"{year}/{(income ? "einnahmen" : "ausgaben")}/{number}_{Slug(description)}{(position > 1 ? $"_{position}" : "")}{extension}";
 
     /// <summary>
     /// Lower case ASCII with dashes, at most 40 characters. «Büro-Stuhl (neu)» gives <c>buero-stuhl-neu</c>.

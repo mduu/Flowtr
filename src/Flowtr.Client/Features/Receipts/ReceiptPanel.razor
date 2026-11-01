@@ -1,86 +1,90 @@
 @inject IReceiptApi Receipts
 
-@* The receipt at the top of the booking dialog: drop zone without a receipt, else a card with preview and actions. *@
+@* The receipt at the top of the booking dialog: its files (filed and new), then a drop zone for more (story #012). *@
 <div class="receipt-panel">
-    @if (uploading is not null)
+    @foreach (var file in Shown)
     {
         <MudPaper Outlined="true" Class="receipt-card">
-            <div class="thumb"><MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" /></div>
-            <div class="info">
-                <MudText Typo="Typo.body2" Class="name">@uploading</MudText>
-                <MudText Typo="Typo.caption" Class="mud-text-secondary">Wird hochgeladen …</MudText>
-                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Size="Size.Small" Class="mt-1" />
-            </div>
-        </MudPaper>
-    }
-    else if (Current is { } receipt)
-    {
-        <MudPaper Outlined="true" Class="receipt-card">
-            <a class="thumb" href="@receipt.Url" target="_blank" rel="noopener" title="Beleg ansehen">
-                @if (ReceiptUrls.IsPreviewImage(receipt.ContentType))
+            <a class="thumb" href="@file.Url" target="_blank" rel="noopener" title="Datei ansehen">
+                @if (ReceiptUrls.IsPreviewImage(file.ContentType))
                 {
-                    <img src="@receipt.Url" alt="Vorschau des Belegs" />
+                    <img src="@file.Url" alt="Vorschau der Datei" />
                 }
                 else
                 {
-                    <MudIcon Icon="@Icon(receipt.ContentType)" Color="@(receipt.ContentType == MailContentTypes.Mail ? Color.Primary : Color.Error)" Size="Size.Large" />
+                    <MudIcon Icon="@Icon(file.ContentType)" Color="@(file.ContentType == MailContentTypes.Mail ? Color.Primary : Color.Error)" Size="Size.Large" />
                 }
             </a>
             <div class="info">
-                <MudText Typo="Typo.body2" Class="name">@receipt.Title</MudText>
-                @if (Analyzing)
-                {
-                    <MudText Typo="Typo.caption" Color="Color.Primary">
-                        <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" Style="font-size: .9rem; vertical-align: -2px" /> Beleg wird gelesen …
-                    </MudText>
-                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Size="Size.Small" Class="mt-1" />
-                }
-                else
-                {
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@receipt.Subtitle</MudText>
-                }
+                <MudText Typo="Typo.body2" Class="name">@file.Title</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@file.Subtitle</MudText>
             </div>
             <div class="actions">
-                <MudIconButton Href="@receipt.Url" Target="_blank" Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small"
-                               aria-label="Beleg ansehen" title="Beleg ansehen" />
+                <MudIconButton Href="@file.Url" Target="_blank" Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small"
+                               aria-label="@($"{file.Title} ansehen")" title="Ansehen" />
                 @if (!ReadOnly)
                 {
-                    <MudIconButton Icon="@Icons.Material.Outlined.SwapHoriz" Size="Size.Small" OnClick="OpenPicker"
-                                   aria-label="Beleg ersetzen" title="Beleg ersetzen" />
-                    <MudIconButton Icon="@Icons.Material.Outlined.Close" Size="Size.Small" OnClick="Remove"
-                                   aria-label="Beleg entfernen" title="Beleg entfernen" />
+                    <MudIconButton Icon="@Icons.Material.Outlined.Close" Size="Size.Small" OnClick="file.Remove"
+                                   aria-label="@($"{file.Title} entfernen")" title="Entfernen" />
                 }
             </div>
         </MudPaper>
     }
 
-    @if (!ReadOnly)
+    @foreach (var name in uploading)
     {
-        @* The file input lies invisible over the drop zone: a click opens the picker, a drop gives the file. *@
-        <MudFileUpload T="IBrowserFile" @ref="picker" FilesChanged="UploadFile" Accept="@Accept" DragAndDrop="true" @bind-Dragging="dragging"
+        <MudPaper Outlined="true" Class="receipt-card">
+            <div class="thumb"><MudProgressCircular Indeterminate="true" Size="Size.Small" Color="Color.Primary" /></div>
+            <div class="info">
+                <MudText Typo="Typo.body2" Class="name">@name</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Wird hochgeladen …</MudText>
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Size="Size.Small" Class="mt-1" />
+            </div>
+        </MudPaper>
+    }
+
+    @if (Analyzing)
+    {
+        <div class="analyzing">
+            <MudText Typo="Typo.caption" Color="Color.Primary">
+                <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" Style="font-size: .9rem; vertical-align: -2px" />
+                @(Uploads.Count > 1 ? "Dateien werden gelesen …" : "Beleg wird gelesen …")
+            </MudText>
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Size="Size.Small" Class="mt-1" />
+        </div>
+    }
+
+    @if (!ReadOnly && Count + uploading.Count < MaxFiles)
+    {
+        @* The file input lies invisible over the drop zone: a click opens the picker, a drop gives the files. *@
+        <MudFileUpload T="IReadOnlyList<IBrowserFile>" @ref="picker" FilesChanged="UploadFiles" Accept="@Accept" DragAndDrop="true" @bind-Dragging="dragging"
                        Class="drop-upload" InputClass="drop-input">
             <CustomContent>
-                @if (Current is null && uploading is null)
+                @if (Count == 0 && uploading.Count == 0)
                 {
                     <div class="drop-zone @(dragging ? "dragging" : "")">
                         <MudIcon Icon="@Icons.Material.Outlined.UploadFile" Color="Color.Primary" />
                         <div>
                             <MudText Typo="Typo.body2"><strong>Beleg hierher ziehen</strong> oder auswählen</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">PDF oder Bild, bis 20 MB · ohne Beleg geht es auch</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">PDF oder Bild, bis 20 MB, auch mehrere · ohne Beleg geht es auch</MudText>
                         </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="drop-zone more @(dragging ? "dragging" : "")">
+                        <MudIcon Icon="@Icons.Material.Outlined.Add" Color="Color.Primary" Size="Size.Small" />
+                        <MudText Typo="Typo.body2">Weitere Datei hinzufügen, z.B. die Quittung zur Rechnung</MudText>
                     </div>
                 }
             </CustomContent>
             <SelectedTemplate />
         </MudFileUpload>
-        @if (Current is null && uploading is null)
-        {
-            <label class="camera">
-                <InputFile OnChange="args => UploadFile(args.File)" accept="image/*" capture="environment" />
-                <MudIcon Icon="@Icons.Material.Outlined.PhotoCamera" Size="Size.Small" />
-                <span>Foto aufnehmen</span>
-            </label>
-        }
+        <label class="camera">
+            <InputFile OnChange="args => UploadFiles(args.GetMultipleFiles(MaxFiles))" accept="image/*" capture="environment" />
+            <MudIcon Icon="@Icons.Material.Outlined.PhotoCamera" Size="Size.Small" />
+            <span>Foto aufnehmen</span>
+        </label>
     }
     @if (error is not null)
     {
@@ -89,11 +93,16 @@
 </div>
 
 @code {
+    /// <summary>
+    /// A receipt has at most this number of files (server: <c>Receipt.MaxFiles</c>).
+    /// </summary>
+    public const int MaxFiles = 10;
+
     private const string Accept = ".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,application/pdf,image/*";
 
-    private MudFileUpload<IBrowserFile>? picker;
+    private MudFileUpload<IReadOnlyList<IBrowserFile>>? picker;
     private bool dragging;
-    private string? uploading;
+    private readonly List<string> uploading = [];
     private string? error;
 
     /// <summary>
@@ -103,94 +112,96 @@
     public BookingView? Booking { get; set; }
 
     /// <summary>
-    /// A new file that replaces the receipt when the booking is saved.
+    /// New files: the save adds them to the receipt.
     /// </summary>
     [Parameter]
-    public UploadedReceipt? Upload { get; set; }
+    public IReadOnlyList<UploadedReceipt> Uploads { get; set; } = [];
 
     [Parameter]
-    public EventCallback<UploadedReceipt?> UploadChanged { get; set; }
+    public EventCallback<IReadOnlyList<UploadedReceipt>> UploadsChanged { get; set; }
 
     /// <summary>
-    /// True when the user removed the filed receipt. The save then detaches it.
+    /// Filed files that the user removed: the save removes them from the receipt.
     /// </summary>
     [Parameter]
-    public bool Removed { get; set; }
+    public IReadOnlySet<Guid> RemovedFiles { get; set; } = new HashSet<Guid>();
 
     [Parameter]
-    public EventCallback<bool> RemovedChanged { get; set; }
+    public EventCallback<IReadOnlySet<Guid>> RemovedFilesChanged { get; set; }
 
     [Parameter]
     public bool ReadOnly { get; set; }
 
     /// <summary>
-    /// True while the AI reads the receipt.
+    /// True while the AI reads the new files.
     /// </summary>
     [Parameter]
     public bool Analyzing { get; set; }
 
     /// <summary>
-    /// Where the upload comes from (e-mail inbox). Shown instead of the file size.
+    /// Where the new files come from (e-mail inbox). Shown instead of the file size.
     /// </summary>
     [Parameter]
     public string? Origin { get; set; }
 
-    private ShownReceipt? Current =>
-        Upload is { } upload
-            ? new ShownReceipt(ReceiptUrls.Upload(upload.UploadId), upload.ContentType, upload.FileName,
-                $"{Origin ?? FileSize(upload.Size)} · wird beim Speichern abgelegt")
-            : Booking is { ReceiptId: { } id } booking && !Removed
-                ? new ShownReceipt(ReceiptUrls.Receipt(id), booking.ReceiptContentType, booking.ReceiptNumber ?? "Beleg", "Abgelegt")
-                : null;
+    private IEnumerable<ReceiptFileView> Filed => (Booking?.ReceiptFiles ?? []).Where(f => !RemovedFiles.Contains(f.Id));
 
-    private async Task OpenPicker()
-    {
-        if (picker is not null)
-        {
-            await picker.OpenFilePickerAsync();
-        }
-    }
+    private int Count => Filed.Count() + Uploads.Count;
 
-    private async Task UploadFile(IBrowserFile? file)
+    private IEnumerable<ShownFile> Shown =>
+        Filed.Select(f => new ShownFile(ReceiptUrls.File(f.Id), f.ContentType, f.FileName, $"Abgelegt · {FileSize(f.Size)}", () => RemoveFiled(f.Id)))
+            .Concat(Uploads.Select(u => new ShownFile(ReceiptUrls.Upload(u.UploadId), u.ContentType, u.FileName,
+                $"{Origin ?? FileSize(u.Size)} · wird beim Speichern abgelegt", () => RemoveUpload(u))));
+
+    private async Task UploadFiles(IReadOnlyList<IBrowserFile>? files)
     {
-        if (file is null)
+        if (files is null || files.Count == 0)
         {
             return;
         }
 
         error = null;
-        uploading = file.Name;
+        var free = MaxFiles - Count - uploading.Count;
+        if (files.Count > free)
+        {
+            error = $"Ein Beleg hat höchstens {MaxFiles} Dateien.";
+            files = files.Take(free).ToList();
+        }
+
+        uploading.AddRange(files.Select(f => f.Name));
         StateHasChanged();
 
-        var result = await Receipts.Upload(file);
-        uploading = null;
+        var added = new List<UploadedReceipt>();
+        foreach (var file in files)
+        {
+            var result = await Receipts.Upload(file);
+            uploading.Remove(file.Name);
+            if (result.IsSuccess)
+            {
+                added.Add(result.Value!);
+            }
+            else
+            {
+                error = result.Error;
+            }
+        }
 
         if (picker is not null)
         {
             await picker.ClearAsync();
         }
 
-        if (result.IsSuccess)
+        if (added.Count > 0)
         {
-            await UploadChanged.InvokeAsync(result.Value);
-        }
-        else
-        {
-            error = result.Error;
+            await UploadsChanged.InvokeAsync([.. Uploads, .. added]);
         }
     }
 
-    private async Task Remove()
-    {
-        if (Upload is not null)
-        {
-            await UploadChanged.InvokeAsync(null);
-        }
-        else
-        {
-            await RemovedChanged.InvokeAsync(true);
-        }
-    }
+    private Task RemoveUpload(UploadedReceipt upload) =>
+        UploadsChanged.InvokeAsync(Uploads.Where(u => u.UploadId != upload.UploadId).ToList());
+
+    private Task RemoveFiled(Guid fileId) =>
+        RemovedFilesChanged.InvokeAsync(new HashSet<Guid>(RemovedFiles) { fileId });
 
     private static string Icon(string? contentType) => contentType switch
     {
@@ -206,5 +217,5 @@
         _ => $"{bytes / 1024.0 / 1024.0:0.0} MB",
     };
 
-    private sealed record ShownReceipt(string Url, string? ContentType, string Title, string Subtitle);
+    private sealed record ShownFile(string Url, string? ContentType, string Title, string Subtitle, Func<Task> Remove);
 }

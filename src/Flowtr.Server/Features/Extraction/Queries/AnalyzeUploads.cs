@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Flowtr.Server.Features.Extraction.Queries;
 
 /// <summary>
-/// Reads an upload with AI and makes a booking proposal (story #009). The E-mail inbox (story #010) uses it too.
+/// Reads the uploads of one receipt with AI and makes one booking proposal (story #009, #012). The e-mail inbox (story #010) uses it too.
 /// </summary>
 /// <remarks>
 /// The answer of the AI is only a proposal: Flowtr keeps only valid values (date, amount, currency, a category of the
@@ -20,48 +20,81 @@ namespace Flowtr.Server.Features.Extraction.Queries;
 /// counterparty, and converts foreign currencies to CHF. A mail as receipt goes to the AI as text (ADR-009).
 /// </remarks>
 /// <param name="Origin">Where the receipt comes from, for example the sender of the mail. A hint for the counterparty.</param>
-public sealed record AnalyzeUpload(Guid UploadId, string? Origin = null);
+public sealed record AnalyzeUploads(IReadOnlyList<Guid> UploadIds, string? Origin = null);
 
-public sealed partial class AnalyzeUploadHandler(
+public sealed partial class AnalyzeUploadsHandler(
     ApplicationDbContext db,
     IReceiptStore store,
     IReceiptReader reader,
     IExchangeRates rates,
     TimeProvider time)
-    : IQueryHandler<AnalyzeUpload, BookingProposal>
+    : IQueryHandler<AnalyzeUploads, BookingProposal>
 {
-    public async Task<Result<BookingProposal>> Handle(AnalyzeUpload query, CancellationToken cancellationToken)
+    /// <summary>
+    /// At most this number of files goes to the AI, the first ones of the receipt.
+    /// </summary>
+    public const int MaxFiles = 5;
+
+    /// <summary>
+    /// At most this size of all files together goes to the AI: the request to Anthropic has a limit, and base64 needs a third more.
+    /// </summary>
+    public const long MaxTotalSize = 20 * 1024 * 1024;
+
+    public async Task<Result<BookingProposal>> Handle(AnalyzeUploads query, CancellationToken cancellationToken)
     {
-        if (await store.GetUpload(query.UploadId, cancellationToken) is not { } upload
-            || await store.OpenUpload(query.UploadId, cancellationToken) is not { } stream)
+        var files = new List<ReceiptContent>();
+        long total = 0;
+        foreach (var uploadId in query.UploadIds.Distinct().Take(MaxFiles))
+        {
+            if (await Read(uploadId, cancellationToken) is not { } file)
+            {
+                return Result.Failure<BookingProposal>(ReceiptFiling.UploadGone);
+            }
+
+            if (files.Count > 0 && total + file.Content.Length > MaxTotalSize)
+            {
+                break;
+            }
+
+            total += file.Content.Length;
+            files.Add(file);
+        }
+
+        if (files.Count == 0)
         {
             return Result.Failure<BookingProposal>(ReceiptFiling.UploadGone);
         }
 
-        byte[] content;
-        await using (stream)
-        {
-            using var buffer = new MemoryStream();
-            await stream.CopyToAsync(buffer, cancellationToken);
-            content = buffer.ToArray();
-        }
-
-        var contentType = upload.ContentType;
-        if (contentType == MailContentTypes.Mail)
-        {
-            content = System.Text.Encoding.UTF8.GetBytes(MailText.ForReader(content));
-            contentType = "text/plain";
-        }
-
         var today = DateOnly.FromDateTime(time.GetLocalNow().DateTime);
         var context = await Context(today, cancellationToken) with { Origin = query.Origin };
-        var reading = await reader.Read(content, contentType, context, cancellationToken);
+        var reading = await reader.Read(files, context, cancellationToken);
         if (!reading.IsSuccess)
         {
             return Result.Failure<BookingProposal>(reading.Error!);
         }
 
         return Result.Success(await Proposal(reading.Value!, today, cancellationToken));
+    }
+
+    /// <summary>
+    /// The content of an upload for the AI. A mail as receipt goes as text (ADR-009).
+    /// </summary>
+    private async Task<ReceiptContent?> Read(Guid uploadId, CancellationToken cancellationToken)
+    {
+        if (await store.GetUpload(uploadId, cancellationToken) is not { } upload
+            || await store.OpenUpload(uploadId, cancellationToken) is not { } stream)
+        {
+            return null;
+        }
+
+        await using (stream)
+        {
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer, cancellationToken);
+            return upload.ContentType == MailContentTypes.Mail
+                ? new ReceiptContent(System.Text.Encoding.UTF8.GetBytes(MailText.ForReader(buffer.ToArray())), "text/plain")
+                : new ReceiptContent(buffer.ToArray(), upload.ContentType);
+        }
     }
 
     private async Task<ReadingContext> Context(DateOnly today, CancellationToken cancellationToken)

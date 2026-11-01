@@ -35,11 +35,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<Receipt> Receipts => Set<Receipt>();
 
+    public DbSet<ReceiptFile> ReceiptFiles => Set<ReceiptFile>();
+
     public DbSet<ReceiptSequence> ReceiptSequences => Set<ReceiptSequence>();
 
     public DbSet<ImportedMail> ImportedMails => Set<ImportedMail>();
 
     public DbSet<InboxItem> InboxItems => Set<InboxItem>();
+
+    public DbSet<InboxFile> InboxFiles => Set<InboxFile>();
 
     public DbSet<AllowedSender> AllowedSenders => Set<AllowedSender>();
 

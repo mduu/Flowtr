@@ -3,13 +3,16 @@ using Flowtr.Shared;
 namespace Flowtr.Server.Features.Extraction;
 
 /// <summary>
-/// Reads a receipt with AI. The result is not checked yet: <see cref="Queries.AnalyzeUploadHandler"/> checks it.
+/// Reads a receipt with AI. The result is not checked yet: <see cref="Queries.AnalyzeUploadsHandler"/> checks it.
 /// </summary>
 public interface IReceiptReader
 {
-    /// <param name="contentType">PDF, an image, or <c>text/plain</c> (UTF-8) for a mail.</param>
-    Task<Result<ReceiptReading>> Read(byte[] content, string contentType, ReadingContext context, CancellationToken cancellationToken);
+    /// <param name="files">The files of one receipt, for example invoice and payment receipt (story #012).</param>
+    Task<Result<ReceiptReading>> Read(IReadOnlyList<ReceiptContent> files, ReadingContext context, CancellationToken cancellationToken);
 }
+
+/// <param name="ContentType">PDF, an image, or <c>text/plain</c> (UTF-8) for a mail.</param>
+public sealed record ReceiptContent(byte[] Content, string ContentType);
 
 /// <summary>
 /// What the AI knows about Flowtr: the lists to choose from and earlier bookings per counterparty.

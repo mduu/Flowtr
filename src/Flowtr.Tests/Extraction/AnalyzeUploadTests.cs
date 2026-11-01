@@ -118,8 +118,8 @@ public class AnalyzeUploadTests
         app.Reader.Next = Result.Failure<ReceiptReading>(AnthropicReceiptReader.NotConfigured);
 
         // Act
-        var failed = await app.Query<AnalyzeUpload, BookingProposal>(new AnalyzeUpload(await app.UploadPdf()));
-        var missing = await app.Query<AnalyzeUpload, BookingProposal>(new AnalyzeUpload(Guid.NewGuid()));
+        var failed = await app.Query<AnalyzeUploads, BookingProposal>(new AnalyzeUploads([await app.UploadPdf()]));
+        var missing = await app.Query<AnalyzeUploads, BookingProposal>(new AnalyzeUploads([Guid.NewGuid()]));
 
         // Assert
         failed.Error.ShouldBe(AnthropicReceiptReader.NotConfigured);
@@ -128,7 +128,7 @@ public class AnalyzeUploadTests
 
     private static async Task<BookingProposal> Analyze(TestApp app)
     {
-        var result = await app.Query<AnalyzeUpload, BookingProposal>(new AnalyzeUpload(await app.UploadPdf()));
+        var result = await app.Query<AnalyzeUploads, BookingProposal>(new AnalyzeUploads([await app.UploadPdf()]));
         result.IsSuccess.ShouldBeTrue(result.Error);
         return result.Value!;
     }

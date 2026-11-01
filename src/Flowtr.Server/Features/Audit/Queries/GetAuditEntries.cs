@@ -68,6 +68,13 @@ public sealed class GetAuditEntriesHandler(ApplicationDbContext db) : IQueryHand
         ["ContentType"] = "Dateityp",
         ["Size"] = "Grösse (Bytes)",
         ["Sha256"] = "SHA-256",
+        ["Number"] = "Belegnummer",
+        ["SequenceNumber"] = "Laufnummer",
+        ["ReceiptId"] = "Beleg",
+        ["InboxItemId"] = "Eingang",
+        ["Position"] = "Position",
+        ["BlobName"] = "Ablageort",
+        ["FiledAt"] = "Abgelegt am",
         ["Analysis"] = "Analyse",
         ["Address"] = "Adresse",
     };
@@ -185,20 +192,51 @@ public sealed class GetAuditEntriesHandler(ApplicationDbContext db) : IQueryHand
                 changes => Value(changes, "Name"), cancellationToken);
         }
 
+        await AddReceiptNames(names, page, cancellationToken);
         await AddInboxNames(names, page, cancellationToken);
         return names;
     }
 
     /// <summary>
-    /// Mails by subject (also the mail of an inbox receipt), inbox receipts by file name, allowed senders by address.
+    /// Receipts by number (also the receipt of a file), receipt files by file name.
+    /// </summary>
+    private async Task AddReceiptNames(Dictionary<string, string> names, List<AuditEntry> page, CancellationToken cancellationToken)
+    {
+        var receiptIds = page.Where(entry => entry.EntityType == "Receipt").Select(entry => entry.EntityId)
+            .Concat(page.Where(entry => entry.EntityType == "ReceiptFile").Select(entry => Value(Parse(entry.Changes), "ReceiptId")).OfType<string>())
+            .Concat(page.Where(entry => entry.EntityType == "Booking").Select(entry => Value(Parse(entry.Changes), "ReceiptId")).OfType<string>())
+            .ToList();
+        var known = receiptIds.Select(id => Guid.TryParse(id, out var guid) ? guid : Guid.Empty).Where(id => id != Guid.Empty).Distinct().ToList();
+        foreach (var receipt in await db.Receipts.AsNoTracking().Where(r => known.Contains(r.Id)).Select(r => new { r.Id, r.Number }).ToListAsync(cancellationToken))
+        {
+            names[receipt.Id.ToString()] = receipt.Number;
+        }
+
+        await AddFromHistory(names, "Receipt", receiptIds, changes => Value(changes, "Number"), cancellationToken);
+        await AddFromHistory(names, "ReceiptFile", page.Where(entry => entry.EntityType == "ReceiptFile").Select(entry => entry.EntityId),
+            changes => Value(changes, "FileName"), cancellationToken);
+    }
+
+    /// <summary>
+    /// Mails by subject, inbox items by the subject of their mail (or, before story #012, by file name),
+    /// inbox files by file name, allowed senders by address.
     /// </summary>
     private async Task AddInboxNames(Dictionary<string, string> names, List<AuditEntry> page, CancellationToken cancellationToken)
     {
-        var mailIds = page.Where(entry => entry.EntityType == "Mail").Select(entry => entry.EntityId)
-            .Concat(page.Where(entry => entry.EntityType == "InboxItem").Select(entry => Value(Parse(entry.Changes), "MailId")).OfType<string>());
+        var items = page.Where(entry => entry.EntityType == "InboxItem").Select(entry => (entry.EntityId, MailId: Value(Parse(entry.Changes), "MailId"))).ToList();
+        var mailIds = page.Where(entry => entry.EntityType == "Mail").Select(entry => entry.EntityId).Concat(items.Select(i => i.MailId).OfType<string>());
         await AddFromHistory(names, "Mail", mailIds, changes => Value(changes, "Subject"), cancellationToken);
 
-        await AddFromHistory(names, "InboxItem", page.Where(entry => entry.EntityType == "InboxItem").Select(entry => entry.EntityId),
+        foreach (var (itemId, mailId) in items)
+        {
+            if (mailId is not null && names.TryGetValue(mailId, out var subject))
+            {
+                names.TryAdd(itemId, subject);
+            }
+        }
+
+        await AddFromHistory(names, "InboxItem", items.Select(i => i.EntityId), changes => Value(changes, "FileName"), cancellationToken);
+        await AddFromHistory(names, "InboxFile", page.Where(entry => entry.EntityType == "InboxFile").Select(entry => entry.EntityId),
             changes => Value(changes, "FileName"), cancellationToken);
         await AddFromHistory(names, "AllowedSender", page.Where(entry => entry.EntityType == "AllowedSender").Select(entry => entry.EntityId),
             changes => Value(changes, "Address"), cancellationToken);

@@ -9,7 +9,8 @@ public enum BookingKind
 /// <summary>
 /// What the user enters for a booking. <see cref="AmountChf"/> is always positive: <see cref="Kind"/> gives the direction.
 /// <see cref="Counterparty"/> and <see cref="PaymentMethod"/> are names. Flowtr adds a new name to its list.
-/// <see cref="UploadId"/> attaches an upload as receipt (or replaces the receipt). <see cref="RemoveReceipt"/> removes it.
+/// <see cref="UploadIds"/> become new files of the receipt. <see cref="RemovedFileIds"/> are files of the receipt that go.
+/// Without files, the booking has no receipt (story #012).
 /// </summary>
 public sealed record BookingInput(
     DateOnly Date,
@@ -22,8 +23,8 @@ public sealed record BookingInput(
     string? Counterparty,
     string? PaymentMethod,
     string? Note,
-    Guid? UploadId = null,
-    bool RemoveReceipt = false);
+    IReadOnlyList<Guid>? UploadIds = null,
+    IReadOnlyList<Guid>? RemovedFileIds = null);
 
 /// <summary>
 /// A booking in the journal. <see cref="IsLocked"/> is true when its year is closed.
@@ -40,15 +41,19 @@ public sealed record BookingView(
     string Category,
     string? Counterparty,
     string? PaymentMethod,
-    Guid? ReceiptId,
     string? ReceiptNumber,
-    string? ReceiptContentType,
+    IReadOnlyList<ReceiptFileView> ReceiptFiles,
     string? Note,
     bool IsLocked)
 {
     public BookingInput ToInput() =>
         new(Date, Kind, AmountChf, OriginalAmount, OriginalCurrency, Description, CategoryId, Counterparty, PaymentMethod, Note);
 }
+
+/// <summary>
+/// A file of a filed receipt.
+/// </summary>
+public sealed record ReceiptFileView(Guid Id, string FileName, string ContentType, long Size);
 
 /// <summary>
 /// <see cref="Search"/> looks in description, counterparty and note.
@@ -91,6 +96,11 @@ public sealed record BookingOptions(IReadOnlyList<CategoryView> Categories, IRea
 /// A file in <c>eingang</c>: a booking files it when it is saved.
 /// </summary>
 public sealed record UploadedReceipt(Guid UploadId, string FileName, string ContentType, long Size);
+
+/// <summary>
+/// The uploads that the AI reads together: the files of one receipt (story #012).
+/// </summary>
+public sealed record AnalysisInput(IReadOnlyList<Guid> UploadIds);
 
 /// <summary>
 /// What the AI read from a receipt (story #009). Null means: not found. The dialog fills only empty fields with it.

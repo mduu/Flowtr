@@ -24,9 +24,11 @@ public class BookingTests
 
         // Assert
         var booking = (await Journal(app, new JournalFilter(2026))).Bookings.ShouldHaveSingleItem();
-        booking.ShouldBe(new BookingView(
+        booking.ReceiptFiles.ShouldBeEmpty();
+        var noFiles = Array.Empty<ReceiptFileView>();
+        (booking with { ReceiptFiles = noFiles }).ShouldBe(new BookingView(
             id, new DateOnly(2026, 10, 1), BookingKind.Expense, 20.50m, 22.00m, "USD", "Azure Abo", Software, "Software und Abos",
-            "Microsoft", "Kreditkarte", ReceiptId: null, ReceiptNumber: null, ReceiptContentType: null, "Oktober", IsLocked: false));
+            "Microsoft", "Kreditkarte", ReceiptNumber: null, ReceiptFiles: noFiles, "Oktober", IsLocked: false));
     }
 
     [Fact]

@@ -78,12 +78,12 @@ public class InboxTests
         var item = (await app.Inbox()).Items.Single();
 
         // Act
-        await app.Create(JournalTestData.Expense(description: "Stripe Gebühren") with { UploadId = item.UploadId });
+        await app.Create(JournalTestData.Expense(description: "Stripe Gebühren") with { UploadIds = [item.Files.Single().UploadId] });
 
         // Assert
         (await app.Inbox()).Items.ShouldBeEmpty();
         var booking = (await app.Query<GetJournal, JournalView>(new GetJournal(new JournalFilter(2026)))).Value!.Bookings.Single();
-        (booking.ReceiptNumber, booking.ReceiptContentType).ShouldBe(("A-2026-001", MailContentTypes.Mail));
+        (booking.ReceiptNumber, booking.ReceiptFiles.Single().ContentType).ShouldBe(("A-2026-001", MailContentTypes.Mail));
         app.Store.Receipts.Keys.ShouldBe(["2026/ausgaben/A-2026-001_stripe-gebuehren.eml"]);
         app.Store.Uploads.ShouldBeEmpty();
     }
@@ -141,9 +141,9 @@ public class InboxTests
         // Assert
         expired.Value.ShouldBe(1);
         var item = (await app.Inbox()).Items.ShouldHaveSingleItem();
-        item.FileName.ShouldBe("neu.pdf");
+        item.Files.Single().FileName.ShouldBe("neu.pdf");
         item.ExpiresAt.ShouldBe(app.Clock.Now.AddDays(29));
-        app.Store.Uploads.Keys.ShouldBe([item.UploadId]);
+        app.Store.Uploads.Keys.ShouldBe([item.Files.Single().UploadId]);
     }
 
     [Fact]
@@ -162,9 +162,11 @@ public class InboxTests
         var entries = (await app.Query<GetAuditEntries, AuditPage>(new GetAuditEntries(new AuditFilter(null, null, null, null)))).Value!.Entries;
         entries.Select(e => (e.Action, e.Area, e.Subject)).ShouldBe(
         [
-            ("Gelöscht", "Eingang", "rechnung.pdf"),
+            ("Gelöscht", "Eingang", "Rechnung"),
+            ("Gelöscht", "Eingang (Datei)", "rechnung.pdf"),
             ("Erstellt", "E-Mail", "Gewinn!"),
-            ("Erstellt", "Eingang", "rechnung.pdf"),
+            ("Erstellt", "Eingang", "Rechnung"),
+            ("Erstellt", "Eingang (Datei)", "rechnung.pdf"),
             ("Erstellt", "E-Mail", "Rechnung"),
             ("Erstellt", "Erlaubter Absender", User),
         ], ignoreOrder: true);

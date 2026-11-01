@@ -18,20 +18,22 @@ namespace Flowtr.Server.Features.Inbox.Commands;
 /// </remarks>
 public sealed record AnalyzeInbox;
 
-public sealed class AnalyzeInboxHandler(ApplicationDbContext db, IQueryHandler<AnalyzeUpload, BookingProposal> analyze, ILogger<AnalyzeInboxHandler> logger)
+public sealed class AnalyzeInboxHandler(ApplicationDbContext db, IQueryHandler<AnalyzeUploads, BookingProposal> analyze, ILogger<AnalyzeInboxHandler> logger)
     : ICommandHandler<AnalyzeInbox, Result<int>>
 {
     public async Task<Result<int>> Handle(AnalyzeInbox command, CancellationToken cancellationToken)
     {
         var pending = await db.InboxItems
             .Include(i => i.Mail)
+            .Include(i => i.Files)
             .Where(i => i.Analysis == AnalysisState.Pending)
             .OrderBy(i => i.ImportedAt)
             .ToListAsync(cancellationToken);
 
         foreach (var item in pending)
         {
-            var result = await analyze.Handle(new AnalyzeUpload(item.UploadId, Origin(item)), cancellationToken);
+            var uploads = item.Files.OrderBy(f => f.Position).Select(f => f.UploadId).ToList();
+            var result = await analyze.Handle(new AnalyzeUploads(uploads, Origin(item)), cancellationToken);
             if (result.IsSuccess)
             {
                 item.Analysis = AnalysisState.Done;
@@ -56,5 +58,6 @@ public sealed class AnalyzeInboxHandler(ApplicationDbContext db, IQueryHandler<A
     public static string Origin(Model.InboxItem item) =>
         $"E-mail from {item.Mail!.Sender}" +
         (item.Mail.OriginalSender is { } original ? $", forwarded mail originally from {original}" : "") +
-        $", subject \"{item.Mail.Subject}\", file \"{item.FileName}\"";
+        $", subject \"{item.Mail.Subject}\", " +
+        (item.Files.Count == 1 ? $"file \"{item.Files[0].FileName}\"" : $"files {string.Join(", ", item.Files.OrderBy(f => f.Position).Select(f => $"\"{f.FileName}\""))}");
 }

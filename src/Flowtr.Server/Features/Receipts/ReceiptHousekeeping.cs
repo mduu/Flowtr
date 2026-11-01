@@ -56,7 +56,7 @@ public sealed class ReceiptHousekeeping(IServiceScopeFactory scopes, DatabaseRea
         }
 
         var db = services.GetRequiredService<ApplicationDbContext>();
-        var known = (await db.Set<Receipt>().Select(r => r.BlobName).ToListAsync(cancellationToken)).ToHashSet();
+        var known = (await db.ReceiptFiles.Select(f => f.BlobName).ToListAsync(cancellationToken)).ToHashSet();
         var stored = new HashSet<string>();
         await foreach (var blobName in store.ListReceipts(cancellationToken))
         {
