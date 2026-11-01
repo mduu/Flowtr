@@ -51,19 +51,24 @@ Voraussetzungen: `az` (Azure CLI), `gh` (GitHub CLI), `jq`. Eine eigene Subscrip
 
 ## Updates
 
-Jeder Push auf `main` mit grünen Tests baut ein neues Image (Tag: Commit und `latest`) und setzt es auf App und Job. Danach wartet die Pipeline, bis *Flowtr* bereit ist (`/status`). Dabei wacht die Datenbank auf, und *Flowtr* wendet die Migrationen an. GitHub behält die letzten 10 Images.
+Jeder Push auf `main`, der die App ändert, baut nach grünen Tests ein neues Image. Änderungen nur an `specs/`, `docs/`, `deploy/`, `assets/` oder an `*.md` starten die Pipeline nicht. Das Image hat die Tags Commit und `latest`. Die Pipeline setzt es auf App und Job. Danach wartet die Pipeline, bis *Flowtr* bereit ist (`/status`). Dabei wacht die Datenbank auf, und *Flowtr* wendet die Migrationen an. GitHub behält die letzten 10 Images.
 
 **Zurück auf eine frühere Version:** im Portal unter «Container App → Revisions» die frühere Revision aktivieren, oder `az containerapp update --image ghcr.io/<owner>/flowtr:<commit>`.
 
 ## Geheimnisse ändern
 
+Container Apps liest Geheimnisse aus dem Key Vault nur etwa alle 30 Minuten neu. Ein Neustart allein genügt nicht. Nach dem Ändern den Verweis neu setzen und die App neu starten:
+
 ```bash
-az keyvault secret set --vault-name <kv-flowtr-…> --name anthropic-api-key --value "<key>"
-az keyvault secret set --vault-name <kv-flowtr-…> --name mailbox-password --value "<passwort>"
-az containerapp revision restart --resource-group rg-flowtr --name flowtr --revision <aktuelle Revision>
+VAULT=<kv-flowtr-…>; SECRET=anthropic-api-key   # oder mailbox-password
+read -rs VALUE && az keyvault secret set --vault-name "$VAULT" --name "$SECRET" --value "$VALUE" -o none && unset VALUE
+REF="$SECRET=keyvaultref:https://$VAULT.vault.azure.net/secrets/$SECRET,identityref:$(az identity show -n id-flowtr -g rg-flowtr --query id -o tsv)"
+az containerapp secret set -n flowtr -g rg-flowtr --secrets "$REF"
+az containerapp job secret set -n flowtr-inbox -g rg-flowtr --secrets "$REF"
+az containerapp revision restart -n flowtr -g rg-flowtr --revision "$(az containerapp show -n flowtr -g rg-flowtr --query properties.latestRevisionName -o tsv)"
 ```
 
-Container Apps liest die Geheimnisse beim Start einer Revision.
+Ein neuer API-Key für Claude gehört in einen eigenen Key für den Betrieb (Anthropic-Konsole), getrennt vom Key für die Entwicklung.
 
 ## Logs und Fehler
 

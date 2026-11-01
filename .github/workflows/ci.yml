@@ -1,12 +1,28 @@
-# Build and test on each push to main and on each pull request.
+# Build and test on each push to main and on each pull request that changes the app.
 # On main also: publish the image to the GitHub Container Registry and set it on the app and the inbox job in Azure
 # (story #011). No artifacts: see "GitHub Actions" in AGENTS.md. Azure only when deploy/deploy.sh set the variables.
 name: CI
 
+# Only changes that reach the app run the pipeline: not the specs, the docs, the infrastructure (deploy/deploy.sh by hand)
+# or the images of the repository. workflow_dispatch runs it always.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'specs/**'
+      - 'docs/**'
+      - 'deploy/**'
+      - 'assets/**'
+      - '**/*.md'
+      - '.claude/**'
   pull_request:
+    paths-ignore:
+      - 'specs/**'
+      - 'docs/**'
+      - 'deploy/**'
+      - 'assets/**'
+      - '**/*.md'
+      - '.claude/**'
   workflow_dispatch:
 
 permissions:

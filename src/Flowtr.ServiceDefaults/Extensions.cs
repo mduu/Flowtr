@@ -94,7 +94,14 @@ public static class Extensions
         // In Azure (Application Insights). Locally, the Aspire dashboard gets the telemetry through OTLP.
         if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
         {
-            builder.Services.AddOpenTelemetry().UseAzureMonitor();
+            // All traces and all logs: with one or two users, the volume is small. Since version 1.5, the default
+            // keeps 5 traces per second and can drop logs with them, also errors.
+            builder.Services.AddOpenTelemetry().UseAzureMonitor(options =>
+            {
+                options.SamplingRatio = 1.0f;
+                options.TracesPerSecond = null;
+                options.EnableTraceBasedLogsSampler = false;
+            });
         }
 
         return builder;
