@@ -35,7 +35,7 @@ Das Budget warnt bei 80 % und bei einer Prognose über 100 % (Standard: 5 pro Mo
 
 Voraussetzungen: `az` (Azure CLI), `gh` (GitHub CLI), `jq`. Eine eigene Subscription nur für *Flowtr*: Das Gratis-Kontingent von Container Apps gilt pro Subscription.
 
-1. **Image:** Ein Push auf `main` baut das Image `ghcr.io/<owner>/flowtr`. Beim ersten Mal ist das Paket privat: In GitHub unter «Packages → flowtr → Package settings» auf **Public** stellen. Sonst kann Azure es nicht laden.
+1. **Image:** Ein Push auf `main` baut das Image `ghcr.io/<owner>/flowtr`. Bei einem öffentlichen Repository ist es öffentlich. Prüfen: `docker manifest inspect ghcr.io/<owner>/flowtr:latest` ohne Anmeldung. Ist es privat, in GitHub unter «Packages → flowtr → Package settings» auf **Public** stellen. Sonst kann Azure es nicht laden.
 2. **Einstellungen:** `deploy/flowtr.env.example` nach `deploy/flowtr.env` kopieren und ausfüllen (Subscription, Admin, Domain, Mailbox). Die Datei kommt nicht ins Repository.
 3. **Anmelden:** `az login` und `gh auth login`.
 4. **Deployen:** `deploy/deploy.sh`. Das Skript

@@ -90,6 +90,12 @@ ask_secret() {
         return
     fi
     local value=$default
+    if [[ -z "$value" && ! -t 0 ]]; then
+        # No keyboard (for example started from another tool): the operator sets the secret, then runs the script again.
+        echo "Missing secret $secret ($prompt). Set it, then run deploy/deploy.sh again:" >&2
+        echo "  read -rs VALUE && az keyvault secret set --vault-name $VAULT --name $secret --value \"\$VALUE\" -o none" >&2
+        exit 1
+    fi
     if [[ -z "$value" ]]; then
         read -rsp "$prompt: " value
         echo

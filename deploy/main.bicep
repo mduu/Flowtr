@@ -342,8 +342,6 @@ var sharedEnv = [
   { name: 'Mailbox__UserName', value: mailboxUserName }
   { name: 'Mailbox__Address', value: mailboxAddress }
   { name: 'Mailbox__Password', secretRef: 'mailbox-password' }
-  // The console goes to Log Analytics: only warnings and errors. The rest goes to Application Insights.
-  { name: 'Logging__Console__LogLevel__Default', value: 'Warning' }
 ]
 
 resource app 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
