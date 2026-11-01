@@ -51,7 +51,7 @@ Voraussetzungen: `az` (Azure CLI), `gh` (GitHub CLI), `jq`. Eine eigene Subscrip
 
 ## Updates
 
-Jeder Push auf `main`, der die App ändert, baut nach grünen Tests ein neues Image. Änderungen nur an `specs/`, `docs/`, `deploy/`, `assets/` oder an `*.md` starten die Pipeline nicht. Das Image hat die Tags Commit und `latest`. Die Pipeline setzt es auf App und Job. Danach wartet die Pipeline, bis *Flowtr* bereit ist (`/status`). Dabei wacht die Datenbank auf, und *Flowtr* wendet die Migrationen an. GitHub behält die letzten 10 Images.
+Jeder Push auf `main`, der die App ändert, baut nach grünen Tests ein neues Image. Änderungen nur an `specs/`, `docs/`, `deploy/`, `assets/` oder an `*.md` starten die Pipeline nicht. Das Image hat die Tags Commit und `latest`. Die Pipeline hat zwei Jobs: «Build and test» baut, testet und veröffentlicht das Image. «Deploy to Azure» setzt es auf App und Job. Danach wartet dieser Job, bis *Flowtr* bereit ist (`/status`). Dabei wacht die Datenbank auf, und *Flowtr* wendet die Migrationen an. GitHub behält die letzten 10 Images.
 
 **Zurück auf eine frühere Version:** im Portal unter «Container App → Revisions» die frühere Revision aktivieren, oder `az containerapp update --image ghcr.io/<owner>/flowtr:<commit>`.
 

@@ -56,7 +56,7 @@ Use as little GitHub storage as possible. The repo keeps artifacts and logs for 
 - CI must stay green. Tests run without Docker and without external services.
 
 - Upload an artifact only when a later job or a person needs it. Always set `retention-days: 1`.
-- Deploy to Azure directly from the build job. Do not keep the build output as an artifact.
+- Do not keep the build output as an artifact. The job `build` publishes the image to the GitHub Container Registry, and the job `deploy` sets this image in Azure.
 - Cache NuGet packages only with a key from `src/Directory.Packages.props`. This stops old caches from collecting.
 
 ## Key Principles
