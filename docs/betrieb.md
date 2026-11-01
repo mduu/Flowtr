@@ -55,6 +55,10 @@ Jeder Push auf `main`, der die App ändert, baut nach grünen Tests ein neues Im
 
 **Zurück auf eine frühere Version:** im Portal unter «Container App → Revisions» die frühere Revision aktivieren, oder `az containerapp update --image ghcr.io/<owner>/flowtr:<commit>`.
 
+## Kultur
+
+*Flowtr* formatiert und liest Zahlen und Datum nach `Culture` (Standard `de-CH`), unabhängig von der Spracheinstellung des Browsers. Ein Fork setzt bei Bedarf `CULTURE` in `deploy/flowtr.env` (z.B. `de-DE`) und führt `deploy/deploy.sh` aus. Ein unbekannter Wert stoppt den Start mit einer Fehlermeldung.
+
 ## Geheimnisse ändern
 
 Container Apps liest Geheimnisse aus dem Key Vault nur etwa alle 30 Minuten neu. Ein Neustart allein genügt nicht. Nach dem Ändern den Verweis neu setzen und die App neu starten:

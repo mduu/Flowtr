@@ -16,6 +16,7 @@ LOCATION=${LOCATION:-switzerlandnorth}
 ALERT_EMAIL=${ALERT_EMAIL:-$ADMIN_EMAIL}
 IMAGE=${IMAGE:-ghcr.io/mduu/flowtr:latest}
 MONTHLY_BUDGET=${MONTHLY_BUDGET:-5}
+CULTURE=${CULTURE:-de-CH}
 ENVIRONMENT=cae-$NAME
 
 step() { printf '\n\033[1m%s\033[0m\n' "$*"; }
@@ -67,7 +68,7 @@ deploy() {
             adminEmail="$ADMIN_EMAIL" alertEmail="$ALERT_EMAIL" operatorId="$OPERATOR_ID" \
             sqlAdminGroupName="$SQL_GROUP" sqlAdminGroupId="$SQL_GROUP_ID" \
             mailboxHost="${MAILBOX_HOST:-}" mailboxUserName="${MAILBOX_USER:-}" mailboxAddress="${MAILBOX_ADDRESS:-}" \
-            monthlyBudget="$MONTHLY_BUDGET" budgetStartDate="$BUDGET_START" deployApps="$1" \
+            monthlyBudget="$MONTHLY_BUDGET" budgetStartDate="$BUDGET_START" culture="$CULTURE" deployApps="$1" \
         --query properties.outputs -o json
 }
 

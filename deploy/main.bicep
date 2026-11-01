@@ -17,6 +17,9 @@ param domain string = ''
 @description('ID of the managed certificate for the domain. deploy/bind-domain.sh makes it, deploy/deploy.sh finds it.')
 param certificateId string = ''
 
+@description('Culture for numbers and dates, in the browser and on the server.')
+param culture string = 'de-CH'
+
 @description('Always admin of Flowtr (ADR-004).')
 param adminEmail string
 
@@ -337,6 +340,7 @@ var sharedEnv = [
   { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: insights.properties.ConnectionString }
   { name: 'PublicUrl', value: publicUrl }
   { name: 'Admins__0', value: adminEmail }
+  { name: 'Culture', value: culture }
   { name: 'Anthropic__ApiKey', secretRef: 'anthropic-api-key' }
   { name: 'Mailbox__Host', value: mailboxHost }
   { name: 'Mailbox__UserName', value: mailboxUserName }

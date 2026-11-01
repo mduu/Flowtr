@@ -47,6 +47,7 @@ builder.Services.AddDbContext<ApplicationDbContext>((services, options) => optio
     .AddInterceptors(services.GetRequiredService<AuditInterceptor>(), services.GetRequiredService<DatabaseWakeInterceptor>()));
 builder.EnrichSqlServerDbContext<ApplicationDbContext>();
 builder.AddAzureBlobServiceClient("blobs");
+builder.Services.AddAppCulture(builder.Configuration);
 builder.Services.AddDatabaseStartup();
 builder.Services.AddKeyStorage(builder.Configuration);
 builder.Services.AddHsts(options =>
@@ -90,6 +91,7 @@ else
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+app.UseAppCulture();
 app.UseSecurityHeadersAndStartupGate();
 
 app.UseAntiforgery();

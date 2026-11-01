@@ -1,8 +1,9 @@
 @using Flowtr.Client.Layout
 @using Flowtr.Server.CrossCutting.Hosting
 @using Flowtr.Server.Features.Appearance
+@inject AppCulture Culture
 <!DOCTYPE html>
-<html lang="de-CH">
+<html lang="@Culture.Culture.Name">
 
 <head>
     <meta charset="utf-8" />
@@ -22,7 +23,8 @@
 
 <body>
     <Routes @rendermode="PageRenderMode" ColourScheme="ColourScheme" />
-    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script src="@Assets["_framework/blazor.web.js"]" autostart="false"></script>
+    <script src="@Assets["js/start.js"]"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
     <script src="@Assets["js/submit-progress.js"]"></script>
