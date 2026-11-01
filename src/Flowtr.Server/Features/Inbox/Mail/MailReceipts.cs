@@ -8,7 +8,8 @@ using MimeKit;
 namespace Flowtr.Server.Features.Inbox.Mail;
 
 /// <summary>
-/// Finds the receipts in a mail (ADR-009): attachments as PDF or image. A mail without such an attachment is itself the receipt (<c>.eml</c>).
+/// Finds the receipts in a mail (ADR-009): attachments as PDF, image or table (CSV, story #014).
+/// A mail without such an attachment is itself the receipt (<c>.eml</c>).
 /// </summary>
 public static partial class MailReceipts
 {
@@ -22,7 +23,8 @@ public static partial class MailReceipts
         var files = new List<MailFile>();
         foreach (var part in message.BodyParts.OfType<MimePart>())
         {
-            if (part is TextPart || part.Content is null)
+            // A CSV attachment is a text part too: only the text of the mail itself stays out.
+            if ((part is TextPart && !part.IsAttachment) || part.Content is null)
             {
                 continue;
             }
@@ -31,7 +33,7 @@ public static partial class MailReceipts
             part.Content.DecodeTo(buffer);
             var content = buffer.ToArray();
             if (content.Length is 0 or > (int)ReceiptFiles.MaxSize
-                || ReceiptFiles.Detect(content.AsSpan(0, Math.Min(content.Length, 32))) is not var (contentType, extension)
+                || ReceiptFiles.Detect(content) is not var (contentType, extension)
                 || (contentType.StartsWith("image/", StringComparison.Ordinal) && IsDecoration(part, content.Length)))
             {
                 continue;

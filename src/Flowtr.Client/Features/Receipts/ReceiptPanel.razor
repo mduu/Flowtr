@@ -12,7 +12,7 @@
                 }
                 else
                 {
-                    <MudIcon Icon="@Icon(file.ContentType)" Color="@(file.ContentType == MailContentTypes.Mail ? Color.Primary : Color.Error)" Size="Size.Large" />
+                    <MudIcon Icon="@ReceiptFileTypes.Icon(file.ContentType)" Color="@ReceiptFileTypes.Color(file.ContentType)" Size="Size.Large" />
                 }
             </a>
             <div class="info">
@@ -59,14 +59,14 @@
     {
         @* The file input lies invisible over the drop zone: the browser opens the picker on a click and takes the files on a drop. *@
         <div class="drop-upload" @ondragenter="() => dragging = true" @ondragleave="() => dragging = false" @ondrop="() => dragging = false">
-            <InputFile @key="pickerKey" class="drop-input" multiple accept="@Accept" OnChange="Picked" title="Datei auswählen" />
+            <InputFile @key="pickerKey" class="drop-input" multiple accept="@ReceiptFileTypes.Accept" OnChange="Picked" title="Datei auswählen" />
             @if (Count == 0 && uploading.Count == 0)
             {
                 <div class="drop-zone @(dragging ? "dragging" : "")">
                     <MudIcon Icon="@Icons.Material.Outlined.UploadFile" Color="Color.Primary" />
                     <div>
                         <MudText Typo="Typo.body2"><strong>Beleg hierher ziehen</strong> oder auswählen</MudText>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">PDF oder Bild, bis 20 MB, auch mehrere · ohne Beleg geht es auch</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">PDF, Bild oder CSV, bis 20 MB, auch mehrere · ohne Beleg geht es auch</MudText>
                     </div>
                 </div>
             }
@@ -95,8 +95,6 @@
     /// A receipt has at most this number of files (server: <c>Receipt.MaxFiles</c>).
     /// </summary>
     public const int MaxFiles = 10;
-
-    private const string Accept = ".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,application/pdf,image/*";
 
     private int pickerKey;
     private bool dragging;
@@ -200,13 +198,6 @@
 
     private Task RemoveFiled(Guid fileId) =>
         RemovedFilesChanged.InvokeAsync(new HashSet<Guid>(RemovedFiles) { fileId });
-
-    private static string Icon(string? contentType) => contentType switch
-    {
-        MailContentTypes.Mail => Icons.Material.Outlined.Email,
-        "application/pdf" => Icons.Material.Outlined.PictureAsPdf,
-        _ => Icons.Material.Outlined.Image,
-    };
 
     private static string FileSize(long bytes) => bytes switch
     {

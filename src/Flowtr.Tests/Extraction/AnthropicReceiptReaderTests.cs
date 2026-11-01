@@ -47,6 +47,23 @@ public class AnthropicReceiptReaderTests
     }
 
     [Fact]
+    public async Task Sends_a_table_as_text_document()
+    {
+        // Arrange
+        var server = new FakeServer(HttpStatusCode.OK, """{"content":[]}""");
+
+        // Act
+        await Reader(server).Read([new ReceiptContent("Region;Proceeds\nCH;7.35"u8.ToArray(), "text/csv")], context, CancellationToken.None);
+
+        // Assert
+        var document = server.Request!["messages"]![0]!["content"]![0]!;
+        ((string?)document["title"]).ShouldBe("Table (CSV)");
+        ((string?)document["source"]!["type"]).ShouldBe("text");
+        ((string?)document["source"]!["data"]).ShouldBe("Region;Proceeds\nCH;7.35");
+        ((string?)server.Request["system"])!.ShouldContain("A receipt can be a table (CSV)");
+    }
+
+    [Fact]
     public async Task Sends_the_workspace_when_configured()
     {
         // Arrange

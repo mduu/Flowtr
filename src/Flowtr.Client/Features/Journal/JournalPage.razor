@@ -195,7 +195,7 @@ else
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">Mehrere Dateien geben einen Beleg, z.B. Rechnung und Quittung.</MudText>
             }
             @* It stays during the upload: the upload reads the files through it. *@
-            <InputFile class="journal-drop-input" hidden="@uploadingDropped" multiple accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,application/pdf,image/*"
+            <InputFile class="journal-drop-input" hidden="@uploadingDropped" multiple accept="@ReceiptFileTypes.Accept"
                        OnChange="args => UploadDropped(args.GetMultipleFiles(int.MaxValue))" />
         </div>
     </div>

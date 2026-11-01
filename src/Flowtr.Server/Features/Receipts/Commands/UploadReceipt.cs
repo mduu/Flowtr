@@ -33,9 +33,9 @@ public sealed class UploadReceiptHandler(IReceiptStore store, TimeProvider time,
             return Result.Failure<UploadedReceipt>("Die Datei ist leer.");
         }
 
-        if (ReceiptFiles.Detect(content.GetBuffer().AsSpan(0, (int)Math.Min(content.Length, 32))) is not var (contentType, _))
+        if (ReceiptFiles.Detect(content.GetBuffer().AsSpan(0, (int)content.Length)) is not var (contentType, _))
         {
-            return Result.Failure<UploadedReceipt>("Flowtr nimmt nur PDF und Bilder (JPEG, PNG, HEIC, WebP) als Beleg.");
+            return Result.Failure<UploadedReceipt>("Flowtr nimmt nur PDF, Bilder (JPEG, PNG, HEIC, WebP) und Tabellen (CSV) als Beleg.");
         }
 
         content.Position = 0;

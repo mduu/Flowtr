@@ -33,11 +33,11 @@ Flowtr verarbeitet Buchhaltungsdaten. Darum ist Security ein Key-Feature und Tei
 
 ## Unveränderbarkeit
 - Belege liegen im Blob Storage mit Versionierung und Soft-Delete. Ein Beleg überschreibt nie einen anderen, die Nummern vergibt eine Sequenz ([ADR-007](adrs/007-belegnummern-per-sequenz.md)).
-- Flowtr prüft Uploads am Inhalt (PDF und Bilder, höchstens 20 MB) und speichert den SHA-256 jedes Belegs. Eine Mail als Beleg bleibt das unveränderte Original (`.eml`).
+- Flowtr prüft Uploads am Inhalt (PDF, Bilder und Tabellen als CSV, höchstens 20 MB) und speichert den SHA-256 jedes Belegs. Eine Mail als Beleg bleibt das unveränderte Original (`.eml`).
 - Eine Immutability-Policy schützt Belege abgeschlossener Jahre (10 Jahre, OR 958f). Siehe [ADR-001](adrs/001-belegablage-in-blob-storage.md).
 
 ## Web-Sicherheit
-- Security-Header auf jeder Antwort: Content-Security-Policy (nur eigene Skripte, `'wasm-unsafe-eval'` für Blazor, eine Nonce pro Request für die Import Map, `frame-ancestors 'none'`, `object-src 'none'`), HSTS ein Jahr, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`. Die Mail-Ansicht hat eine strengere Policy mit `sandbox`.
+- Security-Header auf jeder Antwort: Content-Security-Policy (nur eigene Skripte, `'wasm-unsafe-eval'` für Blazor, eine Nonce pro Request für die Import Map, `frame-ancestors 'none'`, `object-src 'none'`), HSTS ein Jahr, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`. Die Ansichten von Mail und Tabelle haben eine strengere Policy mit `sandbox`. Die Tabelle zeigt jede Zelle als Text: keine Formeln, keine Links.
 
 ## Betrieb
 - App und Job greifen mit einer Managed Identity auf SQL, Storage und Key Vault zu. Kein Passwort und kein Schlüssel in der Konfiguration ([Betrieb](../docs/betrieb.md)).

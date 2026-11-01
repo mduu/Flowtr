@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using Flowtr.Shared.Journal;
 
 namespace Flowtr.Server.Features.Receipts;
 
@@ -12,11 +13,13 @@ public static partial class ReceiptFiles
     public const long MaxSize = 20 * 1024 * 1024;
 
     /// <summary>
-    /// Finds the type from the first bytes of the file. The file name and the browser's type are not trusted.
+    /// Finds the type from the content of the file: the first bytes, or for a table the text (story #014).
+    /// The file name and the browser's type are not trusted.
     /// </summary>
     /// <returns>Content type and file extension, or null for a type that Flowtr does not accept.</returns>
-    public static (string ContentType, string Extension)? Detect(ReadOnlySpan<byte> head)
+    public static (string ContentType, string Extension)? Detect(ReadOnlySpan<byte> content)
     {
+        var head = content[..Math.Min(content.Length, 32)];
         if (head.StartsWith("%PDF-"u8))
         {
             return ("application/pdf", ".pdf");
@@ -42,7 +45,7 @@ public static partial class ReceiptFiles
             return ("image/heic", ".heic");
         }
 
-        return null;
+        return TextTable.IsTable(content) ? (ReceiptContentTypes.Table, ".csv") : null;
     }
 
     /// <summary>

@@ -98,6 +98,10 @@ Eine Mail mit mehreren Anhängen ist **ein** Beleg mit mehreren Dateien, nicht m
 
 Der Export erzeugt das PDF einer Mail mit QuestPDF hinter der Schnittstelle `IPdfDocuments`: Kopf (Von, An, Datum, Betreff) und der Text der Mail, HTML ohne Markup. Im ZIP liegt es neben dem Original (`.eml`). QuestPDF bringt seine Schrift mit und läuft im Container ohne weitere Pakete. Siehe [Story #013](../stories/done/013-export.md).
 
+## Nachtrag (01.11.2026, Story #014)
+
+Ein Anhang als CSV ist eine Datei des Belegs wie ein PDF. MIME-Teile vom Typ `text/*` übernimmt *Flowtr* nur als Anhang, der Text der Mail selbst bleibt aussen vor. Die Ansicht einer Tabelle funktioniert wie die Ansicht einer Mail: eine Seite von *Flowtr* mit eigener Content-Security-Policy (`sandbox`), jede Zelle als Text. «Original» lädt die Datei herunter. Siehe [Story #014](../stories/done/014-csv-als-beleg.md).
+
 ## Referenzen
 
 - [Story #010: E-Mail-Eingang (IMAP)](../stories/done/010-email-eingang-imap.md)

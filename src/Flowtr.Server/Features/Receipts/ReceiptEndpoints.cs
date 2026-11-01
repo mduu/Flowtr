@@ -14,7 +14,7 @@ public static class ReceiptEndpoints
 {
     /// <summary>
     /// Maps <c>receipts</c> in the API group: upload, analysis of uploads, preview of an upload, file of a filed receipt.
-    /// A mail as receipt shows as a page (ADR-009); <c>?original=true</c> gives the <c>.eml</c>.
+    /// A mail (ADR-009) and a table (story #014) show as a page; <c>?original=true</c> gives the original file.
     /// </summary>
     /// <remarks>
     /// The upload takes no antiforgery token: the WebAssembly app sends it with fetch. The identity cookie is
@@ -55,7 +55,8 @@ public static class ReceiptEndpoints
         }
 
         var file = result.Value!;
-        if (file.ContentType != MailContentTypes.Mail)
+        var hasPage = file.ContentType is MailContentTypes.Mail or ReceiptContentTypes.Table;
+        if (!hasPage)
         {
             return new ReceiptResult(TypedResults.Stream(file.Content, file.ContentType, enableRangeProcessing: true), file.FileName, Inline: true);
         }
@@ -67,10 +68,13 @@ public static class ReceiptEndpoints
 
         await using (file.Content)
         {
-            using var mail = new MemoryStream();
-            await file.Content.CopyToAsync(mail, cancellationToken);
-            var page = MailView.Render(mail.ToArray(), "?original=true");
-            return new ReceiptResult(TypedResults.Content(page, "text/html; charset=utf-8"), Path.ChangeExtension(file.FileName, ".html"), Inline: true, MailView.ContentSecurityPolicy);
+            using var content = new MemoryStream();
+            await file.Content.CopyToAsync(content, cancellationToken);
+            return file.ContentType == MailContentTypes.Mail
+                ? new ReceiptResult(TypedResults.Content(MailView.Render(content.ToArray(), "?original=true"), "text/html; charset=utf-8"),
+                    Path.ChangeExtension(file.FileName, ".html"), Inline: true, MailView.ContentSecurityPolicy)
+                : new ReceiptResult(TypedResults.Content(TableView.Render(content.ToArray(), file.FileName, "?original=true"), "text/html; charset=utf-8"),
+                    Path.ChangeExtension(file.FileName, ".html"), Inline: true, TableView.ContentSecurityPolicy);
         }
     }
 

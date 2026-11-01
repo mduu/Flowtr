@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Flowtr.Shared;
+using Flowtr.Shared.Journal;
 using Microsoft.Extensions.Options;
 
 namespace Flowtr.Server.Features.Extraction;
@@ -32,6 +33,10 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
 
         A receipt can be an e-mail as text. Often the user forwarded it: then the forwarded mail is the receipt, and the user
         who forwarded it is not the counterparty.
+
+        A receipt can be a table (CSV), for example the monthly statement of a sales platform. When it covers a period,
+        record the booking for the period: date is the last day of the period, total is the amount that the statement pays out
+        or charges for the period (for example "Proceeds" of App Store Connect), not one row of the table.
 
         A receipt can have several files, for example an invoice and the receipt of its payment. Together they are one
         business transaction: record one booking with the amount that was paid once, not the sum of the files.
@@ -111,13 +116,19 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
 
     private static JsonObject? Source(byte[] content, string contentType)
     {
-        if (contentType == "text/plain")
+        if (contentType is "text/plain" or ReceiptContentTypes.Table)
         {
-            return new JsonObject
+            var document = new JsonObject
             {
                 ["type"] = "document",
                 ["source"] = new JsonObject { ["type"] = "text", ["media_type"] = "text/plain", ["data"] = Encoding.UTF8.GetString(content) },
             };
+            if (contentType == ReceiptContentTypes.Table)
+            {
+                document["title"] = "Table (CSV)";
+            }
+
+            return document;
         }
 
         var (type, maxSize) = contentType switch

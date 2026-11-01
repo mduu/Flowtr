@@ -98,6 +98,10 @@ backups/   Datenbank-Dumps für das Offsite-Backup.
 
 Ein Beleg hat eine oder mehrere Dateien (höchstens 10), z.B. Rechnung und Quittung derselben Zahlung. Jede Datei liegt einzeln und unverändert in `belege/`. Die erste Datei heisst wie bisher `A-2026-007_azure-abo.pdf`, die weiteren `…_azure-abo_2.pdf`, `_3` usw. Eine Position wird nie wiederverwendet: Ein Name gehört immer zu derselben Datei. Siehe [Story #012](../stories/done/012-beleg-mit-mehreren-dateien.md).
 
+## Nachtrag (01.11.2026, Story #014)
+
+Eine Tabelle als Text (CSV oder TSV, z.B. die Abrechnung von App Store Connect) ist eine Datei eines Belegs wie ein PDF. Sie hat keine Signatur: *Flowtr* prüft den Inhalt (UTF-8 oder UTF-16 mit BOM, keine Steuerzeichen, kein Markup, mindestens zwei Zeilen mit mehreren Spalten). Sie liegt unverändert mit der Endung `.csv` und dem Typ `text/csv` in `belege/`. Siehe [Story #014](../stories/done/014-csv-als-beleg.md).
+
 ## Referenzen
 
 - [Immutable storage for Azure Blob Storage](https://learn.microsoft.com/azure/storage/blobs/immutable-storage-overview)

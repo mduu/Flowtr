@@ -17,7 +17,7 @@ namespace Flowtr.Server.Features.Extraction.Queries;
 /// <remarks>
 /// The answer of the AI is only a proposal: Flowtr keeps only valid values (date, amount, currency, a category of the
 /// right kind, known payment methods), takes category and payment method of earlier bookings of the same
-/// counterparty, and converts foreign currencies to CHF. A mail as receipt goes to the AI as text (ADR-009).
+/// counterparty, and converts foreign currencies to CHF. A mail as receipt goes to the AI as text (ADR-009), a table too (story #014).
 /// </remarks>
 /// <param name="Origin">Where the receipt comes from, for example the sender of the mail. A hint for the counterparty.</param>
 public sealed record AnalyzeUploads(IReadOnlyList<Guid> UploadIds, string? Origin = null);
@@ -39,6 +39,11 @@ public sealed partial class AnalyzeUploadsHandler(
     /// At most this size of all files together goes to the AI: the request to Anthropic has a limit, and base64 needs a third more.
     /// </summary>
     public const long MaxTotalSize = 20 * 1024 * 1024;
+
+    /// <summary>
+    /// A table goes to the AI with at most this number of characters (story #014). A longer table only costs tokens.
+    /// </summary>
+    public const int MaxTableText = 200_000;
 
     public async Task<Result<BookingProposal>> Handle(AnalyzeUploads query, CancellationToken cancellationToken)
     {
@@ -91,10 +96,22 @@ public sealed partial class AnalyzeUploadsHandler(
         {
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer, cancellationToken);
-            return upload.ContentType == MailContentTypes.Mail
-                ? new ReceiptContent(System.Text.Encoding.UTF8.GetBytes(MailText.ForReader(buffer.ToArray())), "text/plain")
-                : new ReceiptContent(buffer.ToArray(), upload.ContentType);
+            return upload.ContentType switch
+            {
+                MailContentTypes.Mail => new ReceiptContent(System.Text.Encoding.UTF8.GetBytes(MailText.ForReader(buffer.ToArray())), "text/plain"),
+                ReceiptContentTypes.Table => new ReceiptContent(System.Text.Encoding.UTF8.GetBytes(TableForReader(buffer.ToArray())), ReceiptContentTypes.Table),
+                _ => new ReceiptContent(buffer.ToArray(), upload.ContentType),
+            };
         }
+    }
+
+    /// <summary>
+    /// A table as text for the AI, at most <see cref="MaxTableText"/> characters.
+    /// </summary>
+    public static string TableForReader(byte[] table)
+    {
+        var text = TextTable.Decode(table) ?? "";
+        return text.Length <= MaxTableText ? text : text[..MaxTableText];
     }
 
     private async Task<ReadingContext> Context(DateOnly today, CancellationToken cancellationToken)

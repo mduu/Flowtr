@@ -19,7 +19,7 @@ Das Erfassen der Buchungen (Einnahmen, Ausgaben) soll schnell gehen. Der User er
 - Speicherort, Container und Namensschema: [ADR-001](adrs/001-belegablage-in-blob-storage.md).
 
 ## Eingangskanäle
-- **Im Buchungsdialog (Web-App):** Ein Beleg pro Buchung. Er steht zuoberst im Dialog. Der User lädt ihn hoch (Datei, Ziehen, Kamera), die KI füllt die Felder vor, der User prüft und speichert ([#008](stories/done/008-beleg-upload-und-ablage.md), [#009](stories/done/009-ki-extraktion.md)). Ein Beleg kann aus mehreren Dateien bestehen, z.B. Rechnung und Quittung derselben Zahlung oder mehrere Fotos ([#012](stories/done/012-beleg-mit-mehreren-dateien.md)): eine Belegnummer, höchstens 10 Dateien. Die KI liest sie zusammen.
+- **Im Buchungsdialog (Web-App):** Ein Beleg pro Buchung. Er steht zuoberst im Dialog. Der User lädt ihn hoch (Datei, Ziehen, Kamera), die KI füllt die Felder vor, der User prüft und speichert ([#008](stories/done/008-beleg-upload-und-ablage.md), [#009](stories/done/009-ki-extraktion.md)). Ein Beleg kann aus mehreren Dateien bestehen, z.B. Rechnung und Quittung derselben Zahlung oder mehrere Fotos ([#012](stories/done/012-beleg-mit-mehreren-dateien.md)): eine Belegnummer, höchstens 10 Dateien. Die KI liest sie zusammen. Eine Datei ist ein PDF, ein Bild oder eine Tabelle als CSV, z.B. die Abrechnung von App Store Connect ([#014](stories/done/014-csv-als-beleg.md)).
 - **Per E-Mail:** Der User leitet Rechnungen an eine bestimmte Mailbox weiter. *Flowtr* fragt sie per **IMAP** ab (beliebiger Provider) und legt die Belege in den [Eingang](#eingang). Der User prüft und speichert sie später, einzeln ([#010](stories/done/010-email-eingang-imap.md)).
 - Später möglich: native App als "Senden an"- oder "Teilen"-Ziel. Sie liefert ebenfalls in den Eingang.
 
@@ -35,6 +35,6 @@ Der Eingang sammelt die Belege aus E-Mails, die noch keine Buchung haben.
 
 **Was aus einer E-Mail zum Beleg wird** ([ADR-009](adrs/009-email-eingang-mail-als-beleg.md)):
 
-- Eine Mail ist ein Beleg mit allen ihren Anhängen als PDF oder Bild ([#012](stories/done/012-beleg-mit-mehreren-dateien.md)). Logos und kleine Bilder ignoriert *Flowtr*.
+- Eine Mail ist ein Beleg mit allen ihren Anhängen als PDF, Bild oder CSV ([#012](stories/done/012-beleg-mit-mehreren-dateien.md), [#014](stories/done/014-csv-als-beleg.md)). Logos und kleine Bilder ignoriert *Flowtr*.
 - Eine Mail ohne solchen Anhang (z.B. eine HTML-Rechnung von Stripe) ist selbst der Beleg: *Flowtr* legt sie unverändert als `.eml` ab und zeigt sie als bereinigte Seite an. Ein PDF davon erzeugt erst der Export.
 - Nur Mails von erlaubten Absendern kommen in den Eingang: die Adressen der User und die Liste unter «Verwaltung → E-Mail-Eingang» (Adresse oder ganze Domain).

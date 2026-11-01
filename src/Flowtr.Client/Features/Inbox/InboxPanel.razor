@@ -22,7 +22,7 @@
             <div class="inbox-item" role="button" tabindex="0" @onclick="() => OnOpen.InvokeAsync(item)"
                  @onkeydown="args => Key(args, item)" title="Prüfen und buchen">
                 <MudBadge Content="item.Files.Count" Visible="item.Files.Count > 1" Color="Color.Primary" Overlap="true" Bordered="true">
-                    <MudIcon Icon="@FileIcon(item.Files[0].ContentType)" Color="@(item.Files[0].ContentType == MailContentTypes.Mail ? Color.Primary : Color.Error)" />
+                    <MudIcon Icon="@ReceiptFileTypes.Icon(item.Files[0].ContentType)" Color="@ReceiptFileTypes.Color(item.Files[0].ContentType)" />
                 </MudBadge>
                 <div class="info">
                     <MudText Typo="Typo.body2" Class="name">@(item.Proposal?.Description ?? item.Subject)</MudText>
@@ -196,13 +196,6 @@
             item.Files.Count > 1 ? $"{item.Files.Count} Dateien" : null,
             item.ReceivedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm"),
         }.Where(part => part is not null));
-
-    private static string FileIcon(string contentType) => contentType switch
-    {
-        MailContentTypes.Mail => Icons.Material.Outlined.Email,
-        "application/pdf" => Icons.Material.Outlined.PictureAsPdf,
-        _ => Icons.Material.Outlined.Image,
-    };
 
     public void Dispose() => polling?.Cancel();
 }

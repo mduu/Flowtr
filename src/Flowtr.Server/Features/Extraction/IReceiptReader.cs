@@ -11,7 +11,7 @@ public interface IReceiptReader
     Task<Result<ReceiptReading>> Read(IReadOnlyList<ReceiptContent> files, ReadingContext context, CancellationToken cancellationToken);
 }
 
-/// <param name="ContentType">PDF, an image, or <c>text/plain</c> (UTF-8) for a mail.</param>
+/// <param name="ContentType">PDF, an image, <c>text/plain</c> (UTF-8) for a mail, or <c>text/csv</c> (UTF-8) for a table (story #014).</param>
 public sealed record ReceiptContent(byte[] Content, string ContentType);
 
 /// <summary>

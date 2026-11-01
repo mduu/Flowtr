@@ -2,7 +2,7 @@
 
 | Begriff | Bedeutung |
 | :-- | :-- |
-| **Beleg** | Quittung/Rechnung als Datei (PDF, Bild, Email), Nachweis einer Buchung. Ein Beleg hat eine Belegnummer und eine oder mehrere Dateien (z.B. Rechnung und Quittung). |
+| **Beleg** | Quittung/Rechnung als Datei (PDF, Bild, Email, CSV), Nachweis einer Buchung. Ein Beleg hat eine Belegnummer und eine oder mehrere Dateien (z.B. Rechnung und Quittung). |
 | **Eingang** | Belege aus weitergeleiteten E-Mails, die noch keine Buchung haben. Zuoberst im Journal. |
 | **Belegnummer** | Fortlaufende Nummer, mit der ein Beleg abgelegt und umbenannt wird. |
 | **Buchung** | Eine Zeile im Journal (Einnahme oder Ausgabe) mit Referenz auf ihren Beleg. |

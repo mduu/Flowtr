@@ -279,6 +279,7 @@ public sealed class ReceiptFiling(ApplicationDbContext db, IReceiptStore store, 
         "image/webp" => ".webp",
         "image/heic" => ".heic",
         MailContentTypes.Mail => ".eml",
+        ReceiptContentTypes.Table => ".csv",
         _ => "",
     };
 }

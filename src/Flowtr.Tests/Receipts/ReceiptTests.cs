@@ -31,7 +31,7 @@ public class ReceiptTests
 
         // Assert
         pdf.Value!.ContentType.ShouldBe("application/pdf");
-        text.Error.ShouldBe("Flowtr nimmt nur PDF und Bilder (JPEG, PNG, HEIC, WebP) als Beleg.");
+        text.Error.ShouldBe("Flowtr nimmt nur PDF, Bilder (JPEG, PNG, HEIC, WebP) und Tabellen (CSV) als Beleg.");
         empty.Error.ShouldBe("Die Datei ist leer.");
         app.Store.Uploads.Count.ShouldBe(1);
     }
