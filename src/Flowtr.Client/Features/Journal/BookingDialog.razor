@@ -464,7 +464,8 @@
         public BookingKind Kind { get; set; } = BookingKind.Expense;
 
         [Required(ErrorMessage = "Bitte einen Betrag angeben.")]
-        [Range(typeof(decimal), "0.01", "999999999", ErrorMessage = "Der Betrag muss grösser als 0 sein.")]
+        // Numbers, not text: a limit as text ("0.01") is parsed in the culture of the browser and fails with a decimal comma.
+        [Range(0.01, 999_999_999.0, ErrorMessage = "Der Betrag muss grösser als 0 sein.")]
         public decimal? AmountChf { get; set; }
 
         [Required(ErrorMessage = "Bitte eine Beschreibung angeben.")]
