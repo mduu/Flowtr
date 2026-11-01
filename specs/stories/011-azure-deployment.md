@@ -66,8 +66,9 @@ Bis zu drei Dinge müssen aufwachen: der Container (ca. 10 bis 30 Sekunden), die
 - **Container:** Solange er startet, hält Container Apps den Request an. In dieser Zeit läuft noch kein Code von *Flowtr*. Der Browser zeigt nur, dass er lädt. Ziel: diese Zeit kurz halten (kleines Image, z.B. `aspnet:10.0-noble-chiseled`, ReadyToRun prüfen).
 - **Datenbank aufwecken:** Beim Start der App öffnet ein Hintergrund-Dienst sofort eine Verbindung zur Datenbank, mit Retry bis ca. 2 Minuten. Ein Status im Speicher sagt, ob sie bereit ist.
 - **Startseite:** Solange die Datenbank nicht bereit ist, beantwortet die App Aufrufe von Seiten mit einer leichten Seite «*Flowtr* startet …» (Logo, Fortschrittsbalken, «Die Datenbank wacht auf. Das dauert bis zu einer Minute.»). Die Seite fragt einen Status-Endpunkt ohne Datenbank ab und lädt neu, sobald *Flowtr* bereit ist. So hängt das Vorrendern nicht eine Minute ohne Rückmeldung.
-- **API:** Solange die Datenbank nicht bereit ist, antwortet die API mit `503` und `Retry-After`. Der Client wiederholt den Aufruf und zeigt einen Hinweis «Datenbank wacht auf …».
-- **Pause während der Nutzung:** Die Datenbank pausiert nach 15 Minuten ohne Verbindung, auch wenn der Browser noch offen ist. Dauert ein Aufruf länger als ca. 2 Sekunden, zeigt der Client denselben Hinweis. Die Retry-Logik von EF Core wartet (Fehler 40613 «Database not currently available» ist transient). Das Timeout ist so lang, dass ein Aufwachen hineinpasst.
+- **API und Formulare:** Solange die Datenbank nicht bereit ist, wartet der Aufruf (höchstens 2 Minuten). So braucht der Client kein eigenes Retry, und kein Upload geht verloren.
+- **Hinweis im Client:** Dauert ein Aufruf länger als 2 Sekunden, fragt der Client `GET /status`. Meldet der Server, dass die Datenbank aufwacht, zeigt der Client unten «Die Datenbank wacht auf …». Ein langsamer Aufruf aus einem anderen Grund (z.B. die KI) zeigt nichts. `/status` antwortet ohne Datenbank, vor der Authentifizierung (sie prüft das Login-Cookie gegen die Datenbank).
+- **Pause während der Nutzung:** Die Datenbank pausiert nach 15 Minuten ohne Verbindung, auch wenn der Browser noch offen ist. Der nächste Aufruf wartet, und der Client zeigt denselben Hinweis. Die Retry-Logik von EF Core wartet (Fehler 40613 «Database not currently available» ist transient). Das Timeout ist so lang, dass ein Aufwachen hineinpasst.
 - **Login** (statisches SSR, ohne Blazor-Interaktivität): Der Knopf zeigt nach dem Klick einen Spinner (kleines Skript wie bei den Passkeys). Ist die Datenbank nicht bereit, zeigt die Seite einen Hinweis statt eines Fehlers.
 - **Job:** wartet auf die Datenbank nur, wenn Mails da sind, höchstens ca. 2 Minuten. Sonst bleiben die Mails in der Mailbox bis zum nächsten Lauf.
 
@@ -139,12 +140,12 @@ Nur Fehler und Ereignisse, die etwas aussagen. Kein Rauschen, keine Daten aus de
 ## Aufgaben
 
 - [ ] ADR: Hosting auf Container Apps mit Scale to Zero und geplantem Job (Kosten, Datenbank nur bei Bedarf wecken)
-- [ ] Data Protection: Keys in Blob Storage, geschützt mit Key Vault
-- [ ] Job-Einstiegspunkt für das Abholen der Mails. `InboxWorker` so ändern, dass er die Datenbank nur bei Bedarf öffnet. Tests
+- [x] Data Protection: Keys in Blob Storage, geschützt mit Key Vault
+- [x] Job-Einstiegspunkt für das Abholen der Mails. `InboxWorker` so ändern, dass er die Datenbank nur bei Bedarf öffnet. Tests
 - [ ] Produktion: Migrationen beim Start, Forwarded Headers, Health Checks ohne DB
-- [ ] Start nach einer Pause: Datenbank beim Start aufwecken, Startseite «*Flowtr* startet …», `503` mit `Retry-After` in der API, Hinweis im Client bei langsamen Aufrufen, Spinner beim Login, Retry und Timeout von EF Core. Tests mit einer Datenbank, die nicht erreichbar ist
+- [x] Start nach einer Pause: Datenbank beim Start aufwecken, Startseite «*Flowtr* startet …», API und Formulare warten, Hinweis im Client bei langsamen Aufrufen, Spinner beim Login, Retry von EF Core (ca. 75 Sekunden). Tests mit einer Datenbank, die nicht erreichbar ist
 - [ ] Logs filtern (Levels, statische Dateien, Health Checks, keine Daten aus Belegen), Application Insights per OpenTelemetry, Alerts
-- [ ] Security-Header (Middleware). Tests für die Header. Prüfung im Browser, dass Blazor und MudBlazor damit laufen
+- [x] Security-Header (Middleware). Tests für die Header. Prüfung im Browser, dass Blazor und MudBlazor damit laufen
 - [ ] Bicep in `deploy/`: Container Apps Environment, App, Job, SQL Free Tier, Storage, Key Vault, Managed Identity, Log Analytics, Budget, Lock
 - [ ] Einmaliges Setup-Skript (Resource Provider registrieren, z.B. `Microsoft.App`; Ressourcengruppe; Federated Credential; Geheimnisse; DNS-Hinweise)
 - [ ] GitHub Actions: Image bauen und pushen, deployen, alte Images löschen

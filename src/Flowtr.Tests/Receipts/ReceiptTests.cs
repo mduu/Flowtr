@@ -1,3 +1,4 @@
+using Flowtr.Server.CrossCutting.Hosting;
 using Flowtr.Server.Data;
 using Flowtr.Server.Features.Journal.Commands;
 using Flowtr.Server.Features.Journal.Queries;
@@ -207,7 +208,7 @@ public class ReceiptTests
         var old = await app.UploadPdf();
         app.Clock.Now = app.Clock.Now.AddDays(30);
         var fresh = await app.UploadPdf();
-        var housekeeping = new ReceiptHousekeeping(app.Get<IServiceScopeFactory>(), app.Clock, Microsoft.Extensions.Logging.Abstractions.NullLogger<ReceiptHousekeeping>.Instance);
+        var housekeeping = new ReceiptHousekeeping(app.Get<IServiceScopeFactory>(), app.Get<DatabaseReadiness>(), app.Clock, Microsoft.Extensions.Logging.Abstractions.NullLogger<ReceiptHousekeeping>.Instance);
 
         // Act
         await housekeeping.Run(app.Get<IServiceProvider>(), CancellationToken.None);

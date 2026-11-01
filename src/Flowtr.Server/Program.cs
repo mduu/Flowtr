@@ -8,6 +8,7 @@ using Flowtr.Server.Components;
 using Flowtr.Server.Components.Account;
 using Flowtr.Server.CrossCutting.Audit;
 using Flowtr.Server.CrossCutting.Cqs;
+using Flowtr.Server.CrossCutting.Hosting;
 using Flowtr.Server.Data;
 using Flowtr.Server.Features.Appearance;
 using Flowtr.Server.Features.Audit;
@@ -41,10 +42,18 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddAudit();
 builder.Services.AddDbContext<ApplicationDbContext>((services, options) => options
-    .UseSqlServer(builder.Configuration.GetConnectionString("flowtr"))
-    .AddInterceptors(services.GetRequiredService<AuditInterceptor>()));
+    // Azure SQL (free tier) pauses and needs up to a minute to resume: the retries wait about 75 seconds (story #011).
+    .UseSqlServer(builder.Configuration.GetConnectionString("flowtr"), sql => sql.EnableRetryOnFailure(8, TimeSpan.FromSeconds(15), null))
+    .AddInterceptors(services.GetRequiredService<AuditInterceptor>(), services.GetRequiredService<DatabaseWakeInterceptor>()));
 builder.EnrichSqlServerDbContext<ApplicationDbContext>();
 builder.AddAzureBlobServiceClient("blobs");
+builder.Services.AddDatabaseStartup();
+builder.Services.AddKeyStorage(builder.Configuration);
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+});
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddUsers();
@@ -57,26 +66,31 @@ builder.Services.AddInbox(builder.Configuration);
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 builder.Services.AddMudServices();
+builder.Services.AddSingleton<Flowtr.Client.Features.Status.ServerStatus>();
 builder.Services.AddHandlers(typeof(Program).Assembly);
 
 var app = builder.Build();
+
+// The same image runs as the inbox job in Azure: fetch mail once, then stop (story #011).
+if (InboxJob.IsRequested(app.Configuration))
+{
+    Environment.ExitCode = await app.RunInboxJob();
+    return;
+}
 
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
     app.UseMigrationsEndPoint();
-
-    using var scope = app.Services.CreateScope();
-    scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.Migrate();
 }
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // HSTS max-age is 30 days by default. Production may need a longer value, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+app.UseSecurityHeadersAndStartupGate();
 
 app.UseAntiforgery();
 

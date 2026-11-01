@@ -1,4 +1,5 @@
 @using Flowtr.Client.Layout
+@using Flowtr.Server.CrossCutting.Hosting
 @using Flowtr.Server.Features.Appearance
 <!DOCTYPE html>
 <html lang="de-CH">
@@ -15,7 +16,7 @@
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["Flowtr.Server.styles.css"]" />
-    <ImportMap />
+    <ImportMap AdditionalAttributes="ImportMapAttributes" />
     <HeadOutlet @rendermode="PageRenderMode" />
 </head>
 
@@ -24,6 +25,7 @@
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="@Assets["Components/Account/Shared/PasskeySubmit.razor.js"]" type="module"></script>
+    <script src="@Assets["js/submit-progress.js"]"></script>
 </body>
 
 </html>
@@ -33,6 +35,9 @@
     private HttpContext HttpContext { get; set; } = default!;
 
     private ColourScheme ColourScheme => ColourSchemeCookie.Read(HttpContext);
+
+    // The import map is an inline script: the Content-Security-Policy allows it with the nonce of the request.
+    private Dictionary<string, object> ImportMapAttributes => new() { ["nonce"] = SecurityHeaders.Nonce(HttpContext) ?? "" };
 
     private IComponentRenderMode? PageRenderMode =>
         HttpContext.AcceptsInteractiveRouting() ? InteractiveWebAssembly : null;

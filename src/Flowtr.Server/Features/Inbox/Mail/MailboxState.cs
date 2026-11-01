@@ -29,17 +29,19 @@ public sealed class MailboxState
     /// </summary>
     public void Wake() => wake.Writer.TryWrite(true);
 
-    public async Task WaitForWake(TimeSpan timeout, CancellationToken cancellationToken)
+    /// <returns>True after <see cref="Wake"/>, false when the interval is over.</returns>
+    public async Task<bool> WaitForWake(TimeSpan timeout, CancellationToken cancellationToken)
     {
         using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeoutSource.CancelAfter(timeout);
         try
         {
             await wake.Reader.ReadAsync(timeoutSource.Token);
+            return true;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            // The interval is over.
+            return false;
         }
     }
 }

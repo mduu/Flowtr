@@ -134,3 +134,26 @@ h1:focus {
 .booking-dialog .mud-input-helper-text:not(.mud-input-error) {
     color: var(--mud-palette-primary);
 }
+
+/* Static account pages: the button after a click, until the next page comes (js/submit-progress.js). */
+button.submitting {
+    pointer-events: none;
+    opacity: .8;
+}
+
+    button.submitting::after {
+        content: "";
+        width: 1em;
+        height: 1em;
+        margin-left: .5em;
+        border: 2px solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: flowtr-spin .8s linear infinite;
+    }
+
+@keyframes flowtr-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

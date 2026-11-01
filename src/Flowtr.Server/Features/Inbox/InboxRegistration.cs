@@ -12,6 +12,7 @@ public static class InboxRegistration
         services.AddSingleton<IMailbox, ImapMailbox>();
         services.AddScoped<SenderCheck>();
         services.AddScoped<IInboxApi, ServerInboxApi>();
+        services.AddScoped<InboxJob>();
         services.AddHostedService<InboxWorker>();
 
         return services;

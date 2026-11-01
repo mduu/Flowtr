@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.ServiceDiscovery;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
@@ -48,14 +49,19 @@ public static class Extensions
             .WithMetrics(metrics =>
             {
                 metrics.AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddHttpClientInstrumentation();
+
+                // GC and thread metrics help only during development. In production they only cost.
+                if (builder.Environment.IsDevelopment())
+                {
+                    metrics.AddRuntimeInstrumentation();
+                }
             })
             .WithTracing(tracing =>
             {
                 tracing.AddSource(builder.Environment.ApplicationName)
                     .AddAspNetCoreInstrumentation(tracing =>
-                        tracing.Filter = context => !IsHealthCheckRequest(context))
+                        tracing.Filter = context => !IsNoise(context.Request.Path))
                     .AddHttpClientInstrumentation();
             });
 
@@ -64,9 +70,17 @@ public static class Extensions
         return builder;
     }
 
-    private static bool IsHealthCheckRequest(HttpContext context) =>
-        context.Request.Path.StartsWithSegments(HealthEndpointPath)
-        || context.Request.Path.StartsWithSegments(AlivenessEndpointPath);
+    /// <summary>
+    /// Requests that say nothing in the telemetry: health checks, the startup status and static files.
+    /// Blazor alone loads more than a hundred files on the first call.
+    /// </summary>
+    public static bool IsNoise(PathString path) =>
+        path.StartsWithSegments(HealthEndpointPath)
+        || path.StartsWithSegments(AlivenessEndpointPath)
+        || path.StartsWithSegments("/status")
+        || path.StartsWithSegments("/_framework")
+        || path.StartsWithSegments("/_content")
+        || Path.HasExtension(path.Value);
 
     private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
@@ -75,6 +89,12 @@ public static class Extensions
         if (useOtlpExporter)
         {
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
+        }
+
+        // In Azure (Application Insights). Locally, the Aspire dashboard gets the telemetry through OTLP.
+        if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+        {
+            builder.Services.AddOpenTelemetry().UseAzureMonitor();
         }
 
         return builder;

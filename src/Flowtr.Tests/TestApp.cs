@@ -1,9 +1,11 @@
 using Flowtr.Server.CrossCutting.Audit;
 using Flowtr.Server.CrossCutting.Cqs;
+using Flowtr.Server.CrossCutting.Hosting;
 using Flowtr.Server.Data;
 using Flowtr.Server.Features.Extraction;
 using Flowtr.Server.Features.Inbox;
 using Flowtr.Server.Features.Inbox.Mail;
+using Flowtr.Tests.Hosting;
 using Flowtr.Tests.Inbox;
 using Flowtr.Server.Features.Journal;
 using Flowtr.Tests.Extraction;
@@ -71,6 +73,10 @@ internal sealed class TestApp : IDisposable
 
             options.AddInterceptors(provider.GetRequiredService<AuditInterceptor>());
         });
+        services.AddSingleton<IDatabasePreparation>(Database);
+        var readiness = new DatabaseReadiness(Clock);
+        readiness.MarkReady();
+        services.AddSingleton(readiness);
         services.AddUsers();
         services.AddJournal();
         services.AddReceipts();
@@ -105,6 +111,8 @@ internal sealed class TestApp : IDisposable
     public FakeExchangeRates Rates { get; } = new();
 
     public FakeMailbox Mailbox { get; } = new();
+
+    public FakeDatabasePreparation Database { get; } = new();
 
     public ApplicationDbContext Db => Get<ApplicationDbContext>();
 

@@ -1,6 +1,7 @@
 using Flowtr.Client.Features.Users;
 using Flowtr.Server.Components.Account;
 using Flowtr.Server.CrossCutting.Cqs;
+using Flowtr.Server.CrossCutting.Hosting;
 using Flowtr.Server.Data;
 using Flowtr.Server.Features.Users.Commands;
 using Flowtr.Shared;
@@ -45,22 +46,25 @@ public static class UsersRegistration
     }
 
     /// <summary>
-    /// Sets up the configured admins when the server is ready (the links need its address).
+    /// Sets up the configured admins when the server and the database are ready (the links need the address of the server).
     /// </summary>
     public static void SetUpConfiguredAdminsOnStart(this WebApplication app)
     {
-        app.Lifetime.ApplicationStarted.Register(() =>
+        app.Lifetime.ApplicationStarted.Register(() => _ = SetUpConfiguredAdmins(app));
+    }
+
+    private static async Task SetUpConfiguredAdmins(WebApplication app)
+    {
+        try
         {
-            try
-            {
-                using var scope = app.Services.CreateScope();
-                var handler = scope.ServiceProvider.GetRequiredService<ICommandHandler<SetUpConfiguredAdmins, Result>>();
-                handler.Handle(new SetUpConfiguredAdmins(BaseUris.From(app)), CancellationToken.None).GetAwaiter().GetResult();
-            }
-            catch (Exception exception)
-            {
-                app.Logger.LogError(exception, "Configured admins not set up");
-            }
-        });
+            await app.Services.GetRequiredService<DatabaseReadiness>().WaitUntilReady(app.Lifetime.ApplicationStopping);
+            await using var scope = app.Services.CreateAsyncScope();
+            var handler = scope.ServiceProvider.GetRequiredService<ICommandHandler<SetUpConfiguredAdmins, Result>>();
+            await handler.Handle(new SetUpConfiguredAdmins(BaseUris.From(app)), app.Lifetime.ApplicationStopping);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            app.Logger.LogError(exception, "Configured admins not set up");
+        }
     }
 }

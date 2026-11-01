@@ -1,4 +1,5 @@
 using Flowtr.Server.CrossCutting.Cqs;
+using Flowtr.Server.CrossCutting.Hosting;
 using Flowtr.Server.Features.Users.Commands;
 using Flowtr.Shared;
 
@@ -7,10 +8,11 @@ namespace Flowtr.Server.Features.Users;
 /// <summary>
 /// Deletes expired invitations at start and then once a day.
 /// </summary>
-public sealed class InvitationCleanup(IServiceScopeFactory scopes, ILogger<InvitationCleanup> logger) : BackgroundService
+public sealed class InvitationCleanup(IServiceScopeFactory scopes, DatabaseReadiness database, ILogger<InvitationCleanup> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await database.WaitUntilReady(stoppingToken);
         using var timer = new PeriodicTimer(TimeSpan.FromDays(1));
 
         do

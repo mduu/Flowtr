@@ -1,0 +1,8 @@
+.server-status {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: min(360px, calc(100vw - 32px));
+    z-index: 2000;
+}
