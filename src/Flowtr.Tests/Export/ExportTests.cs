@@ -40,6 +40,7 @@ public class ExportTests
             "Belege/Einnahmen/E-2026-001_app-verkaeufe.pdf",
         ], ignoreOrder: true);
         Text(zip, "Belege/Ausgaben/A-2026-001_claude-pro_2.pdf").ShouldContain("Receipt");
+        Text(zip, ExportJournalHandler.Index).ShouldContain("A-2026-001;2 von 2;");
         Text(zip, "Journal.pdf").ShouldStartWith("%PDF-");
     }
 
@@ -216,11 +217,11 @@ public class ExportTests
 
         // Assert
         var lines = Text(zip, ExportJournalHandler.Index).TrimStart('\uFEFF').Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        lines[0].ShouldStartWith("Belegnummer;Datum;Art;Beschreibung;Datei im ZIP");
+        lines[0].ShouldStartWith("Belegnummer;Datei;Datum;Art;Beschreibung;Datei im ZIP");
         var sha256 = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(pdf));
-        lines[1].TrimEnd('\r').ShouldBe($"A-2026-001;01.10.2026;Ausgabe;\"Laptop; neu\";Belege/Ausgaben/A-2026-001_laptop-neu.pdf;rechnung.pdf;application/pdf;{pdf.Length};{sha256}");
+        lines[1].TrimEnd('\r').ShouldBe($"A-2026-001;1 von 1;01.10.2026;Ausgabe;\"Laptop; neu\";Belege/Ausgaben/A-2026-001_laptop-neu.pdf;rechnung.pdf;application/pdf;{pdf.Length};{sha256}");
         using var workbook = new XLWorkbook(Entry(zip, "Journal.xlsx"));
-        workbook.Worksheet("Belege").Cell(2, 9).GetString().ShouldBe(sha256);
+        workbook.Worksheet("Belege").Cell(2, 10).GetString().ShouldBe(sha256);
     }
 
     private static async Task<ZipArchive> Export(TestApp app, bool withReceipts = true)

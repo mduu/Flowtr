@@ -125,7 +125,7 @@ public static class JournalWorkbook
     /// </summary>
     private static void Files(IXLWorksheet sheet, ExportReport report)
     {
-        string[] columns = ["Belegnummer", "Datum", "Art", "Beschreibung", "Datei im ZIP", "Originalname", "Dateityp", "Grösse (Bytes)", "SHA-256"];
+        string[] columns = ["Belegnummer", "Datei", "Datum", "Art", "Beschreibung", "Datei im ZIP", "Originalname", "Dateityp", "Grösse (Bytes)", "SHA-256"];
         for (var c = 0; c < columns.Length; c++)
         {
             sheet.Cell(1, c + 1).Value = columns[c];
@@ -135,19 +135,20 @@ public static class JournalWorkbook
         foreach (var file in report.Files)
         {
             sheet.Cell(r, 1).Value = file.Number;
-            sheet.Cell(r, 2).Value = file.Date.ToDateTime(TimeOnly.MinValue);
-            sheet.Cell(r, 3).Value = file.KindName;
-            sheet.Cell(r, 4).Value = file.Description;
-            sheet.Cell(r, 5).Value = file.Path;
-            sheet.Cell(r, 6).Value = file.FileName;
-            sheet.Cell(r, 7).Value = file.ContentType;
-            sheet.Cell(r, 8).Value = file.Size;
-            sheet.Cell(r, 9).Value = file.Sha256;
+            sheet.Cell(r, 2).Value = file.File;
+            sheet.Cell(r, 3).Value = file.Date.ToDateTime(TimeOnly.MinValue);
+            sheet.Cell(r, 4).Value = file.KindName;
+            sheet.Cell(r, 5).Value = file.Description;
+            sheet.Cell(r, 6).Value = file.Path;
+            sheet.Cell(r, 7).Value = file.FileName;
+            sheet.Cell(r, 8).Value = file.ContentType;
+            sheet.Cell(r, 9).Value = file.Size;
+            sheet.Cell(r, 10).Value = file.Sha256;
             r++;
         }
 
         sheet.Row(1).Style.Font.Bold = true;
-        sheet.Column(2).Style.DateFormat.Format = "dd.MM.yyyy";
+        sheet.Column(3).Style.DateFormat.Format = "dd.MM.yyyy";
         sheet.SheetView.FreezeRows(1);
         sheet.Columns().AdjustToContents(8, 70);
     }

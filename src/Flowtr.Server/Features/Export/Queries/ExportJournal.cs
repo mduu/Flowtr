@@ -101,9 +101,11 @@ public sealed class ExportJournalHandler(
             .OrderBy(f => f.Date).ThenBy(f => f.Number).ThenBy(f => f.Position)
             .ToListAsync(cancellationToken);
 
-        var index = files.Select(f => new ReceiptIndexRow(
+        var counts = files.GroupBy(f => f.Number).ToDictionary(g => g.Key, g => g.Count());
+        var index = files.Select((f, i) => new ReceiptIndexRow(
                 f.BlobName,
-                f.Number, f.Date, f.Kind, f.Description, query.WithReceipts ? ZipPath(f.Kind, f.BlobName) : null, f.FileName, f.ContentType, f.Size, f.Sha256))
+                f.Number,
+                $"{files.Take(i + 1).Count(other => other.Number == f.Number)} von {counts[f.Number]}", f.Date, f.Kind, f.Description, query.WithReceipts ? ZipPath(f.Kind, f.BlobName) : null, f.FileName, f.ContentType, f.Size, f.Sha256))
             .ToList();
 
         var business = await db.BusinessSettings.AsNoTracking().Select(b => b.Name).FirstOrDefaultAsync(cancellationToken);
@@ -170,11 +172,11 @@ public sealed class ExportJournalHandler(
     public static byte[] IndexCsv(ExportReport report)
     {
         var csv = new StringBuilder();
-        csv.AppendLine("Belegnummer;Datum;Art;Beschreibung;Datei im ZIP;Originalname;Dateityp;Grösse (Bytes);SHA-256");
+        csv.AppendLine("Belegnummer;Datei;Datum;Art;Beschreibung;Datei im ZIP;Originalname;Dateityp;Grösse (Bytes);SHA-256");
         foreach (var file in report.Files)
         {
             csv.AppendLine(string.Join(";",
-                file.Number, SwissFormat.Date(file.Date), file.KindName, Csv(file.Description), Csv(file.Path ?? ""), Csv(file.FileName),
+                file.Number, file.File, SwissFormat.Date(file.Date), file.KindName, Csv(file.Description), Csv(file.Path ?? ""), Csv(file.FileName),
                 file.ContentType, file.Size.ToString(CultureInfo.InvariantCulture), file.Sha256));
         }
 

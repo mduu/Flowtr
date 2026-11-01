@@ -135,7 +135,15 @@ public sealed class QuestPdfDocuments : IPdfDocuments
             table.Cell().Element(Cell).Text(SwissFormat.Date(row.Date));
             if (row.ReceiptNumber is { } number)
             {
-                table.Cell().Element(Cell).Text(number);
+                // Several files of one receipt (story #012): the files _2, _3 … belong to this number.
+                table.Cell().Element(Cell).Text(text =>
+                {
+                    text.Line(number);
+                    if (row.Files > 1)
+                    {
+                        text.Span($"{row.Files} Dateien").FontSize(FontSize - 1.5f).FontColor(Colors.Grey.Darken1);
+                    }
+                });
             }
             else
             {

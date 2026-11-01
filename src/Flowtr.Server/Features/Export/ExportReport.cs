@@ -77,9 +77,11 @@ public sealed record MailPrint(string? From, string? To, DateTimeOffset? Date, s
 /// </summary>
 /// <param name="Path">The path in the ZIP. Null when the export is without receipts.</param>
 /// <param name="BlobName">Where Flowtr keeps the file (container <c>belege</c>).</param>
+/// <param name="File">Which file of the receipt, for example «2 von 2».</param>
 public sealed record ReceiptIndexRow(
     string BlobName,
     string Number,
+    string File,
     DateOnly Date,
     BookingKind Kind,
     string Description,
