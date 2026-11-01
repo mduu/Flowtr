@@ -124,14 +124,20 @@ if [[ -n "${GITHUB_REPO:-}" ]]; then
         CLIENT_ID=$(az ad app create --display-name "$GITHUB_APP" --query appId -o tsv)
         az ad sp create --id "$CLIENT_ID" -o none
     fi
-    if [[ -z $(az ad app federated-credential list --id "$CLIENT_ID" --query "[?name=='main'].name" -o tsv) ]]; then
-        az ad app federated-credential create --id "$CLIENT_ID" --parameters "{
-            \"name\": \"main\",
-            \"issuer\": \"https://token.actions.githubusercontent.com\",
-            \"subject\": \"repo:$GITHUB_REPO:ref:refs/heads/main\",
-            \"audiences\": [\"api://AzureADTokenExchange\"]
-        }" -o none
-    fi
+    # GitHub sends the subject with names only, or (newer repositories) with names and IDs. Trust both.
+    trust_github() {
+        if [[ -z $(az ad app federated-credential list --id "$CLIENT_ID" --query "[?name=='$1'].name" -o tsv) ]]; then
+            az ad app federated-credential create --id "$CLIENT_ID" --parameters "{
+                \"name\": \"$1\",
+                \"issuer\": \"https://token.actions.githubusercontent.com\",
+                \"subject\": \"$2\",
+                \"audiences\": [\"api://AzureADTokenExchange\"]
+            }" -o none
+        fi
+    }
+    trust_github main "repo:$GITHUB_REPO:ref:refs/heads/main"
+    trust_github main-ids "$(gh api "repos/$GITHUB_REPO" \
+        --jq '"repo:\(.owner.login)@\(.owner.id)/\(.name)@\(.id):ref:refs/heads/main"')"
     # Only the app and the job: GitHub sets the image, nothing else.
     for resource in "$(az containerapp show -g "$RESOURCE_GROUP" -n "$APP" --query id -o tsv)" \
         ${JOB:+"$(az containerapp job show -g "$RESOURCE_GROUP" -n "$JOB" --query id -o tsv)"}; do
