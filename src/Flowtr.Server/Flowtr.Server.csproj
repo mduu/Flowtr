@@ -5,6 +5,17 @@
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
   </PropertyGroup>
 
+  <!-- Container image (story #011): dotnet publish /t:PublishContainer. "extra" has ICU and time zones for Swiss formats. -->
+  <PropertyGroup>
+    <ContainerRepository>flowtr</ContainerRepository>
+    <ContainerFamily>noble-chiseled-extra</ContainerFamily>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ContainerLabel Include="org.opencontainers.image.source" Value="https://github.com/mduu/Flowtr" />
+    <ContainerLabel Include="org.opencontainers.image.description" Value="Flowtr: bookkeeping for a side business" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Aspire.Azure.Storage.Blobs" />
     <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" />

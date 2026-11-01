@@ -33,10 +33,10 @@ Flowtr ist eine Web-App. Mit ihr erfassen Einzelfirmen und Nebenerwerbstätige i
 │   ├── Flowtr.Shared/          Gemeinsame Typen für Server und Client (Result, DTOs)
 │   └── Flowtr.Tests/           Tests (xUnit, Shouldly)
 ├── deploy/                     Infrastructure as Code (Bicep) und Deployment-Skripte
-├── docs/                       Betriebs- und Benutzerdokumentation (z.B. Synology-Backup einrichten, Restore-Checkliste)
+├── docs/                       Betriebs- und Benutzerdokumentation (Betrieb in Azure, später Backup und Restore)
 ├── specs/                      Spezifikationen: Konzept, Architektur, ADRs, Stories, Backlog
 ├── assets/                     Logo und Bildmaterial
-└── .github/workflows/          CI: Build und Tests bei jedem Push auf main und jedem Pull Request
+└── .github/workflows/          CI: Build und Tests, auf main zusätzlich Image und Deployment nach Azure
 ```
 
 **`specs/` oder `docs/`?** `specs/` beschreibt, *was* wir bauen und *warum*. `docs/` beschreibt, wie man Flowtr betreibt und benutzt.
@@ -70,6 +70,10 @@ dotnet user-secrets set "Mailbox:Password" "<passwort>" --project src/Flowtr.Ser
 ```
 
 Standard: Port 993 mit TLS, Ordner `INBOX`, Abholen alle 5 Minuten (`Mailbox:Interval`). Verarbeitete Mails verschiebt Flowtr nach «Flowtr/Verarbeitet», abgelehnte nach «Flowtr/Abgelehnt». Erlaubte Absender pflegen Admins unter «Verwaltung → E-Mail-Eingang».
+
+## Betrieb
+
+*Flowtr* läuft in Azure Container Apps mit Scale to Zero und Azure SQL Free Tier ([ADR-010](specs/adrs/010-hosting-auf-container-apps.md)). Einrichten, Updates, Kosten und Logs: [`docs/betrieb.md`](docs/betrieb.md). Jeder Push auf `main` mit grünen Tests deployt.
 
 ## Spezifikationen
 | Dokument | Inhalt |

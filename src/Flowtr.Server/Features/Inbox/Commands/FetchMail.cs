@@ -136,7 +136,7 @@ public sealed class FetchMailHandler(
             mail.Outcome = MailOutcome.Rejected;
             mail.Reason = reason;
             await db.SaveChangesAsync(cancellationToken);
-            logger.LogWarning("Rejected mail from {Sender} ({Subject}): {Reason}", mail.Sender, mail.Subject, reason);
+            logger.LogWarning("Rejected mail from {Sender}: {Reason}", mail.Sender, reason);
             return (options.Value.RejectedFolder, 0);
         }
 
@@ -158,7 +158,7 @@ public sealed class FetchMailHandler(
             throw;
         }
 
-        logger.LogInformation("Imported mail from {Sender} ({Subject}): {Count} receipts", mail.Sender, mail.Subject, items.Count);
+        logger.LogInformation("Imported mail {Id}: {Count} receipts", mail.Id, items.Count);
         return (options.Value.ProcessedFolder, items.Count);
     }
 
@@ -173,7 +173,7 @@ public sealed class FetchMailHandler(
             var sha256 = Convert.ToHexStringLower(SHA256.HashData(file.Content));
             if (items.Any(i => i.Sha256 == sha256) || await IsKnown(sha256, cancellationToken))
             {
-                logger.LogInformation("Receipt {FileName} from mail {Subject} is known already", file.FileName, mail.Subject);
+                logger.LogInformation("A receipt of mail {Id} is known already", mail.Id);
                 continue;
             }
 

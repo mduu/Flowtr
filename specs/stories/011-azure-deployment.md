@@ -79,7 +79,7 @@ Bis zu drei Dinge müssen aufwachen: der Container (ca. 10 bis 30 Sekunden), die
 - **Managed Identity** (user-assigned) für App und Job: Zugriff auf SQL (Entra-Authentifizierung, kein SQL-Passwort), Storage und Key Vault.
 - **Log Analytics / Application Insights:** siehe [Logs](#logs).
 - **Budget** in Cost Management (z.B. CHF 5 pro Monat) mit E-Mail-Alert.
-- **Resource Lock** (`CanNotDelete`) auf der Ressourcengruppe: Kein versehentliches Löschen von Datenbank oder Belegen.
+- **Resource Locks** (`CanNotDelete`) auf SQL-Server und Storage Account: Kein versehentliches Löschen von Datenbank oder Belegen. Nicht auf der ganzen Ressourcengruppe: Änderungen an der übrigen Infrastruktur bleiben möglich.
 
 ### Was sich im Code ändert
 
@@ -110,9 +110,10 @@ Nur Fehler und Ereignisse, die etwas aussagen. Kein Rauschen, keine Daten aus de
 ### Pipeline (GitHub Actions)
 
 - Anmeldung an Azure per OIDC (Federated Credential): kein Geheimnis in GitHub.
-- Ablauf auf `main`: Build, Tests, Image in die GitHub Container Registry, Bicep deployen, App und Job auf das neue Image setzen. Das Image ist mit dem Commit (SHA) markiert. Kein Artefakt (AGENTS.md).
+- Ablauf auf `main`: Build, Tests, Image in die GitHub Container Registry, App und Job auf das neue Image setzen, warten bis *Flowtr* bereit ist. Das Image ist mit dem Commit (SHA) markiert. Kein Artefakt (AGENTS.md).
+- Die Pipeline deployt kein Bicep: GitHub braucht in Azure nur Rechte auf App und Job (Contributor), keine Rechte für Rollen. Die Infrastruktur ändert selten: `deploy/deploy.sh` von Hand.
 - Alte Image-Versionen regelmässig löschen (z.B. die letzten 10 behalten).
-- Infrastruktur als Bicep in `deploy/`. Ein Skript richtet das Einmalige ein: Ressourcengruppe, Federated Credential, Geheimnisse im Key Vault, DNS-Einträge.
+- Infrastruktur als Bicep in `deploy/`. `deploy/deploy.sh` richtet alles ein und darf wieder laufen: Ressourcengruppe, Federated Credential, Geheimnisse im Key Vault, DNS-Hinweise. `deploy/bind-domain.sh` bindet die Domain mit Zertifikat.
 
 ## Entscheide (vor der Umsetzung)
 
@@ -133,25 +134,37 @@ Nur Fehler und Ereignisse, die etwas aussagen. Kein Rauschen, keine Daten aus de
 - [ ] Ein Push auf `main` deployt automatisch, nur wenn die Tests grün sind. In GitHub liegt kein Geheimnis.
 - [ ] Zugangsdaten (Claude, Mailbox) liegen nur im Key Vault. Weder im Repository noch in der Pipeline.
 - [ ] Die Security-Header sind gesetzt (geprüft z.B. mit securityheaders.com). Die App funktioniert damit vollständig.
-- [ ] Belege haben Versionierung und Soft-Delete. Die Datenbank hat Point-in-Time-Restore. Ein Lock verhindert das Löschen der Ressourcengruppe.
+- [ ] Belege haben Versionierung und Soft-Delete. Die Datenbank hat Point-in-Time-Restore. Locks verhindern das Löschen von Datenbank und Belegen.
 - [ ] Die Logs enthalten keine Requests für statische Dateien, keine Health Checks und keine Daten aus Belegen. Fehler lösen einen Alert aus.
 - [ ] Ein Fork kann *Flowtr* mit eigenen Parametern (Name, Region, Domain) deployen. Die Anleitung steht in `docs/`.
 
 ## Aufgaben
 
-- [ ] ADR: Hosting auf Container Apps mit Scale to Zero und geplantem Job (Kosten, Datenbank nur bei Bedarf wecken)
+- [x] ADR: Hosting auf Container Apps mit Scale to Zero und geplantem Job (Kosten, Datenbank nur bei Bedarf wecken)
 - [x] Data Protection: Keys in Blob Storage, geschützt mit Key Vault
 - [x] Job-Einstiegspunkt für das Abholen der Mails. `InboxWorker` so ändern, dass er die Datenbank nur bei Bedarf öffnet. Tests
-- [ ] Produktion: Migrationen beim Start, Forwarded Headers, Health Checks ohne DB
+- [x] Produktion: Migrationen beim Start, Forwarded Headers, Health Checks ohne DB
 - [x] Start nach einer Pause: Datenbank beim Start aufwecken, Startseite «*Flowtr* startet …», API und Formulare warten, Hinweis im Client bei langsamen Aufrufen, Spinner beim Login, Retry von EF Core (ca. 75 Sekunden). Tests mit einer Datenbank, die nicht erreichbar ist
-- [ ] Logs filtern (Levels, statische Dateien, Health Checks, keine Daten aus Belegen), Application Insights per OpenTelemetry, Alerts
+- [x] Logs filtern (Levels, statische Dateien, Health Checks, keine Daten aus Belegen), Application Insights per OpenTelemetry, Alerts
 - [x] Security-Header (Middleware). Tests für die Header. Prüfung im Browser, dass Blazor und MudBlazor damit laufen
-- [ ] Bicep in `deploy/`: Container Apps Environment, App, Job, SQL Free Tier, Storage, Key Vault, Managed Identity, Log Analytics, Budget, Lock
-- [ ] Einmaliges Setup-Skript (Resource Provider registrieren, z.B. `Microsoft.App`; Ressourcengruppe; Federated Credential; Geheimnisse; DNS-Hinweise)
-- [ ] GitHub Actions: Image bauen und pushen, deployen, alte Images löschen
-- [ ] Alert bei wenig restlichem Gratis-Kontingent der Datenbank
-- [ ] Dokumentation in `docs/`: Betrieb, Setup für Forks, Kosten. `README.md`, [Architektur](../architecture.md) und [Sicherheit](../security.md) nachführen. Im Kontext von [ADR-009](../adrs/009-email-eingang-mail-als-beleg.md) einen Nachtrag zum Hosting ergänzen
+- [x] Bicep in `deploy/`: Container Apps Environment, App, Job, SQL Free Tier, Storage, Key Vault, Managed Identity, Log Analytics, Budget, Locks
+- [x] Setup-Skript `deploy/deploy.sh` (Resource Provider registrieren, z.B. `Microsoft.App`; Ressourcengruppe; Federated Credential; Geheimnisse; DNS-Hinweise)
+- [x] GitHub Actions: Image bauen und pushen, deployen, alte Images löschen
+- [x] Alert bei wenig restlichem Gratis-Kontingent der Datenbank
+- [x] Dokumentation in `docs/`: Betrieb, Setup für Forks, Kosten. `README.md`, [Architektur](../architecture.md) und [Sicherheit](../security.md) nachführen. Im Kontext von [ADR-009](../adrs/009-email-eingang-mail-als-beleg.md) einen Nachtrag zum Hosting ergänzen
 - [ ] Erstes Deployment. Passkeys auf der neuen Adresse einrichten. Test mit der echten Mailbox bei Hostpoint
+
+## Umsetzung (Stand 01.11.2026, vor dem ersten Deployment)
+
+- Entscheid: [ADR-010](../adrs/010-hosting-auf-container-apps.md). Betrieb: [docs/betrieb.md](../../docs/betrieb.md).
+- **Start nach einer Pause:** `DatabaseStartup` verbindet und migriert im Hintergrund, `DatabaseReadiness` kennt den Stand. `StartupGate` zeigt bis dahin «*Flowtr* startet …», lässt API und Formulare warten und beantwortet `/status` vor der Authentifizierung. `DatabaseWakeInterceptor` meldet langsame und gescheiterte Verbindungen. Im Client fragt `SlowCallHandler` nach 2 Sekunden `/status` und zeigt `ServerStatusBanner`. EF Core wiederholt ca. 75 Sekunden lang.
+- **Job:** `InboxJob` (`--job inbox`) zählt zuerst die Mails, ohne Datenbank. Nur mit Mail: Datenbank vorbereiten (höchstens 3 Minuten), abholen, lesen lassen. Exit-Code 1 bei Fehlern. `InboxWorker` in der App analysiert nur beim Start, nach neuen Belegen und nach «Jetzt abholen», räumt einmal am Tag auf.
+- **Data Protection:** Keys im Container `dataprotection`, mit `DataProtection:KeyVaultKey` geschützt.
+- **Security-Header:** `SecurityHeaders` mit Nonce pro Request für die Import Map.
+- **Logs:** Levels in `appsettings.json`, Filter in den Service Defaults, Azure Monitor über OpenTelemetry. Log-Meldungen ohne Betreff, Dateiname und Ablageort von Belegen.
+- **Image:** `noble-chiseled-extra` (ICU und Zeitzonen für Schweizer Formate), ca. 276 MB. Lokal im Modus Production geprüft: App startet, Job ohne Mail fasst die Datenbank nicht an, Job mit Mail importiert.
+- **Geprüft im Browser:** Blazor und MudBlazor laufen mit der Content-Security-Policy, Hinweis «Die Datenbank wacht auf …» bei gestoppter Datenbank, Login bleibt über Neustarts gültig.
+- **Offen:** erstes Deployment, Domain, Test in Azure (Aufwachen der Datenbank, Kosten, Alerts, Passkeys, Mailbox bei Hostpoint).
 
 ## Nicht im Scope
 

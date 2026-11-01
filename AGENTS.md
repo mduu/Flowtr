@@ -31,11 +31,11 @@ This file gives the short rules that always apply. The specs give the details. B
 | `src/Flowtr.Client/` | Blazor WebAssembly UI with MudBlazor |
 | `src/Flowtr.Shared/` | Types that the server and the client share (`Result`, DTOs) |
 | `src/Flowtr.Tests/` | Tests (xUnit and Shouldly) |
-| `deploy/` | Infrastructure as Code (Bicep) and deployment scripts |
+| `deploy/` | Infrastructure as Code (`main.bicep`) and the scripts `deploy.sh` and `bind-domain.sh` (ADR-010) |
 | `docs/` | Operating and user documentation (how to run and use Flowtr) |
 | `specs/` | Specifications (what we build and why) |
 | `assets/` | Logo and images |
-| `.github/workflows/` | CI (`ci.yml`): build and test on each push to `main` and each pull request |
+| `.github/workflows/` | CI (`ci.yml`): build and test on each push to `main` and each pull request. On `main` also: publish the image and deploy it to Azure (`docs/betrieb.md`) |
 | `.claude/skills/` | Claude Code skills |
 
 ## Running

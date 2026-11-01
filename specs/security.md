@@ -37,5 +37,13 @@ Flowtr verarbeitet Buchhaltungsdaten. Darum ist Security ein Key-Feature und Tei
 - Eine Immutability-Policy schützt Belege abgeschlossener Jahre (10 Jahre, OR 958f). Siehe [ADR-001](adrs/001-belegablage-in-blob-storage.md).
 
 ## Web-Sicherheit
-- Security-Header: strikte Content-Security-Policy, HSTS und weitere.
+- Security-Header auf jeder Antwort: Content-Security-Policy (nur eigene Skripte, `'wasm-unsafe-eval'` für Blazor, eine Nonce pro Request für die Import Map, `frame-ancestors 'none'`, `object-src 'none'`), HSTS ein Jahr, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`. Die Mail-Ansicht hat eine strengere Policy mit `sandbox`.
+
+## Betrieb
+- App und Job greifen mit einer Managed Identity auf SQL, Storage und Key Vault zu. Kein Passwort und kein Schlüssel in der Konfiguration ([Betrieb](../docs/betrieb.md)).
+- SQL nur mit Entra-Anmeldung (Gruppe der SQL-Admins). Storage ohne Shared Keys, ohne öffentlichen Zugriff.
+- Geheimnisse (Anthropic, Mailbox) nur im Key Vault. GitHub meldet sich per OIDC an und darf nur das Image von App und Job ändern.
+- Die Keys von Data Protection (Login-Cookies, Einladungslinks, Formulare) liegen im Blob Storage, geschützt mit einem Key im Key Vault.
+- Logs ohne Daten aus Belegen: keine Beträge, keine Betreffs, keine Inhalte von Mails, keine Antworten der KI.
+- Locks verhindern das Löschen von Datenbank und Belegen.
 - Verschlüsselung at rest: Azure-Standard (keine eigenen Keys).

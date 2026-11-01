@@ -52,7 +52,7 @@ public sealed class ReceiptFiling(ApplicationDbContext db, IReceiptStore store, 
                     return Result.Failure($"Der Beleg {receipt.Number} existiert schon. Bitte versuche es nochmals.");
                 }
 
-                logger.LogInformation("Receipt file {BlobName} exists, attempt {Attempt}", receipt.BlobName, attempt);
+                logger.LogInformation("Receipt file {Number} exists, attempt {Attempt}", receipt.Number, attempt);
                 await Reset(receipt, sequence, cancellationToken);
                 continue;
             }
@@ -81,7 +81,7 @@ public sealed class ReceiptFiling(ApplicationDbContext db, IReceiptStore store, 
                 await store.DeleteReceipt(oldBlob, cancellationToken);
             }
 
-            logger.LogInformation("Filed receipt {Number} as {BlobName}", receipt.Number, receipt.BlobName);
+            logger.LogInformation("Filed receipt {Number}", receipt.Number);
             return Result.Success();
         }
     }

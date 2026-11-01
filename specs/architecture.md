@@ -4,7 +4,7 @@
 - .NET, latest
 - ASP.NET Blazor Interactive WebAssembly
 - C#
-- Azure Cloud Service
+- Azure Container Apps mit Scale to Zero, Azure SQL Free Tier ([ADR-010](adrs/010-hosting-auf-container-apps.md), [Betrieb](../docs/betrieb.md))
 - EF Core, SQL Server, Azure SQL in Produktion
 - MudBlazor als UI-Library
 - Local Dev Stack:
@@ -22,7 +22,8 @@
 - ASP.NET Server mit WebAPI
 - ASP.NET Identity mit Blazor Pages (.NET Default)
 - Web-Interface in Blazor WebAssembly
-- Hintergrund-Jobs im Server: E-Mail-Eingang per IMAP (MailKit), Aufräumen der Uploads
+- Hintergrund-Jobs im Server: E-Mail-Eingang per IMAP (MailKit), Aufräumen der Uploads. Sie öffnen die Datenbank nur, wenn es etwas zu tun gibt: Sie pausiert sonst.
+- Job für den E-Mail-Eingang: dasselbe Image mit `--job inbox`, in Azure stündlich als Container Apps Job
 
 ## Projektstruktur
 

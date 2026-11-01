@@ -1,5 +1,6 @@
 # Build and test on each push to main and on each pull request.
-# No artifacts and no deployment: see "GitHub Actions" in AGENTS.md.
+# On main also: publish the image to the GitHub Container Registry and set it on the app and the inbox job in Azure
+# (story #011). No artifacts: see "GitHub Actions" in AGENTS.md. Azure only when deploy/deploy.sh set the variables.
 name: CI
 
 on:
@@ -13,16 +14,23 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Do not stop a deployment in the middle.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+
+    permissions:
+      contents: read
+      packages: write # image in the GitHub Container Registry
+      id-token: write # login to Azure with OIDC, no secret in GitHub
 
     env:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
+      DEPLOY: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -45,3 +53,59 @@ jobs:
 
       - name: Test
         run: dotnet test src/Flowtr.slnx --configuration Release --no-build
+
+      - name: Publish image
+        if: env.DEPLOY == 'true'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+          dotnet publish src/Flowtr.Server --configuration Release --no-restore /t:PublishContainer \
+            -p ContainerRegistry=ghcr.io -p ContainerRepository="${GITHUB_REPOSITORY,,}" \
+            -p ContainerImageTags="\"${GITHUB_SHA};latest\""
+
+      - name: Delete old images
+        if: env.DEPLOY == 'true'
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: flowtr
+          package-type: container
+          min-versions-to-keep: 10
+
+      - name: Log in to Azure
+        if: env.DEPLOY == 'true' && vars.AZURE_CLIENT_ID != ''
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure
+        if: env.DEPLOY == 'true' && vars.AZURE_CLIENT_ID != ''
+        env:
+          GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+          APP: ${{ vars.AZURE_CONTAINER_APP }}
+          JOB: ${{ vars.AZURE_INBOX_JOB }}
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          az config set extension.use_dynamic_install=yes_without_prompt --only-show-errors
+          image="ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}"
+          az containerapp update --resource-group "$GROUP" --name "$APP" --image "$image" -o none
+          if [ -n "$JOB" ]; then
+            az containerapp job update --resource-group "$GROUP" --name "$JOB" --image "$image" -o none
+          fi
+
+          # The new revision is ready, then Flowtr starts: it wakes the database and applies the migrations.
+          for _ in $(seq 1 60); do
+            state=$(az containerapp show --resource-group "$GROUP" --name "$APP" \
+              --query "properties.latestRevisionName == properties.latestReadyRevisionName" -o tsv)
+            [ "$state" = "true" ] && break
+            sleep 5
+          done
+          for _ in $(seq 1 60); do
+            if curl -fsS "$APP_URL/status" | grep -q '"ready":true'; then
+              echo "Flowtr is ready: $APP_URL"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Flowtr did not get ready in 5 minutes" >&2
+          exit 1

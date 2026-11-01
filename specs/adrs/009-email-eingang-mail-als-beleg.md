@@ -86,6 +86,10 @@ Der User leitet Rechnungen an eine Mailbox weiter. *Flowtr* holt sie per IMAP ab
 
 - Mittel: Abhol-Job, Eingang, Umwandlung für KI und Anzeige, Verwaltung der Absender.
 
+## Nachtrag (01.11.2026, Story #011)
+
+*Flowtr* läuft nicht auf App Service, sondern auf Azure Container Apps ([ADR-010](010-hosting-auf-container-apps.md)). Der Entscheid bleibt: Auch in einem Container wäre Chromium ein grosses Image mit langer Startzeit. Das Abholen übernimmt in Azure ein stündlicher Job. Er öffnet die Datenbank nur, wenn Mails da sind.
+
 ## Referenzen
 
 - [Story #010: E-Mail-Eingang (IMAP)](../stories/done/010-email-eingang-imap.md)

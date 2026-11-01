@@ -61,3 +61,6 @@ nunit-*.xml
 
 # JetBrains Rider
 .idea/
+
+# Settings of an installation (deploy/flowtr.env.example)
+deploy/flowtr.env
