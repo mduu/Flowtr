@@ -33,7 +33,7 @@
 - **Ansicht:** `TableView`, eigene CSP mit `sandbox allow-downloads`. Höchstens 5000 Zeilen, Zahlen rechtsbündig.
 - **Mail:** `MailReceipts` übernimmt `text/*`-Teile, wenn sie Anhang sind.
 - **Client:** `ReceiptFileTypes` mit `Accept`, Symbol und Farbe für Dialog, Journal und Eingang.
-- **Geprüft:** 230 Tests (19 neue). Im Browser lokal mit einer Abrechnung im Format von App Store Connect: Upload, Vorschlag der KI (Einnahme 7.35, 30.09.2026, Umsatz und Honorare, Apple), Ansicht als Tabelle, Dialog in Handy-Breite.
+- **Geprüft:** 230 Tests (19 neue). Im Browser lokal mit einer Abrechnung im Format von App Store Connect: Upload, Vorschlag der KI (Einnahme 7.35, 30.09.2026, Umsatz und Honorare, Apple), Ansicht als Tabelle, Dialog in Handy-Breite. In Produktion vom User mit der echten Abrechnung von App Store Connect geprüft (01.11.2026): Vorschlag korrekt.
 
 ## Akzeptanzkriterien
 
