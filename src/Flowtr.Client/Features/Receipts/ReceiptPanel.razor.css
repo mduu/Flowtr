@@ -16,7 +16,8 @@
     transition: border-color .15s, background-color .15s;
 }
 
-    .drop-zone:hover,
+    .drop-upload:hover .drop-zone,
+    .drop-upload:focus-within .drop-zone,
     .drop-zone.dragging {
         border-color: var(--mud-palette-primary);
         background: color-mix(in srgb, var(--mud-palette-primary) 6%, transparent);
@@ -88,9 +89,8 @@
     display: flex;
 }
 
-::deep .drop-upload {
+.drop-upload {
     position: relative;
-    margin: 0;
 }
 
 ::deep .drop-input {

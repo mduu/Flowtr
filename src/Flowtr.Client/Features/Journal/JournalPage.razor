@@ -180,25 +180,24 @@ else
 
 @if (dropZone)
 {
-    <div class="journal-drop">
-        <MudFileUpload T="IReadOnlyList<IBrowserFile>" DragAndDrop="true" FilesChanged="UploadDropped" OnDragLeave="() => dropZone = uploadingDropped" Class="journal-drop-upload"
-                       Accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,application/pdf,image/*">
-            <CustomContent>
-                <div class="journal-drop-content">
-                    @if (uploadingDropped)
-                    {
-                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-                        <MudText Typo="Typo.h6">Wird hochgeladen …</MudText>
-                    }
-                    else
-                    {
-                        <MudIcon Icon="@Icons.Material.Outlined.UploadFile" Color="Color.Primary" Style="font-size: 3rem" />
-                        <MudText Typo="Typo.h6">Loslassen für eine neue Buchung</MudText>
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Mehrere Dateien geben einen Beleg, z.B. Rechnung und Quittung.</MudText>
-                    }
-                </div>
-            </CustomContent>
-        </MudFileUpload>
+    @* The file input covers the page while a file is dragged: the browser gives it the dropped files. *@
+    <div class="journal-drop" @ondragleave="() => dropZone = uploadingDropped">
+        <div class="journal-drop-content">
+            @if (uploadingDropped)
+            {
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                <MudText Typo="Typo.h6">Wird hochgeladen …</MudText>
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Outlined.UploadFile" Color="Color.Primary" Style="font-size: 3rem" />
+                <MudText Typo="Typo.h6">Loslassen für eine neue Buchung</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Mehrere Dateien geben einen Beleg, z.B. Rechnung und Quittung.</MudText>
+            }
+            @* It stays during the upload: the upload reads the files through it. *@
+            <InputFile class="journal-drop-input" hidden="@uploadingDropped" multiple accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,application/pdf,image/*"
+                       OnChange="args => UploadDropped(args.GetMultipleFiles(int.MaxValue))" />
+        </div>
     </div>
 }
 
@@ -306,9 +305,9 @@ else
     /// <summary>
     /// The dropped files are one receipt of a new booking (story #012).
     /// </summary>
-    private async Task UploadDropped(IReadOnlyList<IBrowserFile>? files)
+    private async Task UploadDropped(IReadOnlyList<IBrowserFile> files)
     {
-        if (files is null || files.Count == 0)
+        if (files.Count == 0)
         {
             dropZone = false;
             return;

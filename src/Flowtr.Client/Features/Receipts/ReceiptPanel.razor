@@ -54,34 +54,32 @@
         </div>
     }
 
-    @if (!ReadOnly && Count + uploading.Count < MaxFiles)
+    @* Count changes only after the upload: the input stays while the upload reads the files through it. *@
+    @if (!ReadOnly && Count < MaxFiles)
     {
-        @* The file input lies invisible over the drop zone: a click opens the picker, a drop gives the files. *@
-        <MudFileUpload T="IReadOnlyList<IBrowserFile>" @ref="picker" FilesChanged="UploadFiles" Accept="@Accept" DragAndDrop="true" @bind-Dragging="dragging"
-                       Class="drop-upload" InputClass="drop-input">
-            <CustomContent>
-                @if (Count == 0 && uploading.Count == 0)
-                {
-                    <div class="drop-zone @(dragging ? "dragging" : "")">
-                        <MudIcon Icon="@Icons.Material.Outlined.UploadFile" Color="Color.Primary" />
-                        <div>
-                            <MudText Typo="Typo.body2"><strong>Beleg hierher ziehen</strong> oder auswählen</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">PDF oder Bild, bis 20 MB, auch mehrere · ohne Beleg geht es auch</MudText>
-                        </div>
+        @* The file input lies invisible over the drop zone: the browser opens the picker on a click and takes the files on a drop. *@
+        <div class="drop-upload" @ondragenter="() => dragging = true" @ondragleave="() => dragging = false" @ondrop="() => dragging = false">
+            <InputFile @key="pickerKey" class="drop-input" multiple accept="@Accept" OnChange="Picked" title="Datei auswählen" />
+            @if (Count == 0 && uploading.Count == 0)
+            {
+                <div class="drop-zone @(dragging ? "dragging" : "")">
+                    <MudIcon Icon="@Icons.Material.Outlined.UploadFile" Color="Color.Primary" />
+                    <div>
+                        <MudText Typo="Typo.body2"><strong>Beleg hierher ziehen</strong> oder auswählen</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">PDF oder Bild, bis 20 MB, auch mehrere · ohne Beleg geht es auch</MudText>
                     </div>
-                }
-                else
-                {
-                    <div class="drop-zone more @(dragging ? "dragging" : "")">
-                        <MudIcon Icon="@Icons.Material.Outlined.Add" Color="Color.Primary" Size="Size.Small" />
-                        <MudText Typo="Typo.body2">Weitere Datei hinzufügen, z.B. die Quittung zur Rechnung</MudText>
-                    </div>
-                }
-            </CustomContent>
-            <SelectedTemplate />
-        </MudFileUpload>
+                </div>
+            }
+            else
+            {
+                <div class="drop-zone more @(dragging ? "dragging" : "")">
+                    <MudIcon Icon="@Icons.Material.Outlined.Add" Color="Color.Primary" Size="Size.Small" />
+                    <MudText Typo="Typo.body2">Weitere Datei hinzufügen, z.B. die Quittung zur Rechnung</MudText>
+                </div>
+            }
+        </div>
         <label class="camera">
-            <InputFile OnChange="args => UploadFiles(args.GetMultipleFiles(MaxFiles))" accept="image/*" capture="environment" />
+            <InputFile OnChange="Picked" accept="image/*" capture="environment" />
             <MudIcon Icon="@Icons.Material.Outlined.PhotoCamera" Size="Size.Small" />
             <span>Foto aufnehmen</span>
         </label>
@@ -100,7 +98,7 @@
 
     private const string Accept = ".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,application/pdf,image/*";
 
-    private MudFileUpload<IReadOnlyList<IBrowserFile>>? picker;
+    private int pickerKey;
     private bool dragging;
     private readonly List<string> uploading = [];
     private string? error;
@@ -153,9 +151,11 @@
             .Concat(Uploads.Select(u => new ShownFile(ReceiptUrls.Upload(u.UploadId), u.ContentType, u.FileName,
                 $"{Origin ?? FileSize(u.Size)} · wird beim Speichern abgelegt", () => RemoveUpload(u))));
 
-    private async Task UploadFiles(IReadOnlyList<IBrowserFile>? files)
+    private Task Picked(InputFileChangeEventArgs args) => UploadFiles(args.GetMultipleFiles(int.MaxValue));
+
+    private async Task UploadFiles(IReadOnlyList<IBrowserFile> files)
     {
-        if (files is null || files.Count == 0)
+        if (files.Count == 0)
         {
             return;
         }
@@ -186,10 +186,8 @@
             }
         }
 
-        if (picker is not null)
-        {
-            await picker.ClearAsync();
-        }
+        // A new input: the same file can be picked again.
+        pickerKey++;
 
         if (added.Count > 0)
         {
