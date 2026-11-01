@@ -4,16 +4,18 @@ Dieses Backlog listet Ideen für künftige Stories. Setze diese Ideen nur um, we
 
 Ausgearbeitete Stories liegen in [`stories/`](stories/) (Vorlage: [`_template.md`](stories/_template.md)). Dieses Backlog verlinkt sie.
 
+## Als Nächstes
+
+### Deployment nach Azure
+
+> Detail-Story: [#011](stories/011-azure-deployment.md)
+
+- *Flowtr* in Azure mit minimalen Kosten (Scale to Zero, Azure SQL Free Tier), Deployment aus GitHub Actions, Security-Header, Minimum an Backups.
+
 ## Später
 
 ### E-Mail-Versand
 - Einladungen, Passwort-Reset und Bestätigungen per E-Mail statt Link kopieren.
-
-### Deployment nach Azure
-- Bicep in `deploy/`, Deployment aus GitHub Actions, Managed Identity, Key Vault.
-
-### Security-Header
-- Content-Security-Policy, HSTS und weitere (siehe [Sicherheit](security.md#web-sicherheit)).
 
 ### Backup & Restore
 - Siehe [Backup](backup.md).
