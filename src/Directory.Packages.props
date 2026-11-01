@@ -37,6 +37,11 @@
     <!-- E-mail inbox -->
     <PackageVersion Include="HtmlSanitizer" Version="9.2.1039" />
     <PackageVersion Include="MailKit" Version="4.18.1" />
+    <!-- Export (story #013): Excel with ClosedXML (MIT), PDF with QuestPDF (Community License, ADR-009) -->
+    <PackageVersion Include="ClosedXML" Version="0.105.1" />
+    <PackageVersion Include="QuestPDF" Version="2026.9.1" />
+    <!-- Dependency of ClosedXML: version 1 is Apache-2.0, from version 2 on another license. -->
+    <PackageVersion Include="SixLabors.Fonts" Version="1.0.1" />
     <!-- UI -->
     <PackageVersion Include="MudBlazor" Version="9.7.0" />
     <PackageVersion Include="Extensions.MudBlazor.StaticInput" Version="4.1.0" />

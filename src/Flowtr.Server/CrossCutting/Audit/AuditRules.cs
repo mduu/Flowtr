@@ -46,6 +46,7 @@ public static class AuditRules
         [typeof(InboxItem)] = new AuditRule("InboxItem", Hidden: new HashSet<string>(), Ignored: new HashSet<string> { nameof(InboxItem.Proposal), nameof(InboxItem.AnalysisError) }, AuditModified: false),
         [typeof(InboxFile)] = new AuditRule("InboxFile", Hidden: new HashSet<string>(), Ignored: new HashSet<string>(), AuditModified: false),
         [typeof(AllowedSender)] = new AuditRule("AllowedSender", Hidden: new HashSet<string>(), Ignored: new HashSet<string>()),
+        [typeof(Features.Business.BusinessSettings)] = new AuditRule("Business", Hidden: new HashSet<string>(), Ignored: new HashSet<string>()),
 
         // A passkey sign-in updates the passkey data (sign count). Only create and delete are relevant.
         [typeof(IdentityUserPasskey<string>)] = new AuditRule(

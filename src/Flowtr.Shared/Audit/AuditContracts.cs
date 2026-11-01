@@ -41,6 +41,7 @@ public static class AuditAreas
         ["ClosedYear"] = "Jahresabschluss",
         ["Receipt"] = "Beleg",
         ["ReceiptFile"] = "Belegdatei",
+        ["Business"] = "Geschäft",
         ["Mail"] = "E-Mail",
         ["InboxItem"] = "Eingang",
         ["InboxFile"] = "Eingang (Datei)",

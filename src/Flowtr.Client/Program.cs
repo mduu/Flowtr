@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Flowtr.Client.Features.Audit;
+using Flowtr.Client.Features.Business;
 using Flowtr.Client.Features.Inbox;
 using Flowtr.Client.Features.Journal;
 using Flowtr.Client.Features.Receipts;
@@ -24,5 +25,6 @@ builder.Services.AddScoped<IAuditLogReader, HttpAuditLogReader>();
 builder.Services.AddScoped<IJournalApi, HttpJournalApi>();
 builder.Services.AddScoped<IReceiptApi, HttpReceiptApi>();
 builder.Services.AddScoped<IInboxApi, HttpInboxApi>();
+builder.Services.AddScoped<IBusinessApi, HttpBusinessApi>();
 
 await builder.Build().RunAsync();

@@ -29,6 +29,7 @@
                                title="@($"E-Mails jetzt abholen ({mailbox.Address})")" />
             }
         }
+        <MudIconButton Icon="@Icons.Material.Outlined.Download" OnClick="Export" aria-label="Exportieren" title="Journal und Belege exportieren" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add" OnClick="New"
                    Disabled="options is null || journal?.IsClosed == true">Neue Buchung</MudButton>
     </MudStack>
@@ -284,6 +285,10 @@ else
         bookings.Where(b => b.Kind == kind).Sum(b => b.AmountChf);
 
     private Task New() => Open(null, "Neue Buchung");
+
+    private Task Export() =>
+        Dialogs.ShowAsync<ExportDialog>("Exportieren", new DialogParameters<ExportDialog> { { dialog => dialog.Year, filter.Year } },
+            new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, CloseButton = true });
 
     private Task Edit(BookingView booking) => Open(booking, booking.IsLocked ? "Buchung (abgeschlossen)" : "Buchung bearbeiten");
 

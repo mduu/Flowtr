@@ -1,4 +1,5 @@
 using Flowtr.Server.CrossCutting.Audit;
+using Flowtr.Server.Features.Business;
 using Flowtr.Server.Features.Inbox.Model;
 using Flowtr.Server.Features.Journal.Model;
 using Flowtr.Server.Features.Receipts.Model;
@@ -47,6 +48,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<AllowedSender> AllowedSenders => Set<AllowedSender>();
 
+    public DbSet<Features.Business.BusinessSettings> BusinessSettings => Set<Features.Business.BusinessSettings>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -67,6 +70,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.ConfigureJournal();
         builder.ConfigureReceipts();
         builder.ConfigureInbox();
+        builder.ConfigureBusiness();
 
         builder.Entity<IdentityRole>().HasData(
             new IdentityRole { Id = RoleIds.Admin, Name = FlowtrRoles.Admin, NormalizedName = FlowtrRoles.Admin.ToUpperInvariant(), ConcurrencyStamp = RoleIds.Admin },

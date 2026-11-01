@@ -94,6 +94,10 @@ Der User leitet Rechnungen an eine Mailbox weiter. *Flowtr* holt sie per IMAP ab
 
 Eine Mail mit mehreren Anhängen ist **ein** Beleg mit mehreren Dateien, nicht mehrere Belege: Stripe (z.B. Anthropic) schickt Rechnung und Quittung derselben Zahlung zusammen. Der Eingang hat einen Eintrag pro Mail, die KI liest alle Dateien zusammen, die Buchung erhält eine Belegnummer. Siehe [Story #012](../stories/done/012-beleg-mit-mehreren-dateien.md).
 
+## Nachtrag (01.11.2026, Story #013)
+
+Der Export erzeugt das PDF einer Mail mit QuestPDF hinter der Schnittstelle `IPdfDocuments`: Kopf (Von, An, Datum, Betreff) und der Text der Mail, HTML ohne Markup. Im ZIP liegt es neben dem Original (`.eml`). QuestPDF bringt seine Schrift mit und läuft im Container ohne weitere Pakete. Siehe [Story #013](../stories/done/013-export.md).
+
 ## Referenzen
 
 - [Story #010: E-Mail-Eingang (IMAP)](../stories/done/010-email-eingang-imap.md)

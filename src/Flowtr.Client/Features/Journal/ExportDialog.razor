@@ -1,0 +1,80 @@
+@using System.Globalization
+@inject NavigationManager Navigation
+
+@* Journal and receipts of a period as ZIP for the fiduciary or the tax return (story #013). *@
+<MudDialog>
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Outlined.Download" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">Exportieren</MudText>
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4">
+            Ein ZIP mit dem Journal als Excel und PDF und allen Belegen des Zeitraums, für den Treuhänder oder die Steuererklärung.
+        </MudText>
+        <MudGrid Spacing="3">
+            <MudItem xs="6">
+                <MudDatePicker Label="Von" @bind-Date="from" DateFormat="dd.MM.yyyy" Culture="swiss" Editable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="6">
+                <MudDatePicker Label="Bis" @bind-Date="to" DateFormat="dd.MM.yyyy" Culture="swiss" Editable="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox T="bool" @bind-Value="withReceipts" Label="Belege mitnehmen" Color="Color.Primary" Dense="true" />
+            </MudItem>
+        </MudGrid>
+        @if (error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mt-3">@error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Cancel()">Abbrechen</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Download" OnClick="Download">
+            Herunterladen
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private static readonly CultureInfo swiss = CultureInfo.GetCultureInfo("de-CH");
+
+    private DateTime? from;
+    private DateTime? to;
+    private bool withReceipts = true;
+    private string? error;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>
+    /// The year of the journal: the default period.
+    /// </summary>
+    [Parameter]
+    public int Year { get; set; }
+
+    protected override void OnInitialized()
+    {
+        from = new DateTime(Year, 1, 1);
+        to = new DateTime(Year, 12, 31);
+    }
+
+    /// <summary>
+    /// The browser downloads the ZIP with the identity cookie. The server answers with an attachment: the page stays.
+    /// </summary>
+    private void Download()
+    {
+        if (from is null || to is null || from > to)
+        {
+            error = "Bitte einen gültigen Zeitraum wählen.";
+            return;
+        }
+
+        var url = $"api/export?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}&receipts={(withReceipts ? "true" : "false")}";
+        Navigation.NavigateTo(url, forceLoad: true);
+        MudDialog.Close();
+    }
+}

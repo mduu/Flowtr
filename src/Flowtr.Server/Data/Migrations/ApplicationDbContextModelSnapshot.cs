@@ -144,6 +144,21 @@ namespace Flowtr.Server.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("Flowtr.Server.Features.Business.BusinessSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BusinessSettings");
+                });
+
             modelBuilder.Entity("Flowtr.Server.Features.Inbox.Model.AllowedSender", b =>
                 {
                     b.Property<Guid>("Id")

@@ -1,0 +1,57 @@
+@page "/geschaeft"
+@attribute [Authorize(Roles = Roles.Admin)]
+
+@inject IBusinessApi Business
+@inject ISnackbar Snackbar
+
+<PageTitle>Geschäft – Flowtr</PageTitle>
+
+<AdminNav />
+
+<MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+    Der Name steht im Kopf des Exports (Journal als Excel und PDF), z.B. «Marc Dürst, Softwareentwicklung».
+</MudText>
+
+@if (loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudPaper Outlined="true" Class="pa-4">
+        <EditForm Model="form" OnValidSubmit="Save">
+            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2" AlignItems="AlignItems.Center">
+                <MudTextField @bind-Value="form.Name" Label="Name des Geschäfts" Placeholder="Vorname Name, Tätigkeit"
+                              MaxLength="BusinessInput.MaxLength" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width: 320px" />
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Disabled="busy"
+                           StartIcon="@Icons.Material.Outlined.Check">Speichern</MudButton>
+            </MudStack>
+        </EditForm>
+    </MudPaper>
+}
+
+@code {
+    private readonly Form form = new();
+    private bool loading = true;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Business.Get();
+        form.Name = result.Value?.Name;
+        loading = false;
+    }
+
+    private async Task Save()
+    {
+        busy = true;
+        var result = await Business.Set(new BusinessInput(form.Name));
+        busy = false;
+        Snackbar.Add(result.IsSuccess ? "Gespeichert." : result.Error!, result.IsSuccess ? Severity.Success : Severity.Error);
+    }
+
+    private sealed class Form
+    {
+        public string? Name { get; set; }
+    }
+}

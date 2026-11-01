@@ -12,6 +12,8 @@ using Flowtr.Server.CrossCutting.Hosting;
 using Flowtr.Server.Data;
 using Flowtr.Server.Features.Appearance;
 using Flowtr.Server.Features.Audit;
+using Flowtr.Server.Features.Business;
+using Flowtr.Server.Features.Export;
 using Flowtr.Server.Features.Extraction;
 using Flowtr.Server.Features.Inbox;
 using Flowtr.Server.Features.Journal;
@@ -63,6 +65,8 @@ builder.Services.AddJournal();
 builder.Services.AddReceipts();
 builder.Services.AddExtraction(builder.Configuration);
 builder.Services.AddInbox(builder.Configuration);
+builder.Services.AddExport();
+builder.Services.AddScoped<Flowtr.Client.Features.Business.IBusinessApi, Flowtr.Server.Features.Business.ServerBusinessApi>();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
@@ -111,6 +115,8 @@ api.MapAuditEndpoints();
 api.MapJournalEndpoints();
 api.MapReceiptEndpoints();
 api.MapInboxEndpoints();
+api.MapExportEndpoints();
+api.MapBusinessEndpoints();
 
 app.MapDefaultEndpoints();
 

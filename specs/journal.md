@@ -39,6 +39,7 @@ Das Journal (aka Milchbüchlein) enthält alle Angaben für die Schweizer Steuer
 - Auf Knopfdruck: Journal und alle zugehörigen Belege, digital (Excel und Belegverzeichnisse).
 - Export des Journals als PDF und Excel.
 - Der User kann bei jedem Export den Datumsbereich wählen.
+- Umgesetzt mit [#013](stories/done/013-export.md): ein ZIP mit `Journal.xlsx` (Blätter «Journal» und «Kategorien»), `Journal.pdf` und den Belegen unverändert in `Belege/Ausgaben` und `Belege/Einnahmen`. Eine Mail als Beleg kommt als Original (`.eml`) und als PDF. Dazu `Belegverzeichnis.csv` mit dem SHA-256 jeder Datei. Kopf: Geschäft (Verwaltung → Geschäft), Zeitraum, erstellt am und von, Status (provisorisch oder abgeschlossen). Buchungen ohne Beleg sind markiert.
 
 ## Dossier für den Treuhänder
 Statt eines Downloads kann der User dem Treuhänder einen Link zum *Dossier* (= Journal und Belege) senden. Über den Link lädt der Treuhänder alles direkt herunter.

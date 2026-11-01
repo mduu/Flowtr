@@ -2,6 +2,7 @@ using Flowtr.Server.CrossCutting.Audit;
 using Flowtr.Server.CrossCutting.Cqs;
 using Flowtr.Server.CrossCutting.Hosting;
 using Flowtr.Server.Data;
+using Flowtr.Server.Features.Export;
 using Flowtr.Server.Features.Extraction;
 using Flowtr.Server.Features.Inbox;
 using Flowtr.Server.Features.Inbox.Mail;
@@ -86,6 +87,7 @@ internal sealed class TestApp : IDisposable
         services.AddSingleton<IExchangeRates>(Rates);
         services.AddInbox(configuration);
         services.AddSingleton<IMailbox>(Mailbox);
+        services.AddExport();
         services.Configure<MailboxOptions>(options =>
         {
             options.Host = "imap.flowtr.test";

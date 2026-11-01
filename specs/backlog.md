@@ -20,8 +20,11 @@ Ausgearbeitete Stories liegen in [`stories/`](stories/) (Vorlage: [`_template.md
 ### Backup & Restore
 - Siehe [Backup](backup.md).
 
-### Jahresabschluss und Export
-- Jahr abschliessen (read-only, Immutability-Policy auf Belegen), Export als Excel/PDF, Dossier für den Treuhänder (siehe [Journal](journal.md)).
+### Jahresabschluss
+- Jahr abschliessen: danach read-only, Immutability-Policy auf den Belegen (siehe [Journal](journal.md#bearbeitung--abschluss)).
+
+### Dossier für den Treuhänder
+- Link mit Code per E-Mail, 14 Tage gültig, widerrufbar (siehe [Journal](journal.md#dossier-für-den-treuhänder)). Braucht zuerst den E-Mail-Versand. Bis dahin genügt der Export als ZIP ([#013](stories/done/013-export.md)).
 
 ### Native App als «Teilen»-Ziel
 - Belege direkt aus iOS über «Senden an» oder «Teilen» an *Flowtr* übergeben (siehe [Konzept](concept.md#eingangskanäle)).
