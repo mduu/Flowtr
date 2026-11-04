@@ -19,7 +19,7 @@ Das Erfassen der Buchungen (Einnahmen, Ausgaben) soll schnell gehen. Der User er
 - Speicherort, Container und Namensschema: [ADR-001](adrs/001-belegablage-in-blob-storage.md).
 
 ## Eingangskanäle
-- **Im Buchungsdialog (Web-App):** Ein Beleg pro Buchung. Er steht zuoberst im Dialog. Der User lädt ihn hoch (Datei, Ziehen, Kamera), die KI füllt die Felder vor, der User prüft und speichert ([#008](stories/done/008-beleg-upload-und-ablage.md), [#009](stories/done/009-ki-extraktion.md)). Ein Beleg kann aus mehreren Dateien bestehen, z.B. Rechnung und Quittung derselben Zahlung oder mehrere Fotos ([#012](stories/done/012-beleg-mit-mehreren-dateien.md)): eine Belegnummer, höchstens 10 Dateien. Die KI liest sie zusammen. Eine Datei ist ein PDF, ein Bild oder eine Tabelle als CSV, z.B. die Abrechnung von App Store Connect ([#014](stories/done/014-csv-als-beleg.md)).
+- **Im Buchungsdialog (Web-App):** Ein Beleg pro Buchung. Er steht zuoberst im Dialog. Der User lädt ihn hoch (Datei, Ziehen, Kamera), die KI füllt die Felder vor, der User prüft und speichert ([#008](stories/done/008-beleg-upload-und-ablage.md), [#009](stories/done/009-ki-extraktion.md)). Ein Beleg kann aus mehreren Dateien bestehen, z.B. Rechnung und Quittung derselben Zahlung oder mehrere Fotos ([#012](stories/done/012-beleg-mit-mehreren-dateien.md)): eine Belegnummer, höchstens 10 Dateien. Die KI liest sie zusammen. Eine Datei ist ein PDF, ein Bild oder eine Tabelle als CSV, z.B. die Abrechnung von App Store Connect ([#014](stories/done/014-csv-als-beleg.md)). Braucht ein Beleg mehrere Buchungen, z.B. Einnahmen und Gebühren eines Zahlungsanbieters, schlägt die KI alle vor. Der User bestätigt sie nacheinander. Jede Buchung erhält den Beleg mit eigener Nummer ([#017](stories/done/017-mehrere-buchungen-pro-beleg.md)).
 - **Per E-Mail:** Der User leitet Rechnungen an eine bestimmte Mailbox weiter. *Flowtr* fragt sie per **IMAP** ab (beliebiger Provider) und legt die Belege in den [Eingang](#eingang). Der User prüft und speichert sie später, einzeln ([#010](stories/done/010-email-eingang-imap.md)).
 - Später möglich: native App als "Senden an"- oder "Teilen"-Ziel. Sie liefert ebenfalls in den Eingang.
 
@@ -27,7 +27,7 @@ Das Erfassen der Buchungen (Einnahmen, Ausgaben) soll schnell gehen. Der User er
 Der Eingang sammelt die Belege aus E-Mails, die noch keine Buchung haben.
 
 - Er steht **zuoberst im Journal**, über den Monaten, z.B. «3 Belege im Eingang». Ohne Belege ist er nicht sichtbar.
-- Pro Beleg: Herkunft (Absender, Betreff, empfangen am), Stand der Analyse und der Vorschlag (Datum, Betrag, Gegenpartei).
+- Pro Beleg: Herkunft (Absender, Betreff, empfangen am), Stand der Analyse und der Vorschlag (Datum, Betrag, Gegenpartei), bei mehreren Buchungen z.B. «+1 Buchung».
 - *Flowtr* analysiert jeden Beleg gleich beim Eintreffen. Der Vorschlag ist bereit, wenn der User den Beleg öffnet.
 - Ein Klick öffnet den Buchungsdialog mit dem Beleg oben und den vorausgefüllten Feldern. Der User muss nichts hochladen. Er prüft, korrigiert und speichert. Danach ist es eine normale Buchung in ihrem Monat.
 - Der User kann einen Beleg verwerfen (z.B. Werbung oder Doppel). Nicht gebuchte Belege verfallen nach 30 Tagen.

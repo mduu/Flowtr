@@ -12,7 +12,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Flowtr.Server.Features.Extraction.Queries;
 
 /// <summary>
-/// Reads the uploads of one receipt with AI and makes one booking proposal (story #009, #012). The e-mail inbox (story #010) uses it too.
+/// Reads the uploads of one receipt with AI and makes a booking proposal (story #009, #012). The e-mail inbox (story #010) uses it too.
+/// A receipt can give more bookings, for example income and fees of a payment provider (story #017).
 /// </summary>
 /// <remarks>
 /// The answer of the AI is only a proposal: Flowtr keeps only valid values (date, amount, currency, a category of the
@@ -44,6 +45,11 @@ public sealed partial class AnalyzeUploadsHandler(
     /// A table goes to the AI with at most this number of characters (story #014). A longer table only costs tokens.
     /// </summary>
     public const int MaxTableText = 200_000;
+
+    /// <summary>
+    /// At most this number of bookings from one receipt. More come from a wrong reading.
+    /// </summary>
+    public const int MaxBookings = 5;
 
     public async Task<Result<BookingProposal>> Handle(AnalyzeUploads query, CancellationToken cancellationToken)
     {
@@ -139,6 +145,18 @@ public sealed partial class AnalyzeUploadsHandler(
 
     private async Task<BookingProposal> Proposal(ReceiptReading reading, DateOnly today, CancellationToken cancellationToken)
     {
+        var proposal = await Booking(reading, today, cancellationToken);
+        var more = new List<BookingProposal>();
+        foreach (var further in (reading.MoreBookings ?? []).Take(MaxBookings - 1))
+        {
+            more.Add(await Booking(further, today, cancellationToken));
+        }
+
+        return more.Count == 0 ? proposal : proposal with { MoreBookings = more };
+    }
+
+    private async Task<BookingProposal> Booking(ReceiptReading reading, DateOnly today, CancellationToken cancellationToken)
+    {
         var date = DateOnly.TryParseExact(reading.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
                    && parsed.Year >= 2000 && parsed <= today.AddYears(1)
             ? parsed
@@ -148,6 +166,7 @@ public sealed partial class AnalyzeUploadsHandler(
         var total = reading.Total is > 0 and < 1_000_000_000m ? decimal.Round(reading.Total.Value, 2) : (decimal?)null;
         var currency = reading.Currency?.ToUpperInvariant() is { } code && CurrencyCode().IsMatch(code) ? code : null;
         var description = reading.Description is { Length: > 0 } text ? text[..Math.Min(text.Length, 500)] : null;
+        var note = reading.Note is { Length: > 0 } noteText ? noteText[..Math.Min(noteText.Length, 1000)] : null;
 
         var counterparty = await Known(db.Counterparties.Select(c => c.Name), reading.Counterparty, cancellationToken)
                            ?? (reading.Counterparty is { Length: > 0 and <= 200 } name ? name : null);
@@ -161,9 +180,9 @@ public sealed partial class AnalyzeUploadsHandler(
             paymentMethod ??= last.PaymentMethod;
         }
 
-        var (amountChf, original, originalCurrency, note) = await Chf(total, currency, date ?? today, cancellationToken);
+        var (amountChf, original, originalCurrency, exchangeRateNote) = await Chf(total, currency, date ?? today, cancellationToken);
 
-        return new BookingProposal(date, kind, amountChf, original, originalCurrency, description, categoryId, counterparty, paymentMethod, note);
+        return new BookingProposal(date, kind, amountChf, original, originalCurrency, description, categoryId, counterparty, paymentMethod, exchangeRateNote, note);
     }
 
     private async Task<(decimal? AmountChf, decimal? Original, string? Currency, string? Note)> Chf(

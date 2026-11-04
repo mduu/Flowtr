@@ -64,6 +64,46 @@ public class AnthropicReceiptReaderTests
     }
 
     [Fact]
+    public async Task Reads_more_bookings_and_notes_of_a_statement()
+    {
+        // Arrange
+        var server = new FakeServer(HttpStatusCode.OK, """
+            {"content":[{"type":"tool_use","name":"record_booking","input":
+              {"date":"2026-10-31","kind":"Income","total":9.0,"currency":"CHF","description":"Stripe Einnahmen Oktober 2026","counterparty":"Stripe",
+               "note":"2 Zahlungen 108.00, 1 Rückerstattung −99.00",
+               "more_bookings":[{"date":"2026-10-31","kind":"Expense","total":4.48,"currency":"CHF","description":"Stripe Gebühren Oktober 2026","counterparty":"Stripe"}]}}]}
+            """);
+
+        // Act
+        var result = await Reader(server).Read([new ReceiptContent("%PDF-1.7"u8.ToArray(), "application/pdf")], context, CancellationToken.None);
+
+        // Assert
+        var reading = result.Value!;
+        (reading.Kind, reading.Total, reading.Note).ShouldBe(("Income", 9.0m, "2 Zahlungen 108.00, 1 Rückerstattung −99.00"));
+        reading.MoreBookings.ShouldHaveSingleItem().ShouldBe(
+            new ReceiptReading("2026-10-31", "Expense", 4.48m, "CHF", "Stripe Gebühren Oktober 2026", "Stripe", null, null));
+        var properties = server.Request!["tools"]![0]!["input_schema"]!["properties"]!;
+        properties["more_bookings"]!["items"]!["properties"]!["total"].ShouldNotBeNull();
+        properties["note"].ShouldNotBeNull();
+        ((string?)server.Request["system"])!.ShouldContain("Book it gross: the income and the fees are separate bookings");
+    }
+
+    [Fact]
+    public async Task One_booking_has_no_more_bookings()
+    {
+        // Arrange
+        var server = new FakeServer(HttpStatusCode.OK, """
+            {"content":[{"type":"tool_use","name":"record_booking","input":{"kind":"Expense","total":20,"more_bookings":[]}}]}
+            """);
+
+        // Act
+        var result = await Reader(server).Read([new ReceiptContent("%PDF-1.7"u8.ToArray(), "application/pdf")], context, CancellationToken.None);
+
+        // Assert
+        result.Value!.MoreBookings.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Sends_the_workspace_when_configured()
     {
         // Arrange
@@ -134,7 +174,7 @@ public class AnthropicReceiptReaderTests
         // Assert: the HEIC photo stays out, the two PDFs go with one text.
         var content = server.Request!["messages"]![0]!["content"]!.AsArray();
         content.Select(block => (string?)block!["type"]).ShouldBe(["document", "document", "text"]);
-        ((string?)content[2]!["text"])!.ShouldContain("Read the 2 files above: one receipt. Record one booking.");
+        ((string?)content[2]!["text"])!.ShouldContain("Read the 2 files above: one receipt.");
         ((string?)server.Request!["system"])!.ShouldContain("not the sum of the files");
     }
 

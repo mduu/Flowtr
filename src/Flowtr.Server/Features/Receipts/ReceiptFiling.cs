@@ -24,8 +24,10 @@ public sealed class ReceiptFiling(ApplicationDbContext db, IReceiptStore store, 
     /// Saves <paramref name="booking"/> (already tracked) with the changes of its receipt: the uploads become new files,
     /// the removed files go. A receipt without files goes too. A new receipt gets the next number of its year and kind.
     /// An existing receipt keeps its number.
+    /// With <paramref name="keepUploads"/>, the uploads stay in <c>eingang</c>: a further booking files them again (story #017).
     /// </summary>
-    public async Task<Result> Save(Booking booking, IReadOnlyList<Guid> uploadIds, IReadOnlyList<Guid> removedFileIds, CancellationToken cancellationToken)
+    public async Task<Result> Save(
+        Booking booking, IReadOnlyList<Guid> uploadIds, IReadOnlyList<Guid> removedFileIds, bool keepUploads, CancellationToken cancellationToken)
     {
         var uploads = new List<(Guid Id, UploadInfo Info)>();
         foreach (var uploadId in uploadIds.Distinct())
@@ -103,7 +105,7 @@ public sealed class ReceiptFiling(ApplicationDbContext db, IReceiptStore store, 
                 throw;
             }
 
-            foreach (var (uploadId, _) in uploads)
+            foreach (var (uploadId, _) in keepUploads ? [] : uploads)
             {
                 await store.DeleteUpload(uploadId, cancellationToken);
             }

@@ -18,6 +18,10 @@
                 {
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">Beleg @receipt</MudText>
                 }
+                else if (Position + MoreBookings.Count > 1)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Buchung @Position von @(Position + MoreBookings.Count) zu diesem Beleg</MudText>
+                }
             </div>
         </MudStack>
     </TitleContent>
@@ -35,6 +39,15 @@
         @if (aiMessage is not null)
         {
             <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4" ShowCloseIcon="true" CloseIconClicked="() => aiMessage = null">@aiMessage</MudAlert>
+        }
+        @if (MoreBookings.Count > 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4" Icon="@Icons.Material.Outlined.AutoAwesome"
+                      ShowCloseIcon="true" CloseIconClicked="DismissMoreBookings">
+                Die KI schlägt zu diesem Beleg @(MoreBookings.Count == 1 ? "eine weitere Buchung" : $"{MoreBookings.Count} weitere Buchungen") vor:
+                @string.Join(", ", MoreBookings.Select(Summary)).
+                Nach dem Speichern öffnet Flowtr @(MoreBookings.Count == 1 ? "sie" : "die nächste") mit demselben Beleg.
+            </MudAlert>
         }
 
         <EditForm id="booking-form" Model="form" OnValidSubmit="Save">
@@ -177,6 +190,7 @@
     private bool analyzing;
     private string? aiMessage;
     private BookingProposal? proposal;
+    private bool moreBookingsDismissed;
     private BookingForm initial = new();
 
     /// <summary>
@@ -221,7 +235,19 @@
     [Parameter]
     public string? Origin { get; set; }
 
+    /// <summary>
+    /// The position of this booking among the bookings that the AI proposed for the receipt (story #017).
+    /// </summary>
+    [Parameter]
+    public int Position { get; set; } = 1;
+
     private bool readOnly => Booking?.IsLocked == true;
+
+    /// <summary>
+    /// The further bookings that the AI proposed for the receipt: after the save, the journal opens them one after the other.
+    /// </summary>
+    private IReadOnlyList<BookingProposal> MoreBookings =>
+        Booking is null && !moreBookingsDismissed && uploads.Count > 0 ? proposal?.MoreBookings ?? [] : [];
 
     private Color KindColor => form.Kind == BookingKind.Income ? Color.Success : Color.Error;
 
@@ -342,6 +368,22 @@
         {
             Set<Guid?>(nameof(BookingForm.CategoryId), category, value => form.CategoryId = value);
         }
+
+        if (p.Note is { } note && string.IsNullOrWhiteSpace(form.Note))
+        {
+            form.Note = note;
+            showNote = true;
+        }
+    }
+
+    private static string Summary(BookingProposal p) =>
+        $"{(p.Kind == BookingKind.Income ? "Einnahme" : "Ausgabe")}{(p.AmountChf is { } amount ? $" {SwissFormat.Amount(amount)}" : "")}" +
+        (p.Description is { } description ? $" «{description}»" : "");
+
+    private void DismissMoreBookings()
+    {
+        moreBookingsDismissed = true;
+        MudDialog.StateHasChanged();
     }
 
     private bool IsOpen<T>(T current, T start, bool isEmpty) =>
@@ -412,7 +454,13 @@
     {
         busy = true;
         error = null;
-        var input = form.ToInput() with { UploadIds = uploads.Select(u => u.UploadId).ToList(), RemovedFileIds = removedFiles.ToList() };
+        var next = MoreBookings;
+        var input = form.ToInput() with
+        {
+            UploadIds = uploads.Select(u => u.UploadId).ToList(),
+            RemovedFileIds = removedFiles.ToList(),
+            KeepUploads = next.Count > 0,
+        };
 
         var result = Booking is null
             ? await Journal.CreateBooking(input)
@@ -426,7 +474,7 @@
         }
 
         Snackbar.Add("Buchung gespeichert.", Severity.Success);
-        MudDialog.Close(DialogResult.Ok(input.Date));
+        MudDialog.Close(DialogResult.Ok(new BookingSaved(input.Date, uploads, next)));
     }
 
     private async Task Delete()

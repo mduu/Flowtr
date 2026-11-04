@@ -352,7 +352,8 @@ else
     private Task OpenInboxItem(InboxItemView item) =>
         Open(null, "Beleg aus dem Eingang buchen", item.Files, item.Analysis == AnalysisState.Done ? item.Proposal : null, $"E-Mail von {item.Sender}");
 
-    private async Task Open(BookingView? booking, string title, IReadOnlyList<UploadedReceipt>? uploads = null, BookingProposal? proposal = null, string? origin = null)
+    private async Task Open(
+        BookingView? booking, string title, IReadOnlyList<UploadedReceipt>? uploads = null, BookingProposal? proposal = null, string? origin = null, int position = 1)
     {
         var parameters = new DialogParameters<BookingDialog>
         {
@@ -363,17 +364,34 @@ else
             { dialog => dialog.InitialUploads, uploads },
             { dialog => dialog.InitialProposal, proposal },
             { dialog => dialog.Origin, origin },
+            { dialog => dialog.Position, position },
         };
 
         // On a phone the dialog uses the full screen, like an app.
         var phone = await Viewport.GetCurrentBreakpointAsync() == Breakpoint.Xs;
         var dialogOptions = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, FullScreen = phone, CloseButton = true, DefaultFocus = DefaultFocus.None };
         var dialog = await Dialogs.ShowAsync<BookingDialog>(title, parameters, dialogOptions);
-        if (await dialog.Result is { Canceled: false, Data: DateOnly date })
+        var result = await dialog.Result;
+        var changed = result switch
+        {
+            { Canceled: true } => null,
+            { Data: BookingSaved saved } => saved.Date,
+            { Data: DateOnly deleted } => deleted,
+            _ => (DateOnly?)null,
+        };
+        if (changed is { } date)
         {
             filter = filter with { Year = date.Year };
             await LoadOptions();
             await Load();
+        }
+
+        // The next booking that the AI proposed for the same receipt (story #017).
+        if (result is { Canceled: false, Data: BookingSaved { MoreBookings.Count: > 0 } done })
+        {
+            var next = done.MoreBookings[0] with { MoreBookings = done.MoreBookings.Skip(1).ToList() };
+            await Open(null, "Weitere Buchung zum Beleg", done.Uploads, next, origin, position + 1);
+            return;
         }
 
         if (uploads is not null && inbox is not null)

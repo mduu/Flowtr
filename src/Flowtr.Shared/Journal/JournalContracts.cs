@@ -11,6 +11,7 @@ public enum BookingKind
 /// <see cref="Counterparty"/> and <see cref="PaymentMethod"/> are names. Flowtr adds a new name to its list.
 /// <see cref="UploadIds"/> become new files of the receipt. <see cref="RemovedFileIds"/> are files of the receipt that go.
 /// Without files, the booking has no receipt (story #012).
+/// With <see cref="KeepUploads"/>, the uploads stay in <c>eingang</c> for a further booking of the same receipt (story #017).
 /// </summary>
 public sealed record BookingInput(
     DateOnly Date,
@@ -24,7 +25,8 @@ public sealed record BookingInput(
     string? PaymentMethod,
     string? Note,
     IReadOnlyList<Guid>? UploadIds = null,
-    IReadOnlyList<Guid>? RemovedFileIds = null);
+    IReadOnlyList<Guid>? RemovedFileIds = null,
+    bool KeepUploads = false);
 
 /// <summary>
 /// A booking in the journal. <see cref="IsLocked"/> is true when its year is closed.
@@ -105,6 +107,7 @@ public sealed record AnalysisInput(IReadOnlyList<Guid> UploadIds);
 /// <summary>
 /// What the AI read from a receipt (story #009). Null means: not found. The dialog fills only empty fields with it.
 /// <see cref="ExchangeRateNote"/> tells how Flowtr got <see cref="AmountChf"/> from a foreign currency.
+/// <see cref="MoreBookings"/> are further bookings of the same receipt, for example the fees of a payment provider (story #017).
 /// </summary>
 public sealed record BookingProposal(
     DateOnly? Date,
@@ -116,4 +119,6 @@ public sealed record BookingProposal(
     Guid? CategoryId,
     string? Counterparty,
     string? PaymentMethod,
-    string? ExchangeRateNote);
+    string? ExchangeRateNote,
+    string? Note = null,
+    IReadOnlyList<BookingProposal>? MoreBookings = null);
