@@ -16,7 +16,7 @@ Ausgearbeitete Stories liegen in [`stories/`](stories/) (Vorlage: [`_template.md
 
 > Detail-Stories: [#015](stories/015-stripe-abrechnung-automatisch.md) (Stripe), [#016](stories/016-apple-abrechnung-automatisch.md) (Apple)
 
-- *Flowtr* holt nach jedem Monat die Abrechnung per API und legt fertige Vorschläge in den Eingang: bei Stripe Einnahme (brutto) und Gebühren, bei Apple den Erlös. Baut auf [#014](stories/done/014-csv-als-beleg.md) auf (CSV als Beleg).
+- *Flowtr* holt nach jedem Monat die Abrechnung per API und legt fertige Vorschläge in den Eingang: bei Stripe Einnahme (brutto) und Gebühren, bei Apple den Erlös. Baut auf [#014](stories/done/014-csv-als-beleg.md) auf (CSV als Beleg). Seit [#017](stories/done/017-mehrere-buchungen-pro-beleg.md) schlägt die KI beide Buchungen aus einem hochgeladenen Beleg vor: weniger dringend.
 
 ## Später
 

@@ -28,6 +28,7 @@ public sealed record ReadingContext(
 
 /// <summary>
 /// The raw answer of the AI. All values can be missing or wrong.
+/// <see cref="MoreBookings"/> are further bookings of the same receipt, for example the fees of a payment provider (story #017).
 /// </summary>
 public sealed record ReceiptReading(
     string? Date,
@@ -37,4 +38,6 @@ public sealed record ReceiptReading(
     string? Description,
     string? Counterparty,
     string? CategoryId,
-    string? PaymentMethod);
+    string? PaymentMethod,
+    string? Note = null,
+    IReadOnlyList<ReceiptReading>? MoreBookings = null);

@@ -14,7 +14,7 @@ public interface IReceiptApi
     Task<Result<UploadedReceipt>> Upload(IBrowserFile file, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Reads the uploads of one receipt together with AI and gives one booking proposal (story #009, #012).
+    /// Reads the uploads of one receipt together with AI and gives a booking proposal, maybe with more bookings (story #009, #012, #017).
     /// </summary>
     Task<Result<BookingProposal>> Analyze(IReadOnlyList<Guid> uploadIds, CancellationToken cancellationToken = default);
 }

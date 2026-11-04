@@ -33,6 +33,6 @@ public sealed class UpdateBookingHandler(ApplicationDbContext db, BookingRules r
         }
 
         await rules.Apply(booking, command.Input, cancellationToken);
-        return await receipts.Save(booking, command.Input.UploadIds ?? [], command.Input.RemovedFileIds ?? [], cancellationToken);
+        return await receipts.Save(booking, command.Input.UploadIds ?? [], command.Input.RemovedFileIds ?? [], keepUploads: false, cancellationToken);
     }
 }

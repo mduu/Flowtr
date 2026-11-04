@@ -50,6 +50,10 @@
                             {
                                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@SwissFormat.Date(date)</MudText>
                             }
+                            @if (item.Proposal?.MoreBookings is { Count: > 0 } more)
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">+@(more.Count == 1 ? "1 Buchung" : $"{more.Count} Buchungen")</MudText>
+                            }
                             break;
                     }
                 </div>

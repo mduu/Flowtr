@@ -69,6 +69,10 @@ Nach dem Upload eines Belegs soll Flowtr die Buchung vorschlagen: Datum, Art, Be
 
 - Mittel: Reader, Prüfung, Kurse, Dialog.
 
+## Nachtrag (04.11.2026, Story #017)
+
+Ein Beleg kann mehrere Buchungen geben, z.B. die Abrechnung eines Zahlungsanbieters: Einnahme brutto und Gebühren als Ausgabe. Das Tool `record_booking` hat dafür `more_bookings` mit denselben Feldern und pro Buchung eine `note`. *Flowtr* prüft jede Buchung gleich, höchstens 5. Der User bestätigt sie nacheinander im Dialog. Jede Buchung legt die Datei als eigenen Beleg mit eigener Nummer ab. Siehe [Story #017](../stories/done/017-mehrere-buchungen-pro-beleg.md).
+
 ## Referenzen
 
 - [Anthropic Messages API: Tool use](https://docs.anthropic.com/en/docs/build-with-claude/tool-use)

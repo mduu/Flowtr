@@ -20,6 +20,8 @@ Das Journal (aka Milchbüchlein) enthält alle Angaben für die Schweizer Steuer
 | Belegnummer | Referenz auf den abgelegten Beleg, z.B. A-2026-007 (fortlaufend pro Jahr und Art, [ADR-007](adrs/007-belegnummern-per-sequenz.md)) |
 | Notiz | Freitext |
 
+**Zahlungsanbieter** (z.B. Stripe, TWINT): brutto buchen. Pro Abrechnung eine Einnahme (Zahlungen minus Rückerstattungen) und eine Ausgabe für alle Gebühren («Bank- und Kreditkartenspesen»), beide am Ende der Periode. Die Auszahlung auf die Bank ist keine Buchung. Die KI schlägt beide Buchungen aus einem Beleg vor ([#017](stories/done/017-mehrere-buchungen-pro-beleg.md)).
+
 **MWST:** Aktuell nicht nötig. Das Datenmodell muss MWST-Satz und -Betrag aber später ohne Umbau aufnehmen können.
 
 ## Kategorien

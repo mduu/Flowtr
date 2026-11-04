@@ -41,6 +41,20 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
         A receipt can have several files, for example an invoice and the receipt of its payment. Together they are one
         business transaction: record one booking with the amount that was paid once, not the sum of the files.
 
+        A receipt can be the statement of a payment provider for a period, for example Stripe, TWINT, PayPal or SumUp.
+        Book it gross: the income and the fees are separate bookings, never one net amount.
+        - The booking is the income: the payments of the customers minus the refunds, before fees (for example "Gross" of
+          "Activity"). Description for example "Stripe Einnahmen Oktober 2026".
+        - In more_bookings, one booking "Expense" for all fees together, also the fees of the provider itself (for example
+          "Fee" of "Activity"). Description for example "Stripe Gebühren Oktober 2026".
+        - Payouts to the bank are no booking: they only move money.
+        - Date of both is the last day of the period. Counterparty of both is the provider.
+        - Leave out a booking with the amount 0. When there is no income, the fees are the booking.
+        A sales platform that sells in its own name and shows no fees (for example App Store Connect) gives one booking.
+
+        Record more bookings only for such a statement, or when a receipt clearly has separate business transactions.
+        An invoice with several items is one booking.
+
         Rules:
         - kind: "Expense" for invoices and receipts that the business pays. "Income" for payouts, credit notes and
           invoices of the business to its customers.
@@ -51,6 +65,8 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
         - counterparty: the supplier or customer. Use the name from the list of known counterparties if it is the same company.
         - category_id: the ID of the best category from the list, of the same kind. Prefer the category of earlier bookings of the same counterparty.
         - payment_method: only a name from the list of known payment methods, when the receipt shows it (for example a credit card).
+        - note: short German text, only when it helps to check the booking, for example "2 Zahlungen 108.00, 1 Rückerstattung −99.00".
+        - more_bookings: the further bookings of the receipt, with the same fields. Leave it out for one booking.
         """;
 
     public async Task<Result<ReceiptReading>> Read(IReadOnlyList<ReceiptContent> files, ReadingContext context, CancellationToken cancellationToken)
@@ -170,25 +186,35 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
         }),
     };
 
-    private static JsonObject ToolDefinition() => new()
+    private static JsonObject ToolDefinition()
     {
-        ["name"] = Tool,
-        ["description"] = "Records the booking data that the receipt shows.",
-        ["input_schema"] = new JsonObject
+        var booking = BookingProperties();
+        booking["more_bookings"] = new JsonObject
         {
-            ["type"] = "object",
-            ["properties"] = new JsonObject
-            {
-                ["date"] = new JsonObject { ["type"] = "string", ["description"] = "Date of the receipt, YYYY-MM-DD" },
-                ["kind"] = new JsonObject { ["type"] = "string", ["enum"] = new JsonArray("Expense", "Income") },
-                ["total"] = new JsonObject { ["type"] = "number", ["description"] = "Total amount including VAT" },
-                ["currency"] = new JsonObject { ["type"] = "string", ["description"] = "ISO 4217 code" },
-                ["description"] = new JsonObject { ["type"] = "string", ["description"] = "Short German description, at most 60 characters" },
-                ["counterparty"] = new JsonObject { ["type"] = "string" },
-                ["category_id"] = new JsonObject { ["type"] = "string", ["description"] = "ID from the list of categories" },
-                ["payment_method"] = new JsonObject { ["type"] = "string", ["description"] = "Name from the list of payment methods" },
-            },
-        },
+            ["type"] = "array",
+            ["description"] = "Further bookings of the same receipt, for example the fees of a payment provider",
+            ["items"] = new JsonObject { ["type"] = "object", ["properties"] = BookingProperties() },
+        };
+
+        return new JsonObject
+        {
+            ["name"] = Tool,
+            ["description"] = "Records the booking data that the receipt shows.",
+            ["input_schema"] = new JsonObject { ["type"] = "object", ["properties"] = booking },
+        };
+    }
+
+    private static JsonObject BookingProperties() => new()
+    {
+        ["date"] = new JsonObject { ["type"] = "string", ["description"] = "Date of the receipt, YYYY-MM-DD" },
+        ["kind"] = new JsonObject { ["type"] = "string", ["enum"] = new JsonArray("Expense", "Income") },
+        ["total"] = new JsonObject { ["type"] = "number", ["description"] = "Total amount including VAT" },
+        ["currency"] = new JsonObject { ["type"] = "string", ["description"] = "ISO 4217 code" },
+        ["description"] = new JsonObject { ["type"] = "string", ["description"] = "Short German description, at most 60 characters" },
+        ["counterparty"] = new JsonObject { ["type"] = "string" },
+        ["category_id"] = new JsonObject { ["type"] = "string", ["description"] = "ID from the list of categories" },
+        ["payment_method"] = new JsonObject { ["type"] = "string", ["description"] = "Name from the list of payment methods" },
+        ["note"] = new JsonObject { ["type"] = "string", ["description"] = "Short German note, only when it helps" },
     };
 
     private static string ContextText(ReadingContext context, int files)
@@ -210,7 +236,7 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
             Earlier bookings per counterparty (counterparty: category, payment method):
             {history}
             {origin}
-            {(files > 1 ? $"Read the {files} files above: one receipt. Record one booking." : "Read the receipt above and record the booking.")}
+            {(files > 1 ? $"Read the {files} files above: one receipt." : "Read the receipt above.")} Record its booking.
             """;
     }
 
@@ -225,16 +251,20 @@ public sealed class AnthropicReceiptReader(HttpClient http, IOptions<AnthropicOp
             return Result.Failure<ReceiptReading>("Die KI konnte den Beleg nicht lesen. Bitte fülle die Felder selbst aus.");
         }
 
-        return Result.Success(new ReceiptReading(
-            Text(input, "date"),
-            Text(input, "kind"),
-            input["total"] is JsonValue total && total.TryGetValue<decimal>(out var amount) ? amount : null,
-            Text(input, "currency"),
-            Text(input, "description"),
-            Text(input, "counterparty"),
-            Text(input, "category_id"),
-            Text(input, "payment_method")));
+        var more = (input["more_bookings"] as JsonArray)?.OfType<JsonObject>().Select(Booking).ToList();
+        return Result.Success(Booking(input) with { MoreBookings = more is { Count: > 0 } ? more : null });
     }
+
+    private static ReceiptReading Booking(JsonObject input) => new(
+        Text(input, "date"),
+        Text(input, "kind"),
+        input["total"] is JsonValue total && total.TryGetValue<decimal>(out var amount) ? amount : null,
+        Text(input, "currency"),
+        Text(input, "description"),
+        Text(input, "counterparty"),
+        Text(input, "category_id"),
+        Text(input, "payment_method"),
+        Text(input, "note"));
 
     private static string? Text(JsonObject input, string name) =>
         input[name] is JsonValue value && value.TryGetValue<string>(out var text) && !string.IsNullOrWhiteSpace(text) ? text.Trim() : null;
