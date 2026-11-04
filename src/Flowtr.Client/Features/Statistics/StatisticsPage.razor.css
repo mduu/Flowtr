@@ -1,0 +1,130 @@
+/* Summary: the balance of the period, large, in the colour of its sign. */
+::deep .hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px 32px;
+    border-left: 4px solid var(--hero-colour) !important;
+    background: linear-gradient(100deg, color-mix(in srgb, var(--hero-colour) 14%, transparent), transparent 60%), var(--mud-palette-surface);
+}
+
+::deep .hero.plus {
+    --hero-colour: var(--mud-palette-success);
+}
+
+::deep .hero.minus {
+    --hero-colour: var(--mud-palette-error);
+}
+
+::deep .hero-amount {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    color: var(--hero-colour);
+    font-size: 2.75rem;
+    font-weight: 600;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+    ::deep .hero-amount .mud-icon-root {
+        font-size: 2.25rem;
+        align-self: center;
+    }
+
+    ::deep .hero-amount small {
+        font-size: 1rem;
+        font-weight: 400;
+        color: var(--mud-palette-text-secondary);
+    }
+
+::deep .hero-facts {
+    display: flex;
+    gap: 28px;
+}
+
+    ::deep .hero-facts div {
+        display: flex;
+        flex-direction: column;
+    }
+
+    ::deep .hero-facts span {
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
+    }
+
+    ::deep .hero-facts strong {
+        font-size: 1.125rem;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+    }
+
+/* Title and legend left, the values of the selected month right. */
+::deep .card-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px 16px;
+    margin-bottom: 16px;
+}
+
+::deep .detail {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+    ::deep .detail div {
+        display: flex;
+        gap: 12px;
+        font-size: .9375rem;
+    }
+
+    ::deep .detail > strong {
+        display: block;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+::deep .key {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin: 0 4px 0 10px;
+    border-radius: 3px;
+    vertical-align: -1px;
+}
+
+    ::deep .key:first-child {
+        margin-left: 0;
+    }
+
+    ::deep .key.income {
+        background: var(--mud-palette-success);
+    }
+
+    ::deep .key.expense {
+        background: var(--mud-palette-error);
+    }
+
+    ::deep .key.balance {
+        border-radius: 50%;
+        background: var(--mud-palette-primary);
+    }
+
+@media (max-width: 599.98px) {
+    ::deep .hero-amount {
+        font-size: 2.25rem;
+    }
+
+    ::deep .hero-facts {
+        width: 100%;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    ::deep .detail {
+        text-align: left;
+    }
+}

@@ -43,6 +43,11 @@ Das Journal (aka Milchbüchlein) enthält alle Angaben für die Schweizer Steuer
 - Der User kann bei jedem Export den Datumsbereich wählen.
 - Umgesetzt mit [#013](stories/done/013-export.md): ein ZIP mit `Journal.xlsx` (Blätter «Journal» und «Kategorien»), `Journal.pdf` und den Belegen unverändert in `Belege/Ausgaben` und `Belege/Einnahmen`. Eine Mail als Beleg kommt als Original (`.eml`) und als PDF. Dazu `Belegverzeichnis.csv` mit dem SHA-256 jeder Datei. Kopf: Geschäft (Verwaltung → Geschäft), Zeitraum, erstellt am und von, Status (provisorisch oder abgeschlossen). Buchungen ohne Beleg sind markiert.
 
+## Statistik
+- Die Seite «Statistik» zeigt die letzten 6, 12, 24 oder 36 Monate ([#018](stories/done/018-statistik.md)).
+- Oben steht der Saldo des Zeitraums. Darunter sind zwei Diagramme: der Cashflow pro Monat (Einnahmen nach oben, Ausgaben nach unten, Saldo als Linie) und der kumulierte Saldo am Ende jedes Monats.
+- Grundlage: `AmountChf` nach Datum der Buchung, alle Kategorien.
+
 ## Dossier für den Treuhänder
 Statt eines Downloads kann der User dem Treuhänder einen Link zum *Dossier* (= Journal und Belege) senden. Über den Link lädt der Treuhänder alles direkt herunter.
 

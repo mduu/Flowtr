@@ -26,6 +26,10 @@
             }
         </a>
         <MudSpacer />
+        <AuthorizeView Roles="@Roles.Any">
+            <MudIconButton Href="statistik" Icon="@Icons.Material.Outlined.Insights" Color="Color.Inherit"
+                           aria-label="Statistik" title="Statistik" />
+        </AuthorizeView>
         <ColourSchemeSwitch />
         <AccountMenu />
     </MudAppBar>

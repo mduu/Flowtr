@@ -18,6 +18,7 @@ using Flowtr.Server.Features.Extraction;
 using Flowtr.Server.Features.Inbox;
 using Flowtr.Server.Features.Journal;
 using Flowtr.Server.Features.Receipts;
+using Flowtr.Server.Features.Statistics;
 using Flowtr.Server.Features.Users;
 using Flowtr.Shared.Users;
 
@@ -66,6 +67,7 @@ builder.Services.AddReceipts();
 builder.Services.AddExtraction(builder.Configuration);
 builder.Services.AddInbox(builder.Configuration);
 builder.Services.AddExport();
+builder.Services.AddStatistics();
 builder.Services.AddScoped<Flowtr.Client.Features.Business.IBusinessApi, Flowtr.Server.Features.Business.ServerBusinessApi>();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
@@ -117,6 +119,7 @@ api.MapReceiptEndpoints();
 api.MapInboxEndpoints();
 api.MapExportEndpoints();
 api.MapBusinessEndpoints();
+api.MapStatisticsEndpoints();
 
 app.MapDefaultEndpoints();
 

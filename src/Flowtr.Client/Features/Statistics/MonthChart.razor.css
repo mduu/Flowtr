@@ -1,0 +1,157 @@
+.month-chart {
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    grid-template-rows: var(--plot-height) auto;
+    user-select: none;
+}
+
+.axis {
+    position: relative;
+}
+
+    .axis span {
+        position: absolute;
+        right: 8px;
+        transform: translateY(-50%);
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
+        white-space: nowrap;
+    }
+
+.plot {
+    position: relative;
+}
+
+.grid {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px dashed var(--mud-palette-lines-default);
+}
+
+    .grid.zero {
+        border-top: 1px solid var(--mud-palette-text-secondary);
+    }
+
+.line {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 2;
+}
+
+    .line polyline {
+        fill: none;
+        stroke: var(--mud-palette-primary);
+        stroke-width: 2.5px;
+        stroke-linejoin: round;
+        vector-effect: non-scaling-stroke;
+    }
+
+.columns {
+    position: absolute;
+    inset: 0;
+    display: flex;
+}
+
+.column {
+    position: relative;
+    flex: 1;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background-color .15s;
+}
+
+    .column:hover,
+    .column.selected {
+        background-color: color-mix(in srgb, var(--mud-palette-text-primary) 7%, transparent);
+    }
+
+.bar {
+    position: absolute;
+    left: 50%;
+    width: min(70%, 36px);
+    transform: translateX(-50%);
+    transition: top .4s ease, height .4s ease, opacity .15s;
+    opacity: .85;
+}
+
+.column.selected .bar {
+    opacity: 1;
+}
+
+.bar.up {
+    border-radius: 5px 5px 0 0;
+}
+
+.bar.down {
+    border-radius: 0 0 5px 5px;
+}
+
+.bar.income,
+.bar.plus {
+    background: linear-gradient(to top, color-mix(in srgb, var(--mud-palette-success) 55%, transparent), var(--mud-palette-success));
+}
+
+.bar.expense,
+.bar.minus {
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--mud-palette-error) 55%, transparent), var(--mud-palette-error));
+}
+
+.marker {
+    position: absolute;
+    left: 50%;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--mud-palette-primary);
+    border: 2px solid var(--mud-palette-surface);
+    z-index: 3;
+    transition: top .4s ease, width .15s, height .15s;
+}
+
+.column.selected .marker {
+    width: 15px;
+    height: 15px;
+}
+
+.labels {
+    grid-column: 2;
+    display: flex;
+    padding-top: 6px;
+}
+
+    .labels span {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        justify-content: center;
+        font-size: .75rem;
+        color: var(--mud-palette-text-secondary);
+        white-space: nowrap;
+        overflow: visible;
+    }
+
+        .labels span.selected {
+            color: var(--mud-palette-text-primary);
+            font-weight: 600;
+        }
+
+@media (max-width: 599.98px) {
+    .month-chart {
+        grid-template-columns: 44px minmax(0, 1fr);
+    }
+
+    .labels span.wide-only {
+        visibility: hidden;
+    }
+
+    .marker {
+        width: 8px;
+        height: 8px;
+    }
+}

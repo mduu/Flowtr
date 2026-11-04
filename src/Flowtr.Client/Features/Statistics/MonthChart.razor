@@ -1,0 +1,116 @@
+@using System.Globalization
+
+@* Own chart instead of MudChart: bars above and below the zero line, a line through the markers, one month selected. *@
+<div class="month-chart" style="--plot-height: @(Height)px">
+    <div class="axis">
+        @foreach (var tick in ticks)
+        {
+            <span style="top: @Percent(Y(tick))">@Short(tick)</span>
+        }
+    </div>
+    <div class="plot">
+        @foreach (var tick in ticks)
+        {
+            <div class="grid @(tick == 0 ? "zero" : "")" style="top: @Percent(Y(tick))"></div>
+        }
+        @if (Columns.Any(column => column.Marker is not null))
+        {
+            <svg class="line" viewBox="0 0 @Columns.Count 100" preserveAspectRatio="none" aria-hidden="true">
+                <polyline points="@LinePoints()" />
+            </svg>
+        }
+        <div class="columns">
+            @for (var index = 0; index < Columns.Count; index++)
+            {
+                var current = index;
+                var column = Columns[index];
+                <div class="column @(index == Selected ? "selected" : "")" @onmouseenter="() => Select(current)" @onclick="() => Select(current)">
+                    @foreach (var bar in column.Bars.Where(bar => bar.To > bar.From))
+                    {
+                        <div class="bar @bar.Class" style="top: @Percent(Y(bar.To)); height: @Percent(Size(bar.To - bar.From))"></div>
+                    }
+                    @if (column.Marker is { } marker)
+                    {
+                        <div class="marker" style="top: @Percent(Y(marker))"></div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+    <div class="labels">
+        @for (var index = 0; index < Columns.Count; index++)
+        {
+            var fromEnd = Columns.Count - 1 - index;
+            var shown = fromEnd % Step(12) == 0;
+            <span class="@(index == Selected ? "selected" : "") @(shown && fromEnd % Step(6) != 0 ? "wide-only" : "")">@(shown ? Columns[index].Label : "")</span>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ChartColumn> Columns { get; set; } = [];
+
+    [Parameter]
+    public int Selected { get; set; }
+
+    [Parameter]
+    public EventCallback<int> SelectedChanged { get; set; }
+
+    [Parameter]
+    public int Height { get; set; } = 240;
+
+    private decimal top;
+    private decimal bottom;
+    private List<decimal> ticks = [];
+
+    protected override void OnParametersSet()
+    {
+        var values = Columns.SelectMany(column => column.Bars.SelectMany(bar => new[] { bar.From, bar.To }).Append(column.Marker ?? 0)).Append(0).ToList();
+        var step = NiceStep((values.Max() - values.Min()) / 4);
+        top = Math.Ceiling(values.Max() / step) * step;
+        bottom = Math.Floor(values.Min() / step) * step;
+        if (top == bottom)
+        {
+            top = step;
+        }
+
+        ticks = [];
+        for (var tick = bottom; tick <= top; tick += step)
+        {
+            ticks.Add(tick);
+        }
+    }
+
+    /// <summary>
+    /// 1, 2, 2.5 or 5 times a power of ten, at least 10 CHF.
+    /// </summary>
+    private static decimal NiceStep(decimal rough)
+    {
+        if (rough <= 10)
+        {
+            return 10;
+        }
+
+        var magnitude = (decimal)Math.Pow(10, Math.Floor(Math.Log10((double)rough)));
+        return new[] { 1m, 2m, 2.5m, 5m, 10m }.Select(factor => factor * magnitude).First(step => step >= rough);
+    }
+
+    private decimal Y(decimal value) => (top - value) / (top - bottom) * 100;
+
+    private decimal Size(decimal amount) => amount / (top - bottom) * 100;
+
+    private int Step(int labels) => Math.Max(1, (int)Math.Ceiling(Columns.Count / (double)labels));
+
+    private string LinePoints() => string.Join(" ", Columns.Select((column, index) =>
+        string.Create(CultureInfo.InvariantCulture, $"{index + 0.5},{Y(column.Marker ?? 0):0.##}")));
+
+    private static string Percent(decimal value) => string.Create(CultureInfo.InvariantCulture, $"{value:0.###}%");
+
+    /// <summary>
+    /// For example <c>1'500</c> or <c>-200</c>, without decimals.
+    /// </summary>
+    private static string Short(decimal value) => SwissFormat.Amount(value)[..^3];
+
+    private Task Select(int index) => index == Selected ? Task.CompletedTask : SelectedChanged.InvokeAsync(index);
+}

@@ -1,0 +1,147 @@
+@page "/statistik"
+
+@inject IStatisticsApi Statistics
+@inject ISnackbar Snackbar
+
+<PageTitle>Statistik – Flowtr</PageTitle>
+
+@* A plain element as root: the scoped CSS reaches the MudBlazor components only below it. *@
+<div class="statistics">
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+    <MudText Typo="Typo.h5">Statistik</MudText>
+    <div style="width: 190px">
+        <MudSelect T="int" Label="Zeitraum" Value="months" ValueChanged="Change" Variant="Variant.Outlined" Margin="Margin.Dense">
+            @foreach (var choice in StatisticsView.MonthChoices)
+            {
+                <MudSelectItem Value="choice">Letzte @choice Monate</MudSelectItem>
+            }
+        </MudSelect>
+    </div>
+</MudStack>
+
+@if (view is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    var last = view.Totals[^1];
+    var month = view.Totals[selected];
+
+    <MudPaper Outlined="true" Class="@($"hero pa-4 mb-3 {(last.CumulativeBalance < 0 ? "minus" : "plus")}")">
+        <div class="hero-main">
+            <MudText Typo="Typo.overline" Class="mud-text-secondary">Seit @Name(view.Totals[0].Month) @(last.CumulativeBalance < 0 ? "im Minus" : "im Plus")</MudText>
+            <div class="hero-amount">
+                <MudIcon Icon="@(last.CumulativeBalance < 0 ? Icons.Material.Outlined.TrendingDown : Icons.Material.Outlined.TrendingUp)" />
+                <span>@Signed(last.CumulativeBalance)</span>
+                <small>CHF</small>
+            </div>
+        </div>
+        <div class="hero-facts">
+            <div><span>Einnahmen</span><strong class="mud-success-text">@SwissFormat.Amount(last.CumulativeIncome)</strong></div>
+            <div><span>Ausgaben</span><strong class="mud-error-text">@SwissFormat.Amount(last.CumulativeExpense)</strong></div>
+            <div><span>Ø pro Monat</span><strong>@Signed(last.CumulativeBalance / view.Totals.Count)</strong></div>
+        </div>
+    </MudPaper>
+
+    <MudPaper Outlined="true" Class="pa-4 mb-3">
+        <div class="card-head">
+            <div>
+                <MudText Typo="Typo.subtitle1">Cashflow pro Monat</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    <span class="key income"></span>Einnahmen <span class="key expense"></span>Ausgaben <span class="key balance"></span>Saldo
+                </MudText>
+            </div>
+            <div class="detail">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@Name(month.Month)</MudText>
+                <div>
+                    <span class="mud-success-text">+@SwissFormat.Amount(month.Income)</span>
+                    <span class="mud-error-text">−@SwissFormat.Amount(month.Expense)</span>
+                    <strong>= @Signed(month.Balance)</strong>
+                </div>
+            </div>
+        </div>
+        <MonthChart Columns="cashflow" @bind-Selected="selected" />
+    </MudPaper>
+
+    <MudPaper Outlined="true" Class="pa-4">
+        <div class="card-head">
+            <div>
+                <MudText Typo="Typo.subtitle1">Saldo über die Zeit</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Wie viel wir am Ende des Monats im Plus oder im Minus sind</MudText>
+            </div>
+            <div class="detail">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Ende @Name(month.Month)</MudText>
+                <strong class="@(month.CumulativeBalance < 0 ? "mud-error-text" : "mud-success-text")">@Signed(month.CumulativeBalance)</strong>
+            </div>
+        </div>
+        <MonthChart Columns="balance" @bind-Selected="selected" />
+    </MudPaper>
+}
+
+</div>
+
+@code {
+    private static readonly string[] shortNames = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
+
+    private static readonly string[] names = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+
+    private int months = StatisticsView.DefaultMonths;
+    private StatisticsView? view;
+    private int selected;
+    private IReadOnlyList<ChartColumn> cashflow = [];
+    private IReadOnlyList<ChartColumn> balance = [];
+
+    protected override Task OnInitializedAsync() => Load();
+
+    private async Task Change(int value)
+    {
+        months = value;
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        var result = await Statistics.Get(months);
+        if (!result.IsSuccess)
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+            return;
+        }
+
+        view = result.Value!;
+        selected = LastMonthWithBookings(view.Totals);
+        cashflow = view.Totals.Select(total => new ChartColumn(
+                Label(total.Month),
+                [new ChartBar(0, total.Income, "income up"), new ChartBar(-total.Expense, 0, "expense down")],
+                total.Balance))
+            .ToList();
+        balance = view.Totals.Select(total => new ChartColumn(
+                Label(total.Month),
+                [total.CumulativeBalance < 0
+                    ? new ChartBar(total.CumulativeBalance, 0, "minus down")
+                    : new ChartBar(0, total.CumulativeBalance, "plus up")]))
+            .ToList();
+    }
+
+    private static int LastMonthWithBookings(IReadOnlyList<MonthTotals> totals)
+    {
+        var index = totals.Count - 1;
+        while (index > 0 && totals[index].Income == 0 && totals[index].Expense == 0)
+        {
+            index--;
+        }
+
+        return totals[index].Income == 0 && totals[index].Expense == 0 ? totals.Count - 1 : index;
+    }
+
+    private static string Label(DateOnly month) => $"{shortNames[month.Month - 1]} {month:yy}";
+
+    private static string Name(DateOnly month) => $"{names[month.Month - 1]} {month.Year}";
+
+    /// <summary>
+    /// For example <c>+1'234.50</c> or <c>−80.00</c>.
+    /// </summary>
+    private static string Signed(decimal value) => (value < 0 ? "−" : "+") + SwissFormat.Amount(Math.Abs(value));
+}

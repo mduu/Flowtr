@@ -4,6 +4,7 @@ using Flowtr.Client.Features.Business;
 using Flowtr.Client.Features.Inbox;
 using Flowtr.Client.Features.Journal;
 using Flowtr.Client.Features.Receipts;
+using Flowtr.Client.Features.Statistics;
 using Flowtr.Client.Features.Status;
 using Flowtr.Client.Features.Users;
 using MudBlazor.Services;
@@ -26,5 +27,6 @@ builder.Services.AddScoped<IJournalApi, HttpJournalApi>();
 builder.Services.AddScoped<IReceiptApi, HttpReceiptApi>();
 builder.Services.AddScoped<IInboxApi, HttpInboxApi>();
 builder.Services.AddScoped<IBusinessApi, HttpBusinessApi>();
+builder.Services.AddScoped<IStatisticsApi, HttpStatisticsApi>();
 
 await builder.Build().RunAsync();

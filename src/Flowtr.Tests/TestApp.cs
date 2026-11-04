@@ -11,6 +11,7 @@ using Flowtr.Tests.Inbox;
 using Flowtr.Server.Features.Journal;
 using Flowtr.Tests.Extraction;
 using Flowtr.Server.Features.Receipts;
+using Flowtr.Server.Features.Statistics;
 using Flowtr.Tests.Receipts;
 using Flowtr.Server.Features.Users;
 using Flowtr.Server.Features.Users.Commands;
@@ -88,6 +89,7 @@ internal sealed class TestApp : IDisposable
         services.AddInbox(configuration);
         services.AddSingleton<IMailbox>(Mailbox);
         services.AddExport();
+        services.AddStatistics();
         services.Configure<MailboxOptions>(options =>
         {
             options.Host = "imap.flowtr.test";
