@@ -173,17 +173,26 @@ if [[ -n "${GITHUB_REPO:-}" ]]; then
             gh variable delete "$1" --repo "$GITHUB_REPO" 2>/dev/null || true
         fi
     }
+    # Mail addresses as secrets: GitHub masks them in the logs of the public repository.
+    set_infra_secret() {
+        gh variable delete "$1" --repo "$GITHUB_REPO" 2>/dev/null || true
+        if [[ -n "$2" ]]; then
+            gh secret set "$1" --repo "$GITHUB_REPO" --body "$2"
+        else
+            gh secret delete "$1" --repo "$GITHUB_REPO" 2>/dev/null || true
+        fi
+    }
+    set_infra_secret ADMIN_EMAIL "$ADMIN_EMAIL"
+    set_infra_secret ALERT_EMAIL "$ALERT_EMAIL"
+    set_infra_secret MAILBOX_USER "${MAILBOX_USER:-}"
+    set_infra_secret MAILBOX_ADDRESS "${MAILBOX_ADDRESS:-}"
     set_infra_variable AZURE_INFRA_CLIENT_ID "$INFRA_CLIENT_ID"
     set_infra_variable OPERATOR_ID "$OPERATOR_ID"
     set_infra_variable SQL_GROUP "$SQL_GROUP"
     set_infra_variable SQL_GROUP_ID "$SQL_GROUP_ID"
     set_infra_variable NAME "$NAME"
-    set_infra_variable ADMIN_EMAIL "$ADMIN_EMAIL"
-    set_infra_variable ALERT_EMAIL "$ALERT_EMAIL"
     set_infra_variable DOMAIN "${DOMAIN:-}"
     set_infra_variable MAILBOX_HOST "${MAILBOX_HOST:-}"
-    set_infra_variable MAILBOX_USER "${MAILBOX_USER:-}"
-    set_infra_variable MAILBOX_ADDRESS "${MAILBOX_ADDRESS:-}"
     set_infra_variable MONTHLY_BUDGET "$MONTHLY_BUDGET"
     set_infra_variable CULTURE "$CULTURE"
 fi

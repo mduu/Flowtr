@@ -1,7 +1,8 @@
 # Deploys deploy/main.bicep to Azure: on each push to main that changes it, and by hand (workflow_dispatch).
 # The job "what-if" shows the changes in the summary of the run. The job "deploy" then waits for the approval of a
 # required reviewer of the environment "azure-infra". Pull requests only check the Bicep file and the scripts.
-# deploy/deploy.sh sets up Azure, the environments and the variables once (docs/betrieb.md).
+# deploy/deploy.sh sets up Azure, the environments, the variables and the secrets once (docs/betrieb.md).
+# Mail addresses are secrets, not variables: GitHub masks them in the public logs.
 name: Infrastructure
 
 on:
@@ -57,15 +58,15 @@ jobs:
       RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       APP: ${{ vars.AZURE_CONTAINER_APP }}
       NAME: ${{ vars.NAME }}
-      ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
-      ALERT_EMAIL: ${{ vars.ALERT_EMAIL }}
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+      ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
       OPERATOR_ID: ${{ vars.OPERATOR_ID }}
       SQL_GROUP: ${{ vars.SQL_GROUP }}
       SQL_GROUP_ID: ${{ vars.SQL_GROUP_ID }}
       DOMAIN: ${{ vars.DOMAIN }}
       MAILBOX_HOST: ${{ vars.MAILBOX_HOST }}
-      MAILBOX_USER: ${{ vars.MAILBOX_USER }}
-      MAILBOX_ADDRESS: ${{ vars.MAILBOX_ADDRESS }}
+      MAILBOX_USER: ${{ secrets.MAILBOX_USER }}
+      MAILBOX_ADDRESS: ${{ secrets.MAILBOX_ADDRESS }}
       MONTHLY_BUDGET: ${{ vars.MONTHLY_BUDGET }}
       CULTURE: ${{ vars.CULTURE }}
       AZURE_INFRA_CLIENT_ID: ${{ vars.AZURE_INFRA_CLIENT_ID }}
@@ -135,15 +136,15 @@ jobs:
       RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
       APP: ${{ vars.AZURE_CONTAINER_APP }}
       NAME: ${{ vars.NAME }}
-      ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
-      ALERT_EMAIL: ${{ vars.ALERT_EMAIL }}
+      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+      ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
       OPERATOR_ID: ${{ vars.OPERATOR_ID }}
       SQL_GROUP: ${{ vars.SQL_GROUP }}
       SQL_GROUP_ID: ${{ vars.SQL_GROUP_ID }}
       DOMAIN: ${{ vars.DOMAIN }}
       MAILBOX_HOST: ${{ vars.MAILBOX_HOST }}
-      MAILBOX_USER: ${{ vars.MAILBOX_USER }}
-      MAILBOX_ADDRESS: ${{ vars.MAILBOX_ADDRESS }}
+      MAILBOX_USER: ${{ secrets.MAILBOX_USER }}
+      MAILBOX_ADDRESS: ${{ secrets.MAILBOX_ADDRESS }}
       MONTHLY_BUDGET: ${{ vars.MONTHLY_BUDGET }}
       CULTURE: ${{ vars.CULTURE }}
       AZURE_INFRA_CLIENT_ID: ${{ vars.AZURE_INFRA_CLIENT_ID }}
