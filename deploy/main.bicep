@@ -1,5 +1,5 @@
 // Flowtr in Azure (story #011, ADR-010): Container Apps with scale to zero, Azure SQL free tier, Blob Storage, Key Vault.
-// Deploy with deploy/deploy.sh. The pipeline only sets a new image on the app and the job.
+// deploy/deploy.sh sets up Azure. The workflow "Infrastructure" deploys changes. The pipeline only sets a new image on the app and the job.
 
 targetScope = 'resourceGroup'
 

@@ -24,7 +24,7 @@ Wir entscheiden uns für **Azure Container Apps (Consumption) mit Scale to Zero*
 - **Start nach einer Pause:** Die App weckt die Datenbank sofort und zeigt bis dahin «*Flowtr* startet …». API-Aufrufe warten. Der Client zeigt einen Hinweis, wenn ein Aufruf auf die Datenbank wartet.
 - **Eigene Subscription:** Das Gratis-Kontingent von Container Apps gilt pro Subscription. Andere Container Apps würden es mitbrauchen.
 - **Image:** `dotnet publish /t:PublishContainer` in die GitHub Container Registry (öffentlich, gratis).
-- **Infrastruktur:** Bicep, von Hand mit `deploy/deploy.sh`. Die Pipeline setzt nur das neue Image auf App und Job: GitHub braucht in Azure nur Rechte auf diese zwei Ressourcen.
+- **Infrastruktur:** Bicep. `deploy/deploy.sh` richtet Azure einmal von Hand ein. Danach deployt der Workflow «Infrastructure» jede Änderung an `deploy/main.bicep`, mit einer eigenen Identity im Environment `azure-infra` (nur `main`). Die Pipeline setzt nur das neue Image auf App und Job: ihre Identity hat nur Rechte auf diese zwei Ressourcen.
 
 ## Optionen
 

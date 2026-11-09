@@ -4,7 +4,7 @@
 # AGENTS.md. The job "deploy" runs only when deploy/deploy.sh set the variables.
 name: CI
 
-# Only changes that reach the app run the pipeline: not the specs, the docs, the infrastructure (deploy/deploy.sh by hand)
+# Only changes that reach the app run the pipeline: not the specs, the docs, the infrastructure (workflow "Infrastructure")
 # or the images of the repository. workflow_dispatch runs it always.
 on:
   push:
@@ -16,6 +16,7 @@ on:
       - 'assets/**'
       - '**/*.md'
       - '.claude/**'
+      - '.github/workflows/infra.yml'
   pull_request:
     paths-ignore:
       - 'specs/**'
@@ -24,6 +25,7 @@ on:
       - 'assets/**'
       - '**/*.md'
       - '.claude/**'
+      - '.github/workflows/infra.yml'
   workflow_dispatch:
 
 permissions:
@@ -93,6 +95,11 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.AZURE_CLIENT_ID != ''
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    # Do not set a new image while the workflow "Infrastructure" deploys.
+    concurrency:
+      group: azure-deploy
+      cancel-in-progress: false
 
     permissions:
       id-token: write # login to Azure with OIDC, no secret in GitHub

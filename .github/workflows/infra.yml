@@ -1,0 +1,116 @@
+# Deploys deploy/main.bicep to Azure: on each push to main that changes it, and by hand (workflow_dispatch).
+# Pull requests only check the Bicep file and the scripts. deploy/deploy.sh sets up Azure once and sets the
+# variables of the environment "azure-infra" (docs/betrieb.md). Without them, the job "deploy" does not run.
+name: Infrastructure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/main.bicep'
+      - 'deploy/bicep.sh'
+      - '.github/workflows/infra.yml'
+  pull_request:
+    paths:
+      - 'deploy/**'
+      - '.github/workflows/infra.yml'
+  workflow_dispatch:
+    inputs:
+      what-if:
+        description: Only show the changes (what-if), do not deploy
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check Bicep and scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build Bicep
+        run: az bicep build --file deploy/main.bicep --stdout > /dev/null
+
+      - name: ShellCheck
+        run: shellcheck deploy/*.sh
+
+  deploy:
+    name: Deploy infrastructure
+    needs: check
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The OIDC subject is this environment. Only main may use it (deploy/deploy.sh sets the rule).
+    environment: azure-infra
+
+    # Do not deploy the Bicep file and a new image at the same time.
+    concurrency:
+      group: azure-deploy
+      cancel-in-progress: false
+
+    permissions:
+      contents: read
+      id-token: write # login to Azure with OIDC, no secret in GitHub
+
+    env:
+      SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      APP: ${{ vars.AZURE_CONTAINER_APP }}
+      NAME: ${{ vars.NAME }}
+      ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
+      ALERT_EMAIL: ${{ vars.ALERT_EMAIL }}
+      OPERATOR_ID: ${{ vars.OPERATOR_ID }}
+      SQL_GROUP: ${{ vars.SQL_GROUP }}
+      SQL_GROUP_ID: ${{ vars.SQL_GROUP_ID }}
+      DOMAIN: ${{ vars.DOMAIN }}
+      MAILBOX_HOST: ${{ vars.MAILBOX_HOST }}
+      MAILBOX_USER: ${{ vars.MAILBOX_USER }}
+      MAILBOX_ADDRESS: ${{ vars.MAILBOX_ADDRESS }}
+      MONTHLY_BUDGET: ${{ vars.MONTHLY_BUDGET }}
+      CULTURE: ${{ vars.CULTURE }}
+
+    steps:
+      - name: Check the variables
+        run: |
+          missing=0
+          for variable in AZURE_INFRA_CLIENT_ID SUBSCRIPTION_ID RESOURCE_GROUP APP NAME ADMIN_EMAIL ALERT_EMAIL \
+              OPERATOR_ID SQL_GROUP SQL_GROUP_ID MONTHLY_BUDGET CULTURE; do
+            if [ -z "${!variable}" ]; then
+              echo "::error::Variable $variable is missing. Run deploy/deploy.sh once (docs/betrieb.md)."
+              missing=1
+            fi
+          done
+          exit $missing
+        env:
+          AZURE_INFRA_CLIENT_ID: ${{ vars.AZURE_INFRA_CLIENT_ID }}
+
+      - uses: actions/checkout@v7
+
+      - name: Log in to Azure
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_INFRA_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy deploy/main.bicep
+        env:
+          WHAT_IF: ${{ inputs.what-if }}
+        run: |
+          az config set extension.use_dynamic_install=yes_without_prompt --only-show-errors
+          # Keep the image that runs now: the pipeline sets new images, not this workflow.
+          IMAGE=$(az containerapp show --resource-group "$RESOURCE_GROUP" --name "$APP" \
+            --query "properties.template.containers[0].image" -o tsv)
+          echo "Image: $IMAGE"
+
+          source deploy/bicep.sh
+          if [ "$WHAT_IF" = "true" ]; then
+            deploy_bicep true what-if
+          else
+            deploy_bicep true > /dev/null
+            echo "Deployed to $RESOURCE_GROUP"
+          fi
