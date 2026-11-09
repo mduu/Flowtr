@@ -59,9 +59,11 @@ Der Workflow «Infrastructure» (`.github/workflows/infra.yml`) deployt `deploy/
 
 Mit der Option «what-if» beim Start von Hand läuft nur der erste Job.
 
-Die Einstellungen (Admin, Domain, Mailbox, Budget, Kultur) liegen als Variablen im Repository. Nach einer Änderung an `deploy/flowtr.env` daher `deploy/deploy.sh` ausführen. Das Skript setzt die Variablen neu.
+Die Einstellungen (Domain, Mailbox-Server, Budget, Kultur) liegen als Variablen im Repository. Mail-Adressen (Admin, Alerts, Mailbox) liegen als Secrets im Repository: So maskiert GitHub sie in den öffentlichen Logs und in der Tabelle. Nach einer Änderung an `deploy/flowtr.env` daher `deploy/deploy.sh` ausführen. Das Skript setzt die Variablen neu.
 
-Das Repository ist öffentlich: Logs und Zusammenfassungen der Runs kann jeder lesen. Die Tabelle zeigt geänderte Werte, zum Beispiel eine neue Alert-Adresse. Geheimnisse sind nie darin, sie liegen im Key Vault.
+Das Repository ist öffentlich: Logs und Zusammenfassungen der Runs kann jeder lesen. Mail-Adressen erscheinen dort als `***`. Geheimnisse wie API-Keys sind nie darin, sie liegen im Key Vault.
+
+What-if meldet auch Eigenschaften, die sich nicht ändern: Ausdrücke wie `[reference(...)]`, die Azure erst beim Deploy auflöst, Eigenschaften ohne Wirkung und gleiche Werte in anderem Format. Die Tabelle zeigt sie in einem eingeklappten Abschnitt «Ohne Wirkung oder erst beim Deploy bekannt».
 
 ## Updates
 
