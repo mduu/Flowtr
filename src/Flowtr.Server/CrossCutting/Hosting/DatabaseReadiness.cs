@@ -14,6 +14,7 @@ public sealed class DatabaseReadiness(TimeProvider time)
     public static readonly TimeSpan SlowOpen = TimeSpan.FromSeconds(2);
 
     private readonly TaskCompletionSource ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource startRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Lock gate = new();
     private int opening;
     private DateTimeOffset openingSince;
@@ -35,9 +36,20 @@ public sealed class DatabaseReadiness(TimeProvider time)
     public StatusView Status => new(IsReady, IsWaking);
 
     /// <summary>
+    /// A request needs the database: wake it up. Until then, it can stay paused.
+    /// </summary>
+    public void RequestStart() => startRequested.TrySetResult();
+
+    public Task WaitForStartRequest(CancellationToken cancellationToken) => startRequested.Task.WaitAsync(cancellationToken);
+
+    /// <summary>
     /// The database is connected and migrated.
     /// </summary>
-    public void MarkReady() => ready.TrySetResult();
+    public void MarkReady()
+    {
+        startRequested.TrySetResult();
+        ready.TrySetResult();
+    }
 
     /// <returns>True when the database is ready, false after <paramref name="timeout"/>.</returns>
     public async Task<bool> WaitUntilReady(TimeSpan timeout, CancellationToken cancellationToken)

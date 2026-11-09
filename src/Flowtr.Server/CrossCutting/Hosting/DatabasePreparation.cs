@@ -35,13 +35,17 @@ public sealed class DatabasePreparation(IServiceScopeFactory scopes, ILogger<Dat
 }
 
 /// <summary>
-/// Prepares the database at the start of the app, then marks it ready. Until then, <see cref="StartupGate"/>
+/// Prepares the database when the first request needs it, then marks it ready. Until then, <see cref="StartupGate"/>
 /// shows «Flowtr startet …».
 /// </summary>
+/// <remarks>
+/// Not at the start of the app: a bot request starts the app, and the database must stay paused (free tier).
+/// </remarks>
 public sealed class DatabaseStartup(IDatabasePreparation database, DatabaseReadiness readiness, ILogger<DatabaseStartup> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await readiness.WaitForStartRequest(stoppingToken);
         while (!stoppingToken.IsCancellationRequested)
         {
             try

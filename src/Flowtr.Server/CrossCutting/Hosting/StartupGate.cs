@@ -4,7 +4,7 @@ using Flowtr.Shared.Status;
 namespace Flowtr.Server.CrossCutting.Hosting;
 
 /// <summary>
-/// Holds requests back until the database is ready (story #011). A page shows «Flowtr startet …» and loads again
+/// Wakes the database when a request needs it, and holds requests back until it is ready (story #011). A page shows «Flowtr startet …» and loads again
 /// when Flowtr is ready. An API call or a form waits: the client shows a hint while it waits.
 /// </summary>
 /// <remarks>
@@ -27,12 +27,19 @@ public sealed class StartupGate(RequestDelegate next, DatabaseReadiness readines
             return;
         }
 
-        if (readiness.IsReady || NeedsNoDatabase(context.Request.Path))
+        if (IsProbe(context.Request.Path))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        if (readiness.IsReady || NeedsNoDatabase(context.Request.Path) || IsLoggedOutPage(context.Request))
         {
             await next(context);
             return;
         }
 
+        readiness.RequestStart();
         if (IsPage(context.Request))
         {
             await WriteStartingPage(context);
@@ -53,6 +60,36 @@ public sealed class StartupGate(RequestDelegate next, DatabaseReadiness readines
         path.StartsWithSegments("/_framework")
         || path.StartsWithSegments("/_content")
         || Path.HasExtension(path.Value);
+
+    /// <summary>
+    /// Bots and scanners look for known weak points. Flowtr has none of these paths.
+    /// </summary>
+    public static bool IsProbe(PathString path)
+    {
+        var value = path.Value ?? "";
+        var segments = value.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        return segments.Any(s => s.StartsWith('.') && !s.Equals(".well-known", StringComparison.OrdinalIgnoreCase))
+            || segments.Any(s => s.StartsWith("wp-", StringComparison.OrdinalIgnoreCase)
+                || s.Equals("cgi-bin", StringComparison.OrdinalIgnoreCase)
+                || s.Equals("phpmyadmin", StringComparison.OrdinalIgnoreCase))
+            || ProbeExtensions.Contains(Path.GetExtension(value));
+    }
+
+    private static readonly HashSet<string> ProbeExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".php", ".asp", ".aspx", ".jsp", ".cgi", ".env", ".git", ".bak", ".sql",
+    };
+
+    /// <summary>
+    /// Without a login, a page needs no database: it goes to the login page. The other account pages need it,
+    /// for example an invitation.
+    /// </summary>
+    private static bool IsLoggedOutPage(HttpRequest request) =>
+        IsPage(request)
+        && !request.Cookies.ContainsKey(LoginCookie)
+        && (!request.Path.StartsWithSegments("/Account") || request.Path.StartsWithSegments("/Account/Login"));
+
+    private const string LoginCookie = ".AspNetCore.Identity.Application";
 
     private static bool IsPage(HttpRequest request) =>
         (HttpMethods.IsGet(request.Method) || HttpMethods.IsHead(request.Method))

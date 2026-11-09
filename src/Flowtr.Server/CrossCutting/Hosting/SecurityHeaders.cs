@@ -26,6 +26,8 @@ public sealed class SecurityHeaders(RequestDelegate next, IHostEnvironment envir
         headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
         headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=(), payment=(), usb=()";
         headers["Cross-Origin-Opener-Policy"] = "same-origin";
+        // A personal app: no search engine shows it (also robots.txt).
+        headers["X-Robots-Tag"] = "noindex, nofollow";
 
         return next(context);
     }
