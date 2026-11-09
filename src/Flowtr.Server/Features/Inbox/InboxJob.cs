@@ -10,7 +10,7 @@ namespace Flowtr.Server.Features.Inbox;
 
 /// <summary>
 /// Fetches the mail once and lets the AI read the new receipts (story #011). In Azure, a scheduled job starts it
-/// every hour, while the app sleeps. It wakes the database only when mail is in the mailbox.
+/// once a night, while the app sleeps. It wakes the database only when mail is in the mailbox.
 /// </summary>
 public sealed class InboxJob(
     IMailbox mailbox,
