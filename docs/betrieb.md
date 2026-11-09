@@ -43,11 +43,25 @@ Voraussetzungen: `az` (Azure CLI), `gh` (GitHub CLI), `jq`. Eine eigene Subscrip
    - legt die Entra-Gruppe `flowtr-sql-admins` an (du und die Identity von *Flowtr*, kein SQL-Passwort),
    - deployt `deploy/main.bicep`,
    - fragt nach dem Anthropic-API-Key und dem Passwort der Mailbox und legt sie in den Key Vault,
-   - erlaubt GitHub Actions per OIDC, neue Images auf App und Job zu setzen, und setzt die Variablen im Repository.
+   - erlaubt GitHub Actions per OIDC, neue Images auf App und Job zu setzen, und setzt die Variablen im Repository,
+   - legt für den Workflow «Infrastructure» eine eigene Identity (Owner auf der Ressourcengruppe), die Environments `azure-infra-what-if` und `azure-infra` und die Variablen an. Nur `main` darf diese Environments brauchen. In `azure-infra` bist du «Required reviewer».
 5. **Domain** (optional): Das Skript zeigt am Ende einen CNAME- und einen TXT-Eintrag. Beide beim DNS-Provider eintragen (bei Hostpoint: «Domains → DNS-Einträge»), dann `deploy/bind-domain.sh`. Das Zertifikat ist gratis und erneuert sich selbst.
 6. **Erster Admin:** *Flowtr* öffnen. Beim ersten Start schreibt *Flowtr* für jede Adresse in `ADMIN_EMAIL` einen Einladungslink ins Log (Application Insights, «Logs»: `traces | where message has "Invitation link"`). Link öffnen, Passwort setzen, Passkey einrichten. Passkeys gelten nur für die Domain, auf der sie eingerichtet sind.
 
-`deploy/deploy.sh` darf jederzeit wieder laufen, zum Beispiel nach einer Änderung an `deploy/main.bicep`. Es ändert nur, was anders ist. Geheimnisse, die es schon gibt, fragt es nicht neu ab.
+`deploy/deploy.sh` darf jederzeit wieder laufen, zum Beispiel nach einer Änderung an `deploy/flowtr.env`. Es ändert nur, was anders ist. Geheimnisse, die es schon gibt, fragt es nicht neu ab.
+
+## Infrastruktur ändern
+
+Der Workflow «Infrastructure» (`.github/workflows/infra.yml`) deployt `deploy/main.bicep`. Er läuft bei jedem Push auf `main`, der `deploy/main.bicep` ändert. Von Hand: «Actions → Infrastructure → Run workflow». Er behält das Image, das gerade läuft. Pull Requests prüfen nur die Bicep-Datei und die Skripte.
+
+1. Der Job «what-if» zeigt die Änderungen als Tabelle in der Zusammenfassung des Runs.
+2. Der Job «Deploy infrastructure» wartet auf deine Freigabe. Tabelle prüfen, dann «Review deployments → Approve and deploy». Ohne Freigabe innert 30 Tagen bricht GitHub ab.
+
+Mit der Option «what-if» beim Start von Hand läuft nur der erste Job.
+
+Die Einstellungen (Admin, Domain, Mailbox, Budget, Kultur) liegen als Variablen im Repository. Nach einer Änderung an `deploy/flowtr.env` daher `deploy/deploy.sh` ausführen. Das Skript setzt die Variablen neu.
+
+Das Repository ist öffentlich: Logs und Zusammenfassungen der Runs kann jeder lesen. Die Tabelle zeigt geänderte Werte, zum Beispiel eine neue Alert-Adresse. Geheimnisse sind nie darin, sie liegen im Key Vault.
 
 ## Updates
 

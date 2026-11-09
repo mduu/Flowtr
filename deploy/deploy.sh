@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Deploys Flowtr to Azure (story #011, docs/betrieb.md). Run it again after each change to deploy/main.bicep:
-# it changes only what is different. The pipeline sets new images on the app and the job.
+# Sets up Flowtr in Azure (story #011, docs/betrieb.md). Run it once, and again after a change to deploy/flowtr.env:
+# it changes only what is different. The pipeline sets new images on the app and the job. The workflow
+# "Infrastructure" deploys changes to deploy/main.bicep.
 #
 # Needs: az (az login), gh (gh auth login), deploy/flowtr.env (see deploy/flowtr.env.example).
 set -euo pipefail
@@ -17,7 +18,6 @@ ALERT_EMAIL=${ALERT_EMAIL:-$ADMIN_EMAIL}
 IMAGE=${IMAGE:-ghcr.io/mduu/flowtr:latest}
 MONTHLY_BUDGET=${MONTHLY_BUDGET:-5}
 CULTURE=${CULTURE:-de-CH}
-ENVIRONMENT=cae-$NAME
 
 step() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 
@@ -48,29 +48,9 @@ add_to_sql_group() {
 }
 add_to_sql_group "$OPERATOR_ID"
 
-# The start of the budget cannot change: keep the start of an existing budget.
-BUDGET_START=$(az rest --method get \
-    --url "https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/Microsoft.Consumption/budgets/budget-$NAME?api-version=2023-11-01" \
-    --query properties.timePeriod.startDate -o tsv 2>/dev/null | cut -c1-10 || true)
-BUDGET_START=${BUDGET_START:-$(date -u +%Y-%m-01)}
-
-# After deploy/bind-domain.sh: without the certificate, a deployment would remove the domain from the app.
-CERTIFICATE_ID=""
-if [[ -n "${DOMAIN:-}" ]]; then
-    CERTIFICATE_ID=$(az containerapp env certificate list --resource-group "$RESOURCE_GROUP" --name "$ENVIRONMENT" \
-        --managed-certificates-only --query "[?properties.subjectName=='$DOMAIN'].id | [0]" -o tsv 2>/dev/null || true)
-fi
-
-deploy() {
-    az deployment group create --resource-group "$RESOURCE_GROUP" --name "flowtr-$(date -u +%Y%m%d-%H%M%S)" \
-        --template-file main.bicep \
-        --parameters name="$NAME" image="$IMAGE" domain="${DOMAIN:-}" certificateId="$CERTIFICATE_ID" \
-            adminEmail="$ADMIN_EMAIL" alertEmail="$ALERT_EMAIL" operatorId="$OPERATOR_ID" \
-            sqlAdminGroupName="$SQL_GROUP" sqlAdminGroupId="$SQL_GROUP_ID" \
-            mailboxHost="${MAILBOX_HOST:-}" mailboxUserName="${MAILBOX_USER:-}" mailboxAddress="${MAILBOX_ADDRESS:-}" \
-            monthlyBudget="$MONTHLY_BUDGET" budgetStartDate="$BUDGET_START" culture="$CULTURE" deployApps="$1" \
-        --query properties.outputs -o json
-}
+# shellcheck source=deploy/bicep.sh
+source ./bicep.sh
+deploy() { deploy_bicep "$1"; }
 
 step "Infrastructure (without app and job)"
 OUTPUTS=$(deploy false)
@@ -118,28 +98,38 @@ ADDRESS=$(output appAddress)
 echo "Flowtr: https://$ADDRESS"
 
 if [[ -n "${GITHUB_REPO:-}" ]]; then
-    step "GitHub Actions may set new images (OIDC, no secret in GitHub)"
-    GITHUB_APP=$NAME-github
-    CLIENT_ID=$(az ad app list --display-name "$GITHUB_APP" --query "[0].appId" -o tsv)
-    if [[ -z "$CLIENT_ID" ]]; then
-        CLIENT_ID=$(az ad app create --display-name "$GITHUB_APP" --query appId -o tsv)
-        az ad sp create --id "$CLIENT_ID" -o none
-    fi
+    step "GitHub Actions may deploy (OIDC, no secret in GitHub)"
+    # Prints the client ID of the app registration $1. Makes it, if it does not exist.
+    github_app() {
+        local client_id
+        client_id=$(az ad app list --display-name "$1" --query "[0].appId" -o tsv)
+        if [[ -z "$client_id" ]]; then
+            client_id=$(az ad app create --display-name "$1" --query appId -o tsv)
+            az ad sp create --id "$client_id" -o none
+        fi
+        echo "$client_id"
+    }
     # GitHub sends the subject with names only, or (newer repositories) with names and IDs. Trust both.
+    REPO_WITH_IDS=$(gh api "repos/$GITHUB_REPO" --jq '"\(.owner.login)@\(.owner.id)/\(.name)@\(.id)"')
     trust_github() {
-        if [[ -z $(az ad app federated-credential list --id "$CLIENT_ID" --query "[?name=='$1'].name" -o tsv) ]]; then
-            az ad app federated-credential create --id "$CLIENT_ID" --parameters "{
-                \"name\": \"$1\",
+        local client_id=$1 name=$2 claim=$3
+        trust_subject "$client_id" "$name" "repo:$GITHUB_REPO:$claim"
+        trust_subject "$client_id" "$name-ids" "repo:$REPO_WITH_IDS:$claim"
+    }
+    trust_subject() {
+        if [[ -z $(az ad app federated-credential list --id "$1" --query "[?name=='$2'].name" -o tsv) ]]; then
+            az ad app federated-credential create --id "$1" --parameters "{
+                \"name\": \"$2\",
                 \"issuer\": \"https://token.actions.githubusercontent.com\",
-                \"subject\": \"$2\",
+                \"subject\": \"$3\",
                 \"audiences\": [\"api://AzureADTokenExchange\"]
             }" -o none
         fi
     }
-    trust_github main "repo:$GITHUB_REPO:ref:refs/heads/main"
-    trust_github main-ids "$(gh api "repos/$GITHUB_REPO" \
-        --jq '"repo:\(.owner.login)@\(.owner.id)/\(.name)@\(.id):ref:refs/heads/main"')"
-    # Only the app and the job: GitHub sets the image, nothing else.
+
+    # Pipeline: only the image of the app and the job, from main.
+    CLIENT_ID=$(github_app "$NAME-github")
+    trust_github "$CLIENT_ID" main ref:refs/heads/main
     for resource in "$(az containerapp show -g "$RESOURCE_GROUP" -n "$APP" --query id -o tsv)" \
         ${JOB:+"$(az containerapp job show -g "$RESOURCE_GROUP" -n "$JOB" --query id -o tsv)"}; do
         az role assignment create --assignee "$CLIENT_ID" --role Contributor --scope "$resource" -o none
@@ -151,6 +141,51 @@ if [[ -n "${GITHUB_REPO:-}" ]]; then
     gh variable set AZURE_CONTAINER_APP --repo "$GITHUB_REPO" --body "$APP"
     gh variable set AZURE_INBOX_JOB --repo "$GITHUB_REPO" --body "$JOB"
     gh variable set APP_URL --repo "$GITHUB_REPO" --body "https://${DOMAIN:-$ADDRESS}"
+
+    # Workflow "Infrastructure": deploys deploy/main.bicep. It sets roles and locks, so it needs Owner on the
+    # resource group. Only two environments get a token, and only from main: "azure-infra-what-if" shows the
+    # changes, "azure-infra" deploys after the approval of the person who runs this script.
+    REVIEWER_ID=$(gh api user --jq .id)
+    environment() {
+        local settings='{ "deployment_branch_policy": { "protected_branches": false, "custom_branch_policies": true } }'
+        if [[ -n "${2:-}" ]]; then
+            settings="{ \"reviewers\": [{ \"type\": \"User\", \"id\": $2 }],
+                \"deployment_branch_policy\": { \"protected_branches\": false, \"custom_branch_policies\": true } }"
+        fi
+        gh api --method PUT "repos/$GITHUB_REPO/environments/$1" --input - <<<"$settings" >/dev/null
+        if [[ -z $(gh api "repos/$GITHUB_REPO/environments/$1/deployment-branch-policies" \
+            --jq '.branch_policies[] | select(.name == "main") | .name') ]]; then
+            gh api --method POST "repos/$GITHUB_REPO/environments/$1/deployment-branch-policies" \
+                -f name=main -f type=branch >/dev/null
+        fi
+    }
+    environment azure-infra-what-if
+    environment azure-infra "$REVIEWER_ID"
+    INFRA_CLIENT_ID=$(github_app "$NAME-github-infra")
+    trust_github "$INFRA_CLIENT_ID" infra-what-if environment:azure-infra-what-if
+    trust_github "$INFRA_CLIENT_ID" infra environment:azure-infra
+    az role assignment create --assignee "$INFRA_CLIENT_ID" --role Owner \
+        --scope "$(az group show --name "$RESOURCE_GROUP" --query id -o tsv)" -o none
+    set_infra_variable() {
+        if [[ -n "$2" ]]; then
+            gh variable set "$1" --repo "$GITHUB_REPO" --body "$2"
+        else
+            gh variable delete "$1" --repo "$GITHUB_REPO" 2>/dev/null || true
+        fi
+    }
+    set_infra_variable AZURE_INFRA_CLIENT_ID "$INFRA_CLIENT_ID"
+    set_infra_variable OPERATOR_ID "$OPERATOR_ID"
+    set_infra_variable SQL_GROUP "$SQL_GROUP"
+    set_infra_variable SQL_GROUP_ID "$SQL_GROUP_ID"
+    set_infra_variable NAME "$NAME"
+    set_infra_variable ADMIN_EMAIL "$ADMIN_EMAIL"
+    set_infra_variable ALERT_EMAIL "$ALERT_EMAIL"
+    set_infra_variable DOMAIN "${DOMAIN:-}"
+    set_infra_variable MAILBOX_HOST "${MAILBOX_HOST:-}"
+    set_infra_variable MAILBOX_USER "${MAILBOX_USER:-}"
+    set_infra_variable MAILBOX_ADDRESS "${MAILBOX_ADDRESS:-}"
+    set_infra_variable MONTHLY_BUDGET "$MONTHLY_BUDGET"
+    set_infra_variable CULTURE "$CULTURE"
 fi
 
 if [[ -n "${DOMAIN:-}" && -z "$CERTIFICATE_ID" ]]; then

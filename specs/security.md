@@ -42,7 +42,7 @@ Flowtr verarbeitet Buchhaltungsdaten. Darum ist Security ein Key-Feature und Tei
 ## Betrieb
 - App und Job greifen mit einer Managed Identity auf SQL, Storage und Key Vault zu. Kein Passwort und kein Schlüssel in der Konfiguration ([Betrieb](../docs/betrieb.md)).
 - SQL nur mit Entra-Anmeldung (Gruppe der SQL-Admins). Storage ohne Shared Keys, ohne öffentlichen Zugriff.
-- Geheimnisse (Anthropic, Mailbox) nur im Key Vault. GitHub meldet sich per OIDC an und darf nur das Image von App und Job ändern.
+- Geheimnisse (Anthropic, Mailbox) nur im Key Vault. GitHub meldet sich per OIDC an. Die Pipeline darf nur das Image von App und Job ändern. Der Workflow «Infrastructure» ist Owner der Ressourcengruppe, aber nur in den Environments `azure-infra-what-if` und `azure-infra` und nur von `main`. Ein Deployment braucht die Freigabe eines Reviewers.
 - Die Keys von Data Protection (Login-Cookies, Einladungslinks, Formulare) liegen im Blob Storage, geschützt mit einem Key im Key Vault.
 - Logs ohne Daten aus Belegen: keine Beträge, keine Betreffs, keine Inhalte von Mails, keine Antworten der KI.
 - Locks verhindern das Löschen von Datenbank und Belegen.
