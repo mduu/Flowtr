@@ -3,7 +3,7 @@ using Flowtr.Shared.Status;
 namespace Flowtr.Server.CrossCutting.Hosting;
 
 /// <summary>
-/// Tells whether the database is ready and whether it wakes up. Azure SQL (free tier) pauses after 15 minutes
+/// Tells whether the database is ready and whether it wakes up. Azure SQL (free tier) pauses after 60 minutes
 /// without a connection and needs up to a minute to resume (story #011).
 /// </summary>
 public sealed class DatabaseReadiness(TimeProvider time)

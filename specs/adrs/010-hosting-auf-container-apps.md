@@ -19,7 +19,7 @@ Wir entscheiden uns für **Azure Container Apps (Consumption) mit Scale to Zero*
 
 - **App:** Container App mit 0 bis 1 Instanz. Ohne Nutzung läuft nichts.
 - **E-Mail-Eingang:** Ein geplanter Container Apps Job (stündlich) startet dasselbe Image mit `--job inbox`: einmal abholen, neue Belege lesen lassen, beenden. Dazu holt die App beim Start und mit «Jetzt abholen» ab.
-- **Datenbank:** Azure SQL Free Tier (Serverless General Purpose, 100'000 vCore-Sekunden pro Monat). Sie pausiert nach 15 Minuten ohne Verbindung. Beim Erreichen des Limits pausiert sie bis Ende Monat, statt Kosten zu verursachen.
+- **Datenbank:** Azure SQL Free Tier (Serverless General Purpose, 100'000 vCore-Sekunden pro Monat). Sie pausiert nach 60 Minuten ohne Verbindung (beim Free Offer fest). Beim Erreichen des Limits pausiert sie bis Ende Monat, statt Kosten zu verursachen.
 - **Regel: Die Datenbank nur wecken, wenn es etwas zu tun gibt.** Der Job öffnet sie nur, wenn Mails in der Mailbox liegen. Die Hintergrund-Jobs der App fragen sie nicht regelmässig ab.
 - **Start nach einer Pause:** Die App weckt die Datenbank sofort und zeigt bis dahin «*Flowtr* startet …». API-Aufrufe warten. Der Client zeigt einen Hinweis, wenn ein Aufruf auf die Datenbank wartet.
 - **Eigene Subscription:** Das Gratis-Kontingent von Container Apps gilt pro Subscription. Andere Container Apps würden es mitbrauchen.

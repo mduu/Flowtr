@@ -188,7 +188,7 @@ resource dataProtectionKey 'Microsoft.KeyVault/vaults/keys@2023-07-01' = {
   }
 }
 
-// --- Azure SQL, free tier: pauses after 15 minutes without a connection ---
+// --- Azure SQL, free tier: pauses after 60 minutes without a connection (fixed for the free offer) ---
 
 resource sql 'Microsoft.Sql/servers@2023-08-01' = {
   name: 'sql-${name}-${suffix}'
@@ -224,8 +224,6 @@ resource database 'Microsoft.Sql/servers/databases@2023-08-01' = {
   properties: {
     useFreeLimit: true
     freeLimitExhaustionBehavior: 'AutoPause'
-    // Without this value Azure pauses after 60 minutes: each wake would cost 4 times more free vCore seconds.
-    autoPauseDelay: 15
     minCapacity: json('0.5')
     maxSizeBytes: 34359738368
     requestedBackupStorageRedundancy: 'Local'
