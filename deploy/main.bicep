@@ -224,6 +224,8 @@ resource database 'Microsoft.Sql/servers/databases@2023-08-01' = {
   properties: {
     useFreeLimit: true
     freeLimitExhaustionBehavior: 'AutoPause'
+    // Without this value Azure pauses after 60 minutes: each wake would cost 4 times more free vCore seconds.
+    autoPauseDelay: 15
     minCapacity: json('0.5')
     maxSizeBytes: 34359738368
     requestedBackupStorageRedundancy: 'Local'

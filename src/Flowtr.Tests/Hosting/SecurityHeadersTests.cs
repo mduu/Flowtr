@@ -22,6 +22,7 @@ public class SecurityHeadersTests
         headers.XFrameOptions.ToString().ShouldBe("DENY");
         headers["Referrer-Policy"].ToString().ShouldBe("strict-origin-when-cross-origin");
         headers["Permissions-Policy"].ToString().ShouldContain("microphone=()");
+        headers["X-Robots-Tag"].ToString().ShouldBe("noindex, nofollow");
         headers["Cross-Origin-Opener-Policy"].ToString().ShouldBe("same-origin");
     }
 
