@@ -7,7 +7,7 @@
 | Ressource | Name | Zweck |
 |---|---|---|
 | Container App | `flowtr` | Die Web-App. 0 bis 1 Instanz. |
-| Container Apps Job | `flowtr-inbox` | Holt stündlich die Mails ab (nur mit Mailbox). |
+| Container Apps Job | `flowtr-inbox` | Holt einmal pro Nacht die Mails ab (nur mit Mailbox). Jede Mail weckt die Datenbank, darum nicht öfter. |
 | Azure SQL | `sql-flowtr-…/flowtr` | Journal, Benutzer, Audit-Log. Free Tier, pausiert nach 15 Minuten. |
 | Storage Account | `stflowtr…` | Container `belege`, `eingang`, `dataprotection`. Versionierung und Soft-Delete (30 Tage). |
 | Key Vault | `kv-flowtr-…` | Geheimnisse (`anthropic-api-key`, `mailbox-password`) und der Key für Data Protection. |

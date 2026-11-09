@@ -44,7 +44,8 @@ param mailboxUserName string = ''
 param mailboxAddress string = ''
 
 @description('Cron expression (UTC) for the inbox job.')
-param inboxSchedule string = '7 * * * *'
+// Once a night (UTC): the mails of a day wake the database only once.
+param inboxSchedule string = '7 2 * * *'
 
 @description('Budget per month in the currency of the billing account.')
 param monthlyBudget int = 5
@@ -292,7 +293,7 @@ resource operatorSecrets 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
   }
 }
 
-// --- Container Apps: the app scales to zero, the job fetches mail every hour ---
+// --- Container Apps: the app scales to zero, the job fetches mail once a night ---
 
 resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: 'cae-${name}'
