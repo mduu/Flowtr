@@ -188,7 +188,7 @@ if [[ -n "${GITHUB_REPO:-}" ]]; then
     set_infra_variable CULTURE "$CULTURE"
 fi
 
-if [[ -n "${DOMAIN:-}" && -z "$CERTIFICATE_ID" ]]; then
+if [[ -n "${DOMAIN:-}" && -z "$(certificate_id)" ]]; then
     step "Domain $DOMAIN: enter these DNS records, then run deploy/bind-domain.sh"
     echo "CNAME  ${DOMAIN%%.*}         $ADDRESS"
     echo "TXT    asuid.${DOMAIN%%.*}   $(output domainVerificationId)"
