@@ -5,6 +5,14 @@
 # SQL_GROUP, SQL_GROUP_ID, MONTHLY_BUDGET, CULTURE. Optional: DOMAIN, MAILBOX_HOST, MAILBOX_USER, MAILBOX_ADDRESS.
 # shellcheck shell=bash
 
+# Prints the ID of the managed certificate for DOMAIN, or nothing (before deploy/bind-domain.sh).
+certificate_id() {
+    if [[ -n "${DOMAIN:-}" ]]; then
+        az containerapp env certificate list --resource-group "$RESOURCE_GROUP" --name "cae-$NAME" \
+            --managed-certificates-only --query "[?properties.subjectName=='$DOMAIN'].id | [0]" -o tsv 2>/dev/null || true
+    fi
+}
+
 deploy_bicep() {
     local apps=$1 mode=${2:-create}
 
@@ -15,16 +23,9 @@ deploy_bicep() {
         --query properties.timePeriod.startDate -o tsv 2>/dev/null | cut -c1-10 || true)
     budget_start=${budget_start:-$(date -u +%Y-%m-01)}
 
-    # After deploy/bind-domain.sh: without the certificate, a deployment would remove the domain from the app.
-    # Sets CERTIFICATE_ID: deploy/deploy.sh shows the DNS records while it is empty.
-    CERTIFICATE_ID=""
-    if [[ -n "${DOMAIN:-}" ]]; then
-        CERTIFICATE_ID=$(az containerapp env certificate list --resource-group "$RESOURCE_GROUP" --name "cae-$NAME" \
-            --managed-certificates-only --query "[?properties.subjectName=='$DOMAIN'].id | [0]" -o tsv 2>/dev/null || true)
-    fi
-
+    # Without the certificate, a deployment would remove the domain from the app.
     local args=(--resource-group "$RESOURCE_GROUP" --template-file "$(dirname "${BASH_SOURCE[0]}")/main.bicep"
-        --parameters name="$NAME" image="$IMAGE" domain="${DOMAIN:-}" certificateId="$CERTIFICATE_ID"
+        --parameters name="$NAME" image="$IMAGE" domain="${DOMAIN:-}" certificateId="$(certificate_id)"
             adminEmail="$ADMIN_EMAIL" alertEmail="$ALERT_EMAIL" operatorId="$OPERATOR_ID"
             sqlAdminGroupName="$SQL_GROUP" sqlAdminGroupId="$SQL_GROUP_ID"
             mailboxHost="${MAILBOX_HOST:-}" mailboxUserName="${MAILBOX_USER:-}" mailboxAddress="${MAILBOX_ADDRESS:-}"
