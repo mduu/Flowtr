@@ -119,13 +119,15 @@ jobs:
             az containerapp job update --resource-group "$GROUP" --name "$JOB" --image "$image" -o none
           fi
 
-          # The new revision is ready, then Flowtr starts: it wakes the database and applies the migrations.
+          # The new revision is ready. Then a request to the API wakes the database: Flowtr applies the migrations.
+          # /status alone does not wake it (story #011). The API answers 401, which is correct.
           for _ in $(seq 1 60); do
             state=$(az containerapp show --resource-group "$GROUP" --name "$APP" \
               --query "properties.latestRevisionName == properties.latestReadyRevisionName" -o tsv)
             [ "$state" = "true" ] && break
             sleep 5
           done
+          curl -sS -o /dev/null --max-time 10 "$APP_URL/api/business" || true
           for _ in $(seq 1 60); do
             if curl -fsS "$APP_URL/status" | grep -q '"ready":true'; then
               echo "Flowtr is ready: $APP_URL"
