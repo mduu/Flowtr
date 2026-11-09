@@ -35,7 +35,7 @@ This file gives the short rules that always apply. The specs give the details. B
 | `docs/` | Operating and user documentation (how to run and use Flowtr) |
 | `specs/` | Specifications (what we build and why) |
 | `assets/` | Logo and images |
-| `.github/workflows/` | CI (`ci.yml`): build and test on each push to `main` and each pull request that changes the app (not `specs/`, `docs/`, `deploy/`, `assets/`, `*.md`). On `main` also: publish the image and deploy it to Azure (`docs/betrieb.md`). `infra.yml`: deploy `deploy/main.bicep` on each push to `main` that changes it, or by hand |
+| `.github/workflows/` | CI (`ci.yml`): build and test on each push to `main` and each pull request that changes the app (not `specs/`, `docs/`, `deploy/`, `assets/`, `*.md`). On `main` also: publish the image and deploy it to Azure (`docs/betrieb.md`). `infra.yml`: what-if, then deploy `deploy/main.bicep` after approval, on each push to `main` that changes it, or by hand |
 | `.claude/skills/` | Claude Code skills |
 
 ## Running

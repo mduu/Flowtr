@@ -143,25 +143,34 @@ if [[ -n "${GITHUB_REPO:-}" ]]; then
     gh variable set APP_URL --repo "$GITHUB_REPO" --body "https://${DOMAIN:-$ADDRESS}"
 
     # Workflow "Infrastructure": deploys deploy/main.bicep. It sets roles and locks, so it needs Owner on the
-    # resource group. Only the environment $INFRA_ENV gets a token, and only from main.
-    INFRA_ENV=azure-infra
-    gh api --method PUT "repos/$GITHUB_REPO/environments/$INFRA_ENV" --input - <<<'{
-        "deployment_branch_policy": { "protected_branches": false, "custom_branch_policies": true }
-    }' >/dev/null
-    if [[ -z $(gh api "repos/$GITHUB_REPO/environments/$INFRA_ENV/deployment-branch-policies" \
-        --jq '.branch_policies[] | select(.name == "main") | .name') ]]; then
-        gh api --method POST "repos/$GITHUB_REPO/environments/$INFRA_ENV/deployment-branch-policies" \
-            -f name=main -f type=branch >/dev/null
-    fi
+    # resource group. Only two environments get a token, and only from main: "azure-infra-what-if" shows the
+    # changes, "azure-infra" deploys after the approval of the person who runs this script.
+    REVIEWER_ID=$(gh api user --jq .id)
+    environment() {
+        local settings='{ "deployment_branch_policy": { "protected_branches": false, "custom_branch_policies": true } }'
+        if [[ -n "${2:-}" ]]; then
+            settings="{ \"reviewers\": [{ \"type\": \"User\", \"id\": $2 }],
+                \"deployment_branch_policy\": { \"protected_branches\": false, \"custom_branch_policies\": true } }"
+        fi
+        gh api --method PUT "repos/$GITHUB_REPO/environments/$1" --input - <<<"$settings" >/dev/null
+        if [[ -z $(gh api "repos/$GITHUB_REPO/environments/$1/deployment-branch-policies" \
+            --jq '.branch_policies[] | select(.name == "main") | .name') ]]; then
+            gh api --method POST "repos/$GITHUB_REPO/environments/$1/deployment-branch-policies" \
+                -f name=main -f type=branch >/dev/null
+        fi
+    }
+    environment azure-infra-what-if
+    environment azure-infra "$REVIEWER_ID"
     INFRA_CLIENT_ID=$(github_app "$NAME-github-infra")
-    trust_github "$INFRA_CLIENT_ID" infra "environment:$INFRA_ENV"
+    trust_github "$INFRA_CLIENT_ID" infra-what-if environment:azure-infra-what-if
+    trust_github "$INFRA_CLIENT_ID" infra environment:azure-infra
     az role assignment create --assignee "$INFRA_CLIENT_ID" --role Owner \
         --scope "$(az group show --name "$RESOURCE_GROUP" --query id -o tsv)" -o none
     set_infra_variable() {
         if [[ -n "$2" ]]; then
-            gh variable set "$1" --repo "$GITHUB_REPO" --env "$INFRA_ENV" --body "$2"
+            gh variable set "$1" --repo "$GITHUB_REPO" --body "$2"
         else
-            gh variable delete "$1" --repo "$GITHUB_REPO" --env "$INFRA_ENV" 2>/dev/null || true
+            gh variable delete "$1" --repo "$GITHUB_REPO" 2>/dev/null || true
         fi
     }
     set_infra_variable AZURE_INFRA_CLIENT_ID "$INFRA_CLIENT_ID"

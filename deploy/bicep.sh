@@ -1,5 +1,5 @@
 # Deploys deploy/main.bicep. deploy/deploy.sh and the workflow "Infrastructure" use it: source this file, then call
-# deploy_bicep <deployApps: true|false> [what-if].
+# deploy_bicep <deployApps: true|false> [what-if]. With what-if, it prints the changes as JSON.
 #
 # Needs these variables: SUBSCRIPTION_ID, RESOURCE_GROUP, NAME, IMAGE, ADMIN_EMAIL, ALERT_EMAIL, OPERATOR_ID,
 # SQL_GROUP, SQL_GROUP_ID, MONTHLY_BUDGET, CULTURE. Optional: DOMAIN, MAILBOX_HOST, MAILBOX_USER, MAILBOX_ADDRESS.
@@ -31,7 +31,8 @@ deploy_bicep() {
             monthlyBudget="$MONTHLY_BUDGET" budgetStartDate="$budget_start" culture="$CULTURE" deployApps="$apps")
 
     if [[ $mode == what-if ]]; then
-        az deployment group what-if "${args[@]}"
+        # JSON: deploy/what-if.jq makes a table from it.
+        az deployment group what-if "${args[@]}" --exclude-change-types Ignore NoChange --no-pretty-print
     else
         az deployment group create --name "flowtr-$(date -u +%Y%m%d-%H%M%S)" "${args[@]}" \
             --query properties.outputs -o json
