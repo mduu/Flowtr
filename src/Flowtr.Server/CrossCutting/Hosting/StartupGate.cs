@@ -1,5 +1,6 @@
 using System.Net;
 using Flowtr.Shared.Status;
+using Microsoft.AspNetCore.Diagnostics;
 
 namespace Flowtr.Server.CrossCutting.Hosting;
 
@@ -30,6 +31,8 @@ public sealed class StartupGate(RequestDelegate next, DatabaseReadiness readines
         if (IsProbe(context.Request.Path))
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;
+            // Else the not-found page runs through the gate again and, with a login cookie, wakes the database.
+            DisableStatusCodePage(context);
             return;
         }
 
@@ -54,6 +57,14 @@ public sealed class StartupGate(RequestDelegate next, DatabaseReadiness readines
 
         context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
         await context.Response.WriteAsync("Die Datenbank ist nicht erreichbar. Bitte versuche es später wieder.");
+    }
+
+    private static void DisableStatusCodePage(HttpContext context)
+    {
+        if (context.Features.Get<IStatusCodePagesFeature>() is { } statusCodePages)
+        {
+            statusCodePages.Enabled = false;
+        }
     }
 
     private static bool NeedsNoDatabase(PathString path) =>
